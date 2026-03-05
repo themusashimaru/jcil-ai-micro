@@ -7,58 +7,23 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
-// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
-// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
 import { encrypt as encryptToken, decrypt as decryptToken } from '@/lib/security/crypto';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('VercelToken');
 
 export const runtime = 'nodejs';
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  return { user, error };
-}
-
 /**
  * GET - Check if user has a Vercel token stored
  */
 export async function GET() {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user
   const rateLimitResult = await checkRequestRateLimit(
@@ -119,11 +84,9 @@ export async function GET() {
  * POST - Save Vercel token
  */
 export async function POST(request: NextRequest) {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user - strict limit for token operations
   const rateLimitResult = await checkRequestRateLimit(
@@ -206,12 +169,10 @@ export async function POST(request: NextRequest) {
 /**
  * DELETE - Remove Vercel token
  */
-export async function DELETE() {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+export async function DELETE(request: NextRequest) {
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user
   const rateLimitResult = await checkRequestRateLimit(

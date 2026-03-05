@@ -361,22 +361,40 @@ describe('ShellExecutor', () => {
 
 describe('VirtualFileSystem', () => {
   let vfs: VirtualFileSystem;
+  let executeSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vfs = new VirtualFileSystem('ws-vfs');
+    // Spy on ShellExecutor.prototype.execute to avoid fragile dynamic import mocks
+    executeSpy = vi.spyOn(ShellExecutor.prototype, 'execute');
+  });
+
+  afterEach(() => {
+    executeSpy.mockRestore();
   });
 
   describe('readFile', () => {
     it('should return file content on success', async () => {
-      // Use mockResolvedValueOnce for immediate resolution
-      mockExecAsync.mockResolvedValue({ stdout: 'file contents here', stderr: '' });
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'cat "/src/index.ts"',
+        output: 'file contents here',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const content = await vfs.readFile('/src/index.ts');
       expect(content).toBe('file contents here');
     }, 60000);
 
     it('should throw when file not found', async () => {
-      mockShellError('', 'No such file', 1);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'cat "/nonexistent"',
+        output: 'No such file',
+        exitCode: 1,
+        startedAt: new Date(),
+      });
 
       await expect(vfs.readFile('/nonexistent')).rejects.toThrow('File not found: /nonexistent');
     });
@@ -384,24 +402,32 @@ describe('VirtualFileSystem', () => {
 
   describe('writeFile', () => {
     it('should create directory and write file', async () => {
-      mockShellSuccess(''); // mkdir
-      mockShellSuccess(''); // cat >
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: '',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       await vfs.writeFile('/src/new/file.ts', 'content');
       // Two shell commands executed: mkdir and cat
-      expect(mockExecAsync).toHaveBeenCalledTimes(2);
+      expect(executeSpy).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('deleteFile', () => {
     it('should execute rm -f command', async () => {
-      mockShellSuccess('');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'rm -f "/src/old.ts"',
+        output: '',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       await vfs.deleteFile('/src/old.ts');
-      expect(mockExecAsync).toHaveBeenCalledWith(
-        expect.stringContaining('rm -f'),
-        expect.any(Object)
-      );
+      expect(executeSpy).toHaveBeenCalledWith(expect.stringContaining('rm -f'));
     });
   });
 
@@ -410,7 +436,13 @@ describe('VirtualFileSystem', () => {
       const lsOutput = `total 4
 drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 src
 -rw-r--r-- 1 user user  256 2024-01-15T10:30:00 index.ts`;
-      mockShellSuccess(lsOutput);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: lsOutput,
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const files = await vfs.listDirectory('/workspace');
       expect(files).toHaveLength(2);
@@ -426,7 +458,13 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 src
 drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 .
 drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
 -rw-r--r-- 1 user user  100 2024-01-15T10:30:00 file.ts`;
-      mockShellSuccess(lsOutput);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: lsOutput,
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const files = await vfs.listDirectory('/workspace');
       expect(files).toHaveLength(1);
@@ -434,7 +472,13 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
     });
 
     it('should throw when directory not found', async () => {
-      mockShellError('', 'No such directory', 1);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: 'No such directory',
+        exitCode: 1,
+        startedAt: new Date(),
+      });
 
       await expect(vfs.listDirectory('/bad')).rejects.toThrow('Directory not found: /bad');
     });
@@ -442,14 +486,26 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
 
   describe('exists', () => {
     it('should return true when path exists', async () => {
-      mockShellSuccess('exists');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: 'exists',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const result = await vfs.exists('/src/index.ts');
       expect(result).toBe(true);
     });
 
     it('should return false when path does not exist', async () => {
-      mockShellError('', 'test failed', 1);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: 'test failed',
+        exitCode: 1,
+        startedAt: new Date(),
+      });
 
       const result = await vfs.exists('/nope');
       expect(result).toBe(false);
@@ -458,14 +514,26 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
 
   describe('glob', () => {
     it('should return matching file paths', async () => {
-      mockShellSuccess('./src/a.ts\n./src/b.ts\n');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: './src/a.ts\n./src/b.ts\n',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const results = await vfs.glob('*.ts');
       expect(results).toEqual(['./src/a.ts', './src/b.ts']);
     });
 
     it('should filter out empty lines', async () => {
-      mockShellSuccess('./file.ts\n\n\n');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: './file.ts\n\n\n',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const results = await vfs.glob('*.ts');
       expect(results).toEqual(['./file.ts']);
@@ -474,7 +542,13 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
 
   describe('grep', () => {
     it('should parse grep output into structured matches', async () => {
-      mockShellSuccess('src/index.ts:10:const foo = 42;\nsrc/utils.ts:5:const bar = foo;');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: 'src/index.ts:10:const foo = 42;\nsrc/utils.ts:5:const bar = foo;',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const matches = await vfs.grep('foo');
       expect(matches).toHaveLength(2);
@@ -483,7 +557,13 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
     });
 
     it('should return empty array for no matches', async () => {
-      mockShellSuccess('');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: '',
+        output: '',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const matches = await vfs.grep('nonexistent');
       expect(matches).toEqual([]);
@@ -493,11 +573,30 @@ drwxr-xr-x 2 user user 4096 2024-01-15T10:30:00 ..
   describe('getFileTree', () => {
     it('should return file tree with correct types', async () => {
       // First call: find command returns paths
-      mockExecAsync.mockResolvedValueOnce({ stdout: './src\n./src/index.ts\n', stderr: '' });
-      // Second call: test -d for ./src (is a directory)
-      mockExecAsync.mockResolvedValueOnce({ stdout: 'dir', stderr: '' });
-      // Third call: test -d for ./src/index.ts (is NOT a directory)
-      mockExecAsync.mockResolvedValueOnce({ stdout: '', stderr: '' });
+      // Second call: test -d for ./src (is a directory — exitCode 0)
+      // Third call: test -d for ./src/index.ts (is NOT a directory — exitCode 1)
+      executeSpy
+        .mockResolvedValueOnce({
+          id: 'mock',
+          command: '',
+          output: './src\n./src/index.ts\n',
+          exitCode: 0,
+          startedAt: new Date(),
+        })
+        .mockResolvedValueOnce({
+          id: 'mock',
+          command: '',
+          output: 'dir',
+          exitCode: 0,
+          startedAt: new Date(),
+        })
+        .mockResolvedValueOnce({
+          id: 'mock',
+          command: '',
+          output: '',
+          exitCode: 1,
+          startedAt: new Date(),
+        });
 
       const tree = await vfs.getFileTree('.', 3);
       expect(tree).toHaveLength(2);

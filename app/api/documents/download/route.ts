@@ -13,8 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -35,51 +34,22 @@ function isValidFilename(filename: string): boolean {
 }
 
 // Decode token (encoded as base64url JSON with userId, filename, type)
-function decodeToken(token: string): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
+function decodeToken(
+  token: string
+): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
   try {
     const data = JSON.parse(Buffer.from(token, 'base64url').toString());
     if (data.u && data.f && data.t) {
       // SECURITY FIX: Validate filename to prevent path traversal
       if (!isValidFilename(data.f)) {
-        log.error('Invalid filename detected - possible path traversal attempt', { filename: data.f });
+        log.error('Invalid filename detected - possible path traversal attempt', {
+          filename: data.f,
+        });
         return null;
       }
       return { userId: data.u, filename: data.f, type: data.t };
     }
     return null;
-  } catch {
-    return null;
-  }
-}
-
-// Get authenticated user ID
-async function getAuthenticatedUserId(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Cookie operations may fail
-            }
-          },
-        },
-      }
-    );
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) return null;
-    return user.id;
   } catch {
     return null;
   }
@@ -113,12 +83,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user is authenticated and owns this file
-    const currentUserId = await getAuthenticatedUserId();
-    if (!currentUserId) {
+    const auth = await requireUser();
+    if (!auth.authorized) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    if (currentUserId !== decoded.userId) {
+    if (auth.user.id !== decoded.userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -174,4 +144,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Download failed' }, { status: 500 });
   }
 }
-

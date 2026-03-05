@@ -316,7 +316,7 @@ describe('Model Selection', () => {
   });
 
   it('should accept valid model IDs', () => {
-    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20250929'];
+    const validModels = ['claude-opus-4-6', 'claude-sonnet-4-6'];
 
     for (const model of validModels) {
       expect(model.startsWith('claude-')).toBe(true);
@@ -337,14 +337,14 @@ describe('Extended Thinking', () => {
 
   it('should only enable for supported models', () => {
     const supportedModels = ['claude-sonnet-4-6', 'claude-opus-4-6'];
-    const unsupportedModels = ['claude-haiku-4-5-20250929'];
+    const unsupportedModels = ['gpt-3.5-turbo'];
 
     for (const model of supportedModels) {
       expect(model.includes('sonnet') || model.includes('opus')).toBe(true);
     }
 
     for (const model of unsupportedModels) {
-      expect(model.includes('haiku')).toBe(true);
+      expect(model.includes('sonnet') || model.includes('opus')).toBe(false);
     }
   });
 });

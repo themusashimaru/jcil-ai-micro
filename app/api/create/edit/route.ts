@@ -16,8 +16,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 import {
@@ -68,22 +67,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createClient();
+  // Auth + CSRF protection
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
   try {
-    // Authenticate user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
-
     // Parse request
     const parseResult = await safeParseJSON<EditRequest>(request);
     if (!parseResult.success) {

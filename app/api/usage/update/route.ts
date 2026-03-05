@@ -16,39 +16,13 @@
 
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('UsageAPI');
 
 export const runtime = 'nodejs';
-
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
 
 // Get admin Supabase client for service operations
 function getSupabaseAdmin() {
@@ -75,17 +49,10 @@ interface UsageUpdateRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     const body: UsageUpdateRequest = await request.json();
     const { type, action = 'increment', userId } = body;
@@ -101,11 +68,11 @@ export async function POST(request: NextRequest) {
     // Admin can update other users' usage
     if (userId && userId !== user.id) {
       // Check if current user is admin
-      const { data: adminCheck } = await supabase
+      const { data: adminCheck } = (await auth.supabase
         .from('users')
         .select('is_admin')
         .eq('id', user.id)
-        .single();
+        .single()) as { data: { is_admin?: boolean } | null };
 
       if (!adminCheck?.is_admin) {
         return errors.forbidden("Only admins can update other users' usage");
@@ -116,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Get admin client for service operations
     const adminSupabase = getSupabaseAdmin();
-    const client = adminSupabase || supabase;
+    const client = adminSupabase || auth.supabase;
 
     if (action === 'reset') {
       // Reset usage count
@@ -145,9 +112,9 @@ export async function POST(request: NextRequest) {
     // Increment usage (default action)
     const rpcName = type === 'chat' ? 'increment_message_count' : 'increment_image_count';
 
-    const { data: newCount, error: rpcError } = await client.rpc(rpcName, {
+    const { data: newCount, error: rpcError } = (await client.rpc(rpcName, {
       user_id_param: targetUserId,
-    });
+    })) as { data: number | null; error: Error | null };
 
     if (rpcError) {
       log.error(

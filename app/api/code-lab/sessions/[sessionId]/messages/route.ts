@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 // HIGH-006: Add rate limiting
 import { rateLimiters } from '@/lib/security/rate-limit';
@@ -22,14 +22,9 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // HIGH-006: Rate limiting for GET
     const rateLimit = await rateLimiters.codeLabRead(user.id);

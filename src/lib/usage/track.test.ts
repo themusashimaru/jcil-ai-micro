@@ -33,10 +33,10 @@ describe('calculateCost', () => {
     expect(cost).toBe(18);
   });
 
-  it('should calculate cost for claude-haiku-4-5-20251001', () => {
-    // 1M input at $0.8/M + 1M output at $4/M = $4.8
+  it('should use Sonnet defaults for unknown model (haiku removed)', () => {
+    // Falls back to Sonnet pricing: 1M input at $3/M + 1M output at $15/M = $18
     const cost = calculateCost('claude-haiku-4-5-20251001', 1_000_000, 1_000_000);
-    expect(cost).toBe(4.8);
+    expect(cost).toBe(18);
   });
 
   it('should calculate cost for gpt-5.2', () => {

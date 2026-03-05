@@ -50,11 +50,13 @@ export interface StreamConfig {
   isAuthenticated: boolean;
   requestStartTime: number;
   request: Request;
+  /** BYOK: User's own API key for the selected provider (if configured) */
+  userApiKey?: string;
 }
 
 /**
  * Resolve the model and provider based on user selection.
- * Returns an error response if the selected provider is unavailable.
+ * All messages use Sonnet 4.6 by default (full search + tool support).
  */
 export function resolveProvider(provider: string | undefined): {
   selectedModel: string;
@@ -132,6 +134,7 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
     temperature,
     requestId,
     request,
+    userApiKey,
   } = config;
 
   log.info('Using non-Claude provider (direct adapter)', {
@@ -145,21 +148,23 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
   const nonClaudeStream = new ReadableStream({
     async start(controller) {
       try {
-        // Validate API key
-        const apiKeyEnvMap: Record<string, string[]> = {
-          openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
-          xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
-          deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
-          google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
-        };
-        const requiredEnvVars = apiKeyEnvMap[selectedProviderId];
-        if (requiredEnvVars) {
-          const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
-          if (!hasAnyKey) {
-            const primaryKey = requiredEnvVars[0];
-            throw new Error(
-              `${primaryKey} is not configured. Please set up the API key to use ${selectedProviderId} models.`
-            );
+        // Validate API key (skip if user has BYOK)
+        if (!userApiKey) {
+          const apiKeyEnvMap: Record<string, string[]> = {
+            openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
+            xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
+            deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
+            google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
+          };
+          const requiredEnvVars = apiKeyEnvMap[selectedProviderId];
+          if (requiredEnvVars) {
+            const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
+            if (!hasAnyKey) {
+              const primaryKey = requiredEnvVars[0];
+              throw new Error(
+                `${primaryKey} is not configured. Add your own API key in Settings, or contact the administrator.`
+              );
+            }
           }
         }
 
@@ -214,6 +219,7 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
           maxTokens: providerInfo?.model.maxOutputTokens || maxTokens,
           temperature,
           systemPrompt,
+          ...(userApiKey ? { userApiKey } : {}),
         });
 
         for await (const chunk of chatStream) {
@@ -335,6 +341,7 @@ export async function handleClaudeProvider(
     requestStartTime,
     request,
     pendingRequestId,
+    userApiKey,
   } = config;
 
   const routeOptions: ChatRouteOptions = {
@@ -345,6 +352,7 @@ export async function handleClaudeProvider(
     temperature,
     thinking: thinking as { enabled: boolean; budgetTokens?: number } | undefined,
     tools,
+    ...(userApiKey ? { userApiKey } : {}),
     onProviderSwitch: (from, to, reason) => {
       log.info('Provider failover triggered', { from, to, reason });
     },

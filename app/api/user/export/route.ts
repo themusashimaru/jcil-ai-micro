@@ -5,9 +5,9 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
 import { logger } from '@/lib/logger';
 import { errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('UserExport');
 
@@ -16,16 +16,9 @@ export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    // Get authenticated user
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limit - strict limit for data exports
     const rateLimitResult = await checkRequestRateLimit(

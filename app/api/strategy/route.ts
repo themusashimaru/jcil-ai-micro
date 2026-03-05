@@ -13,10 +13,9 @@
 
 import { NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase/server';
 import { createServerClient as createAdminClient } from '@/lib/supabase/client';
 import { untypedFrom } from '@/lib/supabase/workspace-client';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
 import { logger } from '@/lib/logger';
 import {
@@ -29,6 +28,7 @@ import {
   type Artifact,
 } from '@/agents/strategy';
 import { trackTokenUsage } from '@/lib/usage/track';
+import { canMakeRequest, getTokenUsage, incrementTokenUsage, formatTokenCount } from '@/lib/limits';
 
 const log = logger('StrategyAPI');
 
@@ -73,7 +73,7 @@ const activeSessions = new Map<string, ActiveSession>();
  * Run `npx supabase gen types` to regenerate types if needed
  */
 async function createSessionInDB(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   sessionId: string,
   attachments?: StrategyAttachment[],
@@ -117,7 +117,7 @@ async function createSessionInDB(
  * Update session phase in the database
  */
 async function updateSessionPhase(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   phase: SessionPhase,
   additionalData?: Record<string, unknown>
@@ -141,7 +141,7 @@ async function updateSessionPhase(
  * Store problem data after intake
  */
 async function storeProblemData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   problemSummary: string,
   problemData: unknown
@@ -162,7 +162,7 @@ async function storeProblemData(
  * Get problem data from database (for session restoration before execution)
  */
 async function getProblemData(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<unknown | null> {
   const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
@@ -182,7 +182,7 @@ async function getProblemData(
  * This allows us to restore the agent on a different serverless instance
  */
 async function storeIntakeMessages(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<void> {
@@ -199,7 +199,7 @@ async function storeIntakeMessages(
  * Get intake messages from database
  */
 async function getIntakeMessages(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<Array<{ role: 'user' | 'assistant'; content: string }> | null> {
   const { data, error } = await untypedFrom(supabase, 'strategy_sessions')
@@ -218,7 +218,7 @@ async function getIntakeMessages(
  * Store a finding in the database
  */
 async function storeFinding(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   dbSessionId: string,
   finding: Finding
 ): Promise<void> {
@@ -241,7 +241,7 @@ async function storeFinding(
  * Store final result and usage
  */
 async function storeResultAndUsage(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   dbSessionId: string,
   userId: string,
@@ -312,7 +312,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-haiku-4-5-20251001',
+        modelName: 'claude-sonnet-4-6',
         inputTokens: modelUsage.haiku.tokens,
         outputTokens: 0,
         source: 'strategy',
@@ -328,7 +328,7 @@ async function storeResultAndUsage(
  * Add user context to session
  */
 async function addUserContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   message: string
 ): Promise<void> {
@@ -355,7 +355,7 @@ async function addUserContext(
  * Only stores tool execution events that drive the UI
  */
 async function storeEvent(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string,
   event: StrategyStreamEvent
 ): Promise<void> {
@@ -401,7 +401,7 @@ async function storeEvent(
  * Get stored events for a session (for replay on reconnect)
  */
 async function getStoredEvents(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<StrategyStreamEvent[]> {
   const { data, error } = await untypedFrom(supabase, 'strategy_events')
@@ -427,7 +427,7 @@ async function getStoredEvents(
  * Get session from database
  */
 async function getSessionFromDB(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string
 ): Promise<{
   id: string;
@@ -471,6 +471,22 @@ async function isUserAdmin(
   return !!adminUser;
 }
 
+/**
+ * Get user's subscription tier for token quota enforcement
+ */
+async function getUserPlanKey(
+  userId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
+): Promise<string> {
+  const { data } = await supabase
+    .from('users')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .single();
+  return data?.subscription_tier || 'free';
+}
+
 // =============================================================================
 // API HANDLERS
 // =============================================================================
@@ -479,31 +495,41 @@ async function isUserAdmin(
  * POST - Start strategy or process intake input
  */
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
-  // Use anon client for auth verification only
-  const authClient = await createClient();
   // Use service-role client for all DB operations (bypasses RLS)
   // Strategy tables need INSERT/UPDATE which RLS policies don't fully allow for anon users
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     // Check admin status (for context tracking, not access control)
     // Deep Strategy Agent is now available to all users
     const isAdmin = await isUserAdmin(user.id, supabase);
+
+    // Check token quota before allowing agent usage
+    const userPlanKey = await getUserPlanKey(user.id, supabase);
+    const canProceed = await canMakeRequest(user.id, userPlanKey);
+    if (!canProceed) {
+      const usage = await getTokenUsage(user.id, userPlanKey);
+      const isFreeUser = userPlanKey === 'free';
+      log.warn('Token quota exceeded for strategy agent', {
+        userId: user.id,
+        plan: userPlanKey,
+        usage: usage.percentage,
+      });
+      return new Response(
+        JSON.stringify({
+          error: isFreeUser
+            ? "You've used your free trial tokens. Upgrade your plan to use agents."
+            : `You've reached your monthly token limit (${formatTokenCount(usage.used)} / ${formatTokenCount(usage.limit)}). Your limit resets next month, or upgrade for more tokens.`,
+          code: 'QUOTA_EXCEEDED',
+        }),
+        { status: 402, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Parse request body
     const jsonResult = await safeParseJSON<{
@@ -533,7 +559,7 @@ export async function POST(request: NextRequest) {
         return handleInput(supabase, sessionId, input, user.id, isAdmin);
 
       case 'execute':
-        return handleExecute(supabase, user.id, sessionId, isAdmin);
+        return handleExecute(supabase, user.id, sessionId, isAdmin, userPlanKey);
 
       case 'context':
         return handleContext(supabase, sessionId, message);
@@ -562,25 +588,14 @@ export async function POST(request: NextRequest) {
  * DELETE - Cancel current strategy
  */
 export async function DELETE(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
+  // Auth + CSRF protection for DELETE
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
 
-  const authClient = await createClient();
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const sessionId = request.nextUrl.searchParams.get('sessionId');
     if (!sessionId) {
       return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -620,21 +635,13 @@ export async function DELETE(request: NextRequest) {
  * GET - Get session status or list sessions
  */
 export async function GET(request: NextRequest) {
-  const authClient = await createClient();
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const { user } = auth;
+
   const supabase = createAdminClient();
 
   try {
-    const {
-      data: { user },
-    } = await authClient.auth.getUser();
-
-    if (!user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const sessionId = request.nextUrl.searchParams.get('sessionId');
 
     if (!sessionId) {
@@ -795,7 +802,7 @@ export async function GET(request: NextRequest) {
  * Start a new strategy session
  */
 async function handleStart(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   isAdmin: boolean,
   attachments?: StrategyAttachment[],
@@ -941,7 +948,7 @@ async function handleStart(
  * Process intake input
  */
 async function handleInput(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string | undefined,
   input: string | undefined,
   userId: string,
@@ -1092,7 +1099,7 @@ async function handleInput(
  * Add context during execution
  */
 async function handleContext(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   sessionId: string | undefined,
   message: string | undefined
 ): Promise<Response> {
@@ -1172,10 +1179,11 @@ async function handleContext(
  * Execute the full strategy
  */
 async function handleExecute(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
   userId: string,
   sessionId: string | undefined,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  userPlanKey: string = 'free'
 ): Promise<Response> {
   if (!sessionId) {
     return new Response(JSON.stringify({ error: 'Session ID required' }), {
@@ -1312,6 +1320,17 @@ async function handleExecute(
       // Store result and usage in database
       await storeResultAndUsage(supabase, sessionId, session.dbId, userId, result);
 
+      // Increment token quota so agent usage counts against monthly limit
+      const totalAgentTokens =
+        (result.metadata.modelUsage?.opus?.tokens || 0) +
+        (result.metadata.modelUsage?.sonnet?.tokens || 0) +
+        (result.metadata.modelUsage?.haiku?.tokens || 0);
+      if (totalAgentTokens > 0) {
+        incrementTokenUsage(userId, userPlanKey, totalAgentTokens).catch((err) => {
+          log.error('Failed to increment token usage for strategy', err);
+        });
+      }
+
       // Collect artifacts generated during synthesis
       const artifacts = session.agent.getArtifacts();
 
@@ -1325,6 +1344,7 @@ async function handleExecute(
             data: {
               result,
               cost: result.metadata.totalCost,
+              tokensUsed: totalAgentTokens,
               agents: result.metadata.totalAgents,
               searches: result.metadata.totalSearches,
               artifacts: artifacts.map((a: Artifact) => ({

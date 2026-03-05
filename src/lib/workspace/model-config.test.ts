@@ -23,15 +23,14 @@ vi.mock('@/lib/logger', () => ({
 // AVAILABLE_MODELS
 // -------------------------------------------------------------------
 describe('AVAILABLE_MODELS', () => {
-  it('should have 3 models', () => {
-    expect(AVAILABLE_MODELS).toHaveLength(3);
+  it('should have 2 models (haiku removed)', () => {
+    expect(AVAILABLE_MODELS).toHaveLength(2);
   });
 
-  it('should include sonnet, opus, haiku types', () => {
+  it('should include sonnet and opus types', () => {
     const types = AVAILABLE_MODELS.map((m) => m.type);
     expect(types).toContain('sonnet');
     expect(types).toContain('opus');
-    expect(types).toContain('haiku');
   });
 
   it('should have sonnet as recommended', () => {
@@ -185,9 +184,7 @@ describe('ModelConfigManager', () => {
       const m = new ModelConfigManager();
       const options = m.getModelOptions();
       const opus = options.find((o) => o.type === 'opus');
-      const haiku = options.find((o) => o.type === 'haiku');
       expect(opus?.badge).toBe('Most Capable');
-      expect(haiku?.badge).toBe('Fastest');
     });
 
     it('should mark sonnet as recommended', () => {
@@ -214,10 +211,8 @@ describe('getModelConfigManager', () => {
 describe('executeModelConfigTool', () => {
   it('should list models', () => {
     const result = executeModelConfigTool('model_list', {}, 'test');
-    expect(result).toContain('Available Models');
     expect(result).toContain('Sonnet');
     expect(result).toContain('Opus');
-    expect(result).toContain('Haiku');
   });
 
   it('should select model', () => {

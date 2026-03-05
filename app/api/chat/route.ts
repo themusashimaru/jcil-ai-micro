@@ -25,7 +25,6 @@
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import { acquireSlot, releaseSlot, generateRequestId } from '@/lib/queue';
-import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 import { chatRequestSchema } from '@/lib/validation/schemas';
 import { chatErrorResponse } from '@/lib/api/utils';
@@ -38,6 +37,7 @@ import { searchUserDocuments } from '@/lib/documents/userSearch';
 
 // Local modules
 import { authenticateRequest } from './auth';
+import { getUserBYOKConfig } from '@/lib/ai/byok';
 import { checkChatRateLimit } from './rate-limiting';
 import { getLastUserContent, truncateMessages, clampMaxTokens } from './helpers';
 import { buildFullSystemPrompt } from './system-prompt';
@@ -63,11 +63,6 @@ const log = logger('ChatRoute');
 
 export async function POST(request: NextRequest) {
   const requestStartTime = Date.now();
-
-  // ── CSRF Protection ──
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   const requestId = generateRequestId();
   let slotAcquired = false;
   let isStreamingResponse = false;
@@ -116,8 +111,8 @@ export async function POST(request: NextRequest) {
     const { messages, temperature, max_tokens, searchMode, conversationId, provider, thinking } =
       validation.data;
 
-    // ── Authentication ──
-    const authResult = await authenticateRequest();
+    // ── Authentication + CSRF ──
+    const authResult = await authenticateRequest(request);
     if (!authResult.authenticated) {
       return new Response(JSON.stringify(authResult.body), {
         status: authResult.status,
@@ -125,7 +120,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { userId, isAdmin, userPlanKey, customInstructions } = authResult;
+    const { userId, isAdmin, userPlanKey, customInstructions, supabase } = authResult;
 
     // ── Context Loading (memory, learning, RAG) ──
     let memoryContext = '';
@@ -367,8 +362,8 @@ export async function POST(request: NextRequest) {
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
     const clampedMaxTokens = clampMaxTokens(max_tokens);
 
-    // Build system prompt with all context
-    const { tools, composioToolContext } = await loadAllTools(userId);
+    // Build system prompt with all context (smart tiered tool loading)
+    const { tools, composioToolContext } = await loadAllTools(userId, lastUserContent);
 
     const fullSystemPrompt = buildFullSystemPrompt({
       customInstructions,
@@ -380,9 +375,24 @@ export async function POST(request: NextRequest) {
 
     log.debug('Available chat tools', { toolCount: tools.length });
 
-    // Resolve provider
-    const { selectedModel, selectedProviderId, error: providerError } = resolveProvider(provider);
+    // Resolve provider — all messages use Sonnet 4.6 by default
+    const {
+      selectedModel: resolvedModel,
+      selectedProviderId,
+      error: providerError,
+    } = resolveProvider(provider);
     if (providerError) return providerError;
+
+    // BYOK: Check if user has their own API key for the selected provider
+    let userApiKey: string | undefined;
+    let selectedModel = resolvedModel;
+    const byokConfig = await getUserBYOKConfig(supabase, userId, selectedProviderId);
+    if (byokConfig) {
+      userApiKey = byokConfig.apiKey;
+      if (byokConfig.model) {
+        selectedModel = byokConfig.model;
+      }
+    }
 
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
     const toolExecutor = createToolExecutor(userId, sessionId);
@@ -413,6 +423,7 @@ export async function POST(request: NextRequest) {
       isAuthenticated: true,
       requestStartTime,
       request,
+      userApiKey,
     };
 
     // Non-Claude providers use adapter directly

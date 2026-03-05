@@ -9,10 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
-// HIGH-006: Add rate limiting
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -57,16 +55,11 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
-    if (!user) {
-      return errors.unauthorized();
-    }
-
-    // HIGH-006: Rate limiting for GET
+    // Rate limiting for GET
     const rateLimit = await rateLimiters.codeLabRead(user.id);
     if (!rateLimit.allowed) {
       return errors.rateLimited(rateLimit.retryAfter);
@@ -138,20 +131,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     const body = await request.json();
     const { query, role, limit = 50 } = body;

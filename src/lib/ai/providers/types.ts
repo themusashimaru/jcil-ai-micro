@@ -135,6 +135,19 @@ export interface UnifiedImageBlock {
 }
 
 /**
+ * Unified document content block (PDF, XLSX, DOCX sent for analysis)
+ */
+export interface UnifiedDocumentBlock {
+  type: 'document';
+  source: {
+    type: 'base64';
+    mediaType: string;
+    data: string;
+  };
+  name?: string; // Filename for context
+}
+
+/**
  * Unified tool use block (AI requesting to use a tool)
  */
 export interface UnifiedToolUseBlock {
@@ -160,6 +173,7 @@ export interface UnifiedToolResultBlock {
 export type UnifiedContentBlock =
   | UnifiedTextBlock
   | UnifiedImageBlock
+  | UnifiedDocumentBlock
   | UnifiedToolUseBlock
   | UnifiedToolResultBlock;
 

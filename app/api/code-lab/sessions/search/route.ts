@@ -8,9 +8,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -37,19 +36,11 @@ interface SearchResult {
  * POST - Search across all sessions
  */
 export async function POST(request: NextRequest) {
-  // SECURITY FIX: Add CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // SECURITY FIX: Add rate limiting
     const rateLimitResult = await rateLimiters.codeLabEdit(user.id);

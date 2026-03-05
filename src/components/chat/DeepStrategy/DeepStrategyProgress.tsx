@@ -66,6 +66,7 @@ export function DeepStrategyProgress({
     let completedAgents = 0;
     let searches = 0;
     let cost = 0;
+    let tokensUsed = 0;
 
     for (const event of events) {
       if (event.type === 'agent_spawned' && event.data?.totalAgents) {
@@ -80,9 +81,12 @@ export function DeepStrategyProgress({
       if (event.data?.cost) {
         cost = event.data.cost;
       }
+      if (event.data?.tokensUsed) {
+        tokensUsed = event.data.tokensUsed;
+      }
     }
 
-    return { totalAgents, completedAgents, searches, cost };
+    return { totalAgents, completedAgents, searches, cost, tokensUsed };
   }, [events]);
 
   // Get recent findings
@@ -326,10 +330,18 @@ export function DeepStrategyProgress({
           <Lightbulb className="w-3.5 h-3.5" />
           <span>{findings.length} findings</span>
         </div>
-        {metrics.cost > 0 && (
+        {(metrics.tokensUsed > 0 || metrics.cost > 0) && (
           <div className="flex items-center gap-1.5 text-gray-400 ml-auto">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>${metrics.cost.toFixed(2)}</span>
+            <span>
+              {metrics.tokensUsed > 0
+                ? metrics.tokensUsed >= 1_000_000
+                  ? `${(metrics.tokensUsed / 1_000_000).toFixed(1)}M tokens`
+                  : metrics.tokensUsed >= 1_000
+                    ? `${(metrics.tokensUsed / 1_000).toFixed(0)}K tokens`
+                    : `${metrics.tokensUsed} tokens`
+                : `$${metrics.cost.toFixed(2)}`}
+            </span>
           </div>
         )}
       </div>

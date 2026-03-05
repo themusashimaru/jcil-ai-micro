@@ -11,20 +11,16 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-// Mock Supabase
-const mockGetUser = vi.fn();
+// Mock auth
+const mockRequireUser = vi.fn();
+vi.mock('@/lib/auth/user-guard', () => ({
+  requireUser: (...args: unknown[]) => mockRequireUser(...args),
+}));
+
+// Mock Supabase workspace-client
 const mockSelectSingle = vi.fn();
 const mockUpdate = vi.fn();
 const mockEqChain = vi.fn();
-
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () =>
-    Promise.resolve({
-      auth: {
-        getUser: () => mockGetUser(),
-      },
-    }),
-}));
 
 vi.mock('@/lib/supabase/workspace-client', () => ({
   untypedFrom: () => ({
@@ -58,13 +54,23 @@ vi.mock('@/lib/security/rate-limit', () => ({
 
 const { GET, POST } = await import('./route');
 
+const mockSupabase = { from: vi.fn() }; // placeholder; untypedFrom is mocked separately
+
 describe('GET /api/code-lab/memory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 }),
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory?sessionId=s1');
     const res = await GET(req);
@@ -73,7 +79,11 @@ describe('GET /api/code-lab/memory', () => {
   });
 
   it('returns 400 when sessionId is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory');
     const res = await GET(req);
@@ -84,7 +94,11 @@ describe('GET /api/code-lab/memory', () => {
   });
 
   it('returns 404 when session not found', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
     mockSelectSingle.mockResolvedValue({ data: null, error: { message: 'not found' } });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory?sessionId=s1');
@@ -94,7 +108,11 @@ describe('GET /api/code-lab/memory', () => {
   });
 
   it('returns memory content when session exists', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
     mockSelectSingle.mockResolvedValue({
       data: {
         id: 's1',
@@ -116,7 +134,11 @@ describe('GET /api/code-lab/memory', () => {
   });
 
   it('returns empty content when no memory set', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
     mockSelectSingle.mockResolvedValue({
       data: { id: 's1', settings: {}, updated_at: '2026-02-27T00:00:00Z' },
       error: null,
@@ -138,7 +160,10 @@ describe('POST /api/code-lab/memory', () => {
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 }),
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory', {
       method: 'POST',
@@ -151,7 +176,11 @@ describe('POST /api/code-lab/memory', () => {
   });
 
   it('returns 400 when sessionId is missing', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory', {
       method: 'POST',
@@ -164,7 +193,11 @@ describe('POST /api/code-lab/memory', () => {
   });
 
   it('returns 404 when session not found', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
     mockSelectSingle.mockResolvedValue({ data: null, error: { message: 'not found' } });
 
     const req = new NextRequest('http://localhost/api/code-lab/memory', {
@@ -178,7 +211,11 @@ describe('POST /api/code-lab/memory', () => {
   });
 
   it('saves memory content successfully', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-123' },
+      supabase: mockSupabase,
+    });
     mockSelectSingle.mockResolvedValue({
       data: { id: 's1', settings: {} },
       error: null,

@@ -3,40 +3,14 @@
  * PATCH - Move conversation to a folder (or remove from folder)
  */
 
-import { createServerClient } from '@supabase/ssr';
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('ConversationFolderAPI');
 
 export const dynamic = 'force-dynamic';
-
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -48,21 +22,13 @@ interface RouteParams {
  * Body: { folder_id: string | null }
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
     const { id } = await params;
-    const supabase = await getSupabaseClient();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for PATCH
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limiting
     const rateLimitResult = await checkRequestRateLimit(`folder:${user.id}`, rateLimits.standard);

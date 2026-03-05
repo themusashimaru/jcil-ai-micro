@@ -8,6 +8,13 @@ function getDocInfo(mimeType: string, filename: string) {
   if (mimeType.includes('spreadsheet') || mimeType.includes('xlsx') || filename.endsWith('.xlsx')) {
     return { icon: '📊', label: 'Excel Spreadsheet', color: 'from-green-600 to-green-700' };
   }
+  if (
+    mimeType.includes('presentation') ||
+    mimeType.includes('pptx') ||
+    filename.endsWith('.pptx')
+  ) {
+    return { icon: '📽️', label: 'PowerPoint Presentation', color: 'from-orange-600 to-orange-700' };
+  }
   if (mimeType.includes('document') || mimeType.includes('docx') || filename.endsWith('.docx')) {
     return { icon: '📄', label: 'Word Document', color: 'from-blue-600 to-blue-700' };
   }

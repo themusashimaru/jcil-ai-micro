@@ -41,7 +41,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 
 const SectionLoading = () => (
-  <div className="animate-pulse space-y-4 p-4">
+  <div className="animate-pulse space-y-4 p-4" aria-busy="true" aria-label="Loading section">
     <div className="h-6 w-48 rounded bg-glass" />
     <div className="h-4 w-full rounded bg-glass opacity-60" />
     <div className="h-4 w-3/4 rounded bg-glass opacity-40" />
@@ -68,6 +68,9 @@ const BYOKSection = dynamic(() => import('@/app/components/BYOKSection'), {
   loading: SectionLoading,
 });
 const MemoryFeedbackSection = dynamic(() => import('@/app/components/MemoryFeedbackSection'), {
+  loading: SectionLoading,
+});
+const PreferencesSection = dynamic(() => import('@/app/components/PreferencesSection'), {
   loading: SectionLoading,
 });
 
@@ -241,20 +244,16 @@ function SettingsContent() {
           {activeTab === 'memory' && <MemoryFeedbackSection />}
 
           {activeTab === 'preferences' && (
-            <section className="glass-morphism rounded-2xl p-6">
-              <h2 className="mb-4 text-xl font-semibold text-text-primary">Preferences</h2>
-              <p className="text-text-secondary">Model and safety preferences coming soon</p>
-              <div className="mt-4 space-y-3 text-sm text-text-muted">
-                <p>Future features will include:</p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>AI model selection</li>
-                  <li>Response tone preferences</li>
-                  <li>Safety and content filtering levels</li>
-                  <li>Language preferences</li>
-                  <li>Notification settings</li>
-                </ul>
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2 text-text-primary">Preferences</h2>
+                <p className="text-text-secondary">
+                  Customize your AI experience — theme, tone, document styling, and custom
+                  instructions.
+                </p>
               </div>
-            </section>
+              <PreferencesSection />
+            </div>
           )}
 
           {activeTab === 'privacy' && (
@@ -291,8 +290,11 @@ export default function SettingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-background">
-          <div className="text-center">
+        <div
+          className="min-h-screen p-4 md:p-8 flex items-center justify-center bg-background"
+          aria-busy="true"
+        >
+          <div className="text-center" role="status" aria-label="Loading settings">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4 border-primary"></div>
             <p className="text-text-secondary">Loading settings...</p>
           </div>

@@ -11,7 +11,6 @@ import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { getMCPManager, MCPServerConfig } from '@/lib/mcp/mcp-client';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -68,12 +67,8 @@ const DEFAULT_SERVERS: MCPServerConfig[] = [
  * MCP actions: addServer, removeServer, startServer, stopServer, callTool, listTools
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;

@@ -236,6 +236,7 @@ export function ChatThread({
         aria-label="Chat messages"
         aria-live="polite"
         aria-relevant="additions"
+        aria-busy={isStreaming}
       >
         {messages.map((message, index) => {
           // Check if this is the last user message

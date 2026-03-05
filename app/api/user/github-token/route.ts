@@ -9,8 +9,6 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { encrypt as encryptToken, decrypt as decryptToken } from '@/lib/security/crypto';
@@ -18,50 +16,19 @@ import {
   createSecureServiceClient,
   extractRequestContext,
 } from '@/lib/supabase/secure-service-role';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('GitHubToken');
 
 export const runtime = 'nodejs';
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  return { user, error };
-}
-
 /**
  * GET - Check if user has a GitHub token stored
  */
 export async function GET(request: NextRequest) {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user
   const rateLimitResult = await checkRequestRateLimit(
@@ -134,11 +101,9 @@ export async function GET(request: NextRequest) {
  * POST - Save GitHub token
  */
 export async function POST(request: NextRequest) {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user - strict limit for token operations
   const rateLimitResult = await checkRequestRateLimit(
@@ -210,11 +175,9 @@ export async function POST(request: NextRequest) {
  * DELETE - Remove GitHub token
  */
 export async function DELETE(request: NextRequest) {
-  const { user, error } = await getUser();
-
-  if (error || !user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const user = auth.user;
 
   // Rate limit by user
   const rateLimitResult = await checkRequestRateLimit(

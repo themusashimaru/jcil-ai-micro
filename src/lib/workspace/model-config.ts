@@ -56,18 +56,6 @@ export const AVAILABLE_MODELS: ModelConfig[] = [
     supportsExtendedThinking: true,
     supportsVision: true,
   },
-  {
-    id: 'claude-haiku-4-5-20251001',
-    name: 'Claude Haiku 4.5',
-    type: 'haiku',
-    description: 'Fastest model. Best for simple tasks and quick iterations.',
-    contextWindow: 200000,
-    maxOutput: 16384,
-    costPer1kInput: 0.1,
-    costPer1kOutput: 0.5,
-    supportsExtendedThinking: true,
-    supportsVision: true,
-  },
 ];
 
 // Session model preferences

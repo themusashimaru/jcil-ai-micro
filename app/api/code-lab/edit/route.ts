@@ -22,7 +22,6 @@ import { successResponse, errors } from '@/lib/api/utils';
 import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
 import { getContainerManager } from '@/lib/workspace/container';
 import { sanitizeFilePath } from '@/lib/workspace/security';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
@@ -71,20 +70,14 @@ async function writeFileToWorkspace(
  */
 export async function POST(request: NextRequest) {
   try {
-    // CSRF Protection (skip for dry-run requests as they don't mutate)
-    const body = await request.json();
-    const { dryRun = false } = body as { dryRun?: boolean };
-
-    if (!dryRun) {
-      const csrfCheck = validateCSRF(request);
-      if (!csrfCheck.valid) return csrfCheck.response!;
-    }
-
-    // Auth check
+    // Auth + CSRF protection (requireUser handles CSRF for POST)
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;
     }
+
+    const body = await request.json();
+    const { dryRun = false } = body as { dryRun?: boolean };
 
     // Rate limiting (skip for dry-run as it doesn't consume resources)
     if (!dryRun) {
@@ -275,11 +268,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    // CSRF Protection
-    const csrfCheck = validateCSRF(request);
-    if (!csrfCheck.valid) return csrfCheck.response!;
-
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;

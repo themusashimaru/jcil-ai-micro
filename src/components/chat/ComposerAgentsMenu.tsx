@@ -137,6 +137,9 @@ export function ComposerAgentsMenu({
         >
           <div className="p-2 border-b border-theme">
             <p className="text-xs font-medium text-text-muted">Select an Agent</p>
+            <p className="text-[10px] text-text-muted mt-0.5">
+              Agents use tokens faster due to parallel AI calls
+            </p>
           </div>
           <div className="p-1">
             {/* Exit agent mode */}

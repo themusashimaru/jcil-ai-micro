@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import OpenAI from 'openai';
 
@@ -30,16 +30,9 @@ function getOpenAI(): OpenAI {
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth check (with CSRF protection for POST)
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
 
     // Get the form data with audio file
     const formData = await request.formData();

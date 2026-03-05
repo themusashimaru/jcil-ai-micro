@@ -8,11 +8,10 @@
 
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { cookies } from 'next/headers';
+import { optionalUser } from '@/lib/auth/user-guard';
 
 // Force dynamic for search params and auth
 export const dynamic = 'force-dynamic';
-import { createServerClient } from '@supabase/ssr';
 import {
   ALL_TOOLKITS,
   POPULAR_TOOLKITS,
@@ -24,36 +23,6 @@ import type { ToolkitCategory } from '@/lib/composio';
 import { logger } from '@/lib/logger';
 
 const log = logger('ComposioToolkitsAPI');
-
-// Helper to get Supabase client and user
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            /* ignore */
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
 
 /**
  * GET - List toolkits with optional filters
@@ -98,7 +67,8 @@ export async function GET(request: NextRequest) {
     }));
 
     if (showConnected && isComposioConfigured()) {
-      const user = await getAuthenticatedUser();
+      const auth = await optionalUser();
+      const user = auth.user;
       if (user) {
         const connectedAccounts = await getConnectedAccounts(user.id);
 

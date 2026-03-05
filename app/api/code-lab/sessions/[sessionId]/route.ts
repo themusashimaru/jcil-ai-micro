@@ -8,9 +8,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('CodeLabSessionDetail');
@@ -24,14 +23,9 @@ export async function GET(
 ) {
   try {
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     const { data: session, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .select('*')
@@ -76,21 +70,11 @@ export async function PATCH(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    // SECURITY: Validate CSRF for state-changing operation
-    const csrfCheck = validateCSRF(request);
-    if (!csrfCheck.valid) {
-      return csrfCheck.response!;
-    }
-
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for PATCH
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     const body = await request.json();
     const updates: Record<string, unknown> = {
@@ -163,21 +147,11 @@ export async function DELETE(
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    // SECURITY: Validate CSRF for state-changing operation
-    const csrfCheck = validateCSRF(request);
-    if (!csrfCheck.valid) {
-      return csrfCheck.response!;
-    }
-
     const { sessionId } = await params;
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // SECURITY FIX: First verify the session belongs to the user BEFORE deleting anything
     const { data: session, error: verifyError } = await (

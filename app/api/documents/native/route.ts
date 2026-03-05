@@ -14,8 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import { logger } from '@/lib/logger';
 
@@ -23,44 +22,6 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 const log = logger('DocumentsNative');
-
-/**
- * Get authenticated user ID from session
- */
-async function getAuthenticatedUserId(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // Cookie operations may fail
-            }
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (error || !user) return null;
-    return user.id;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Get Supabase admin client for storage operations
@@ -83,11 +44,10 @@ function getSupabaseAdmin() {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const userId = await getAuthenticatedUserId();
-    if (!userId) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const userId = auth.user.id;
 
     // Parse request body
     const body = await request.json();

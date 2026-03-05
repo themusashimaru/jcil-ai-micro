@@ -7,9 +7,11 @@
  * Migrated from in-memory adminCache (Task 2.1.8) — serverless-safe.
  */
 
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { cacheGet, cacheSet } from '@/lib/redis/client';
+import { validateCSRF } from '@/lib/security/csrf';
 import { logger } from '@/lib/logger';
 
 const log = logger('ChatAuth');
@@ -37,6 +39,8 @@ export interface AuthResult {
   isAdmin: boolean;
   userPlanKey: string;
   customInstructions: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any;
 }
 
 export interface AuthError {
@@ -47,10 +51,26 @@ export interface AuthError {
 
 /**
  * Authenticate the request and load user data.
+ * Pass `request` for state-changing methods (POST/PUT/DELETE) to enable CSRF validation.
  * Returns either an AuthResult on success or an AuthError on failure.
  */
-export async function authenticateRequest(): Promise<AuthResult | AuthError> {
+export async function authenticateRequest(request?: NextRequest): Promise<AuthResult | AuthError> {
   try {
+    // CSRF protection for state-changing operations (built-in, like requireUser)
+    if (request) {
+      const csrfCheck = validateCSRF(request);
+      if (!csrfCheck.valid) {
+        return {
+          authenticated: false,
+          status: 403,
+          body: {
+            error: 'CSRF validation failed',
+            code: 'CSRF_ERROR',
+            message: 'Request origin validation failed.',
+          },
+        };
+      }
+    }
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -127,6 +147,7 @@ export async function authenticateRequest(): Promise<AuthResult | AuthError> {
       isAdmin,
       userPlanKey,
       customInstructions,
+      supabase,
     };
   } catch (authErr) {
     log.error('Auth check failed', {

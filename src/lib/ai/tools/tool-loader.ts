@@ -19,7 +19,7 @@
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
-import { TOOL_REGISTRY, type ToolRegistryEntry } from './registry';
+import { TOOL_REGISTRY, type ToolRegistryEntry, type ToolTier } from './registry';
 
 // ============================================================================
 // TYPES
@@ -434,11 +434,10 @@ export function hasToolLoader(toolName: string): boolean {
 }
 
 /**
- * Cached tool definitions with TTL to avoid re-running availability checks
- * on every request within the same server instance.
+ * Per-tier cached tool definitions with TTL to avoid re-running availability
+ * checks on every request within the same server instance.
  */
-let cachedToolDefs: UnifiedTool[] | null = null;
-let cachedToolDefsTimestamp = 0;
+const cachedToolDefsByTier = new Map<string, { tools: UnifiedTool[]; timestamp: number }>();
 const TOOL_DEFS_TTL_MS = 60_000; // 1 minute
 
 /**
@@ -447,24 +446,35 @@ const TOOL_DEFS_TTL_MS = 60_000; // 1 minute
  * 1. In the loader map
  * 2. In the registry as 'active' or 'beta'
  * 3. Pass their availability check
+ * 4. Match the requested tiers (defaults to all tiers)
  *
- * Results are cached for 1 minute to avoid re-running availability checks
- * on every request within the same server instance.
+ * Results are cached per tier combination for 1 minute to avoid
+ * re-running availability checks on every request.
  *
- * Returns lightweight tool definition objects (name + description + parameters).
+ * @param tiers - Which tiers to include. Defaults to all tiers.
  */
-export async function loadAvailableToolDefinitions(): Promise<UnifiedTool[]> {
+export async function loadAvailableToolDefinitions(
+  tiers?: ToolTier[]
+): Promise<UnifiedTool[]> {
+  const tierKey = tiers ? tiers.sort().join(',') : 'all';
+
   // Return cached definitions if still fresh
-  if (cachedToolDefs && Date.now() - cachedToolDefsTimestamp < TOOL_DEFS_TTL_MS) {
-    return cachedToolDefs;
+  const cached = cachedToolDefsByTier.get(tierKey);
+  if (cached && Date.now() - cached.timestamp < TOOL_DEFS_TTL_MS) {
+    return cached.tools;
   }
 
   const tools: UnifiedTool[] = [];
 
   // Only load tools that are active or beta in the registry
-  const activeTools = TOOL_REGISTRY.filter(
+  let activeTools = TOOL_REGISTRY.filter(
     (entry: ToolRegistryEntry) => entry.status === 'active' || entry.status === 'beta'
   );
+
+  // Filter by tier if specified
+  if (tiers) {
+    activeTools = activeTools.filter((entry: ToolRegistryEntry) => tiers.includes(entry.tier));
+  }
 
   // Load tool modules in parallel for faster initialization
   const loadPromises = activeTools
@@ -490,8 +500,7 @@ export async function loadAvailableToolDefinitions(): Promise<UnifiedTool[]> {
   }
 
   // Cache the result
-  cachedToolDefs = tools;
-  cachedToolDefsTimestamp = Date.now();
+  cachedToolDefsByTier.set(tierKey, { tools, timestamp: Date.now() });
 
   return tools;
 }
@@ -516,6 +525,5 @@ export async function executeToolByName(
  */
 export function clearToolModuleCache(): void {
   moduleCache.clear();
-  cachedToolDefs = null;
-  cachedToolDefsTimestamp = 0;
+  cachedToolDefsByTier.clear();
 }

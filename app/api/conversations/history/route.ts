@@ -5,37 +5,11 @@
  * Used to provide AI with access to previous conversation history
  */
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
 
 const log = logger('ConversationHistoryAPI');
-
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
 
 /**
  * GET /api/conversations/history
@@ -46,21 +20,15 @@ async function getSupabaseClient() {
  */
 export async function GET(request: Request) {
   try {
-    const supabase = await getSupabaseClient();
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
+
     const { searchParams } = new URL(request.url);
 
     // Parse query params
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 20);
     const excludeId = searchParams.get('exclude');
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
 
     // Fetch recent conversations
     let query = supabase

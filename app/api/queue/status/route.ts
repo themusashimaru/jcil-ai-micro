@@ -11,18 +11,16 @@ import { getChatQueueStats, isBullMQAvailable } from '@/lib/queue/bull-queue';
 import { getWorkerStats } from '@/lib/queue/workers';
 import { getAllBreakerStatus } from '@/lib/circuit-breaker';
 import { getAnthropicKeyStats } from '@/lib/anthropic/client';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { optionalUser } from '@/lib/auth/user-guard';
 
 export async function GET(_request: Request) {
   // Check if user is admin (simple check, doesn't block non-admins)
   let isAdmin = false;
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { user, supabase } = await optionalUser();
     if (user) {
-      const { data: adminUser } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: adminUser } = await (supabase as any)
         .from('admin_users')
         .select('id')
         .eq('user_id', user.id)

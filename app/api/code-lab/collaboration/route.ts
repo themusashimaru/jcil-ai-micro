@@ -16,7 +16,6 @@ import {
 } from '@/lib/collaboration/collaboration-manager';
 import { CRDTOperation } from '@/lib/collaboration/crdt-document';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
 import { rateLimiters } from '@/lib/security/rate-limit';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -28,12 +27,8 @@ const log = logger('CollaborationAPI');
  * Collaboration actions: create, join, leave, operation, cursor, sync
  */
 export async function POST(request: NextRequest) {
-  // CSRF protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
   try {
-    // Auth check
+    // Auth + CSRF protection
     const auth = await requireUser(request);
     if (!auth.authorized) {
       return auth.response;

@@ -8,6 +8,7 @@
 
 import PDFDocument from 'pdfkit';
 import type { InvoiceDocument } from './types';
+import { fetchImageBuffer } from './imageFetcher';
 
 // Default styling
 const DEFAULT_PRIMARY_COLOR = '#1e3a5f'; // Navy blue
@@ -17,6 +18,13 @@ const DEFAULT_CURRENCY = 'USD';
  * Generate a PDF invoice from invoice JSON
  */
 export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buffer> {
+  // Pre-fetch logo if provided (must happen before PDF stream starts)
+  let logoBuffer: Buffer | null = null;
+  if (invoice.format?.logoUrl) {
+    const result = await fetchImageBuffer(invoice.format.logoUrl);
+    if (result) logoBuffer = result.buffer;
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -38,9 +46,20 @@ export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buff
       const currencySymbol = getCurrencySymbol(currency);
 
       // ========================================
-      // HEADER
+      // HEADER WITH OPTIONAL LOGO
       // ========================================
-      doc.fontSize(28).fillColor(primaryColor).text('INVOICE', { align: 'right' });
+      if (logoBuffer) {
+        // Logo on the left, INVOICE text on the right
+        try {
+          doc.image(logoBuffer, 50, 50, { width: 120, height: 60, fit: [120, 60] });
+        } catch {
+          // If logo rendering fails, continue without it
+        }
+        doc.fontSize(28).fillColor(primaryColor).text('INVOICE', 350, 50, { align: 'right' });
+        doc.y = 120; // Move below the logo area
+      } else {
+        doc.fontSize(28).fillColor(primaryColor).text('INVOICE', { align: 'right' });
+      }
       doc.moveDown(0.5);
 
       // Invoice details on the right
@@ -103,10 +122,15 @@ export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buff
         width: colWidths.quantity,
         align: 'center',
       });
-      doc.text('Unit Price', tableLeft + colWidths.description + colWidths.quantity + 10, tableTop + 7, {
-        width: colWidths.unitPrice,
-        align: 'right',
-      });
+      doc.text(
+        'Unit Price',
+        tableLeft + colWidths.description + colWidths.quantity + 10,
+        tableTop + 7,
+        {
+          width: colWidths.unitPrice,
+          align: 'right',
+        }
+      );
       doc.text(
         'Total',
         tableLeft + colWidths.description + colWidths.quantity + colWidths.unitPrice + 10,
@@ -149,7 +173,10 @@ export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buff
       });
 
       // Table border
-      doc.strokeColor('#cccccc').rect(tableLeft, tableTop, 500, rowY - tableTop).stroke();
+      doc
+        .strokeColor('#cccccc')
+        .rect(tableLeft, tableTop, 500, rowY - tableTop)
+        .stroke();
 
       // ========================================
       // TOTALS
@@ -160,7 +187,10 @@ export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buff
       // Calculate totals
       const subtotal =
         invoice.subtotal ??
-        invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.unitPrice), 0);
+        invoice.items.reduce(
+          (sum, item) => sum + (item.total ?? item.quantity * item.unitPrice),
+          0
+        );
 
       const tax = invoice.tax ?? (invoice.taxRate ? subtotal * (invoice.taxRate / 100) : 0);
       const total = invoice.total ?? subtotal + tax;
@@ -169,21 +199,30 @@ export async function generateInvoicePdf(invoice: InvoiceDocument): Promise<Buff
 
       // Subtotal
       doc.text('Subtotal:', totalsX, totalsY);
-      doc.text(`${currencySymbol}${subtotal.toFixed(2)}`, totalsX + 70, totalsY, { align: 'right', width: 80 });
+      doc.text(`${currencySymbol}${subtotal.toFixed(2)}`, totalsX + 70, totalsY, {
+        align: 'right',
+        width: 80,
+      });
       totalsY += 20;
 
       // Tax (if applicable)
       if (tax > 0 || invoice.taxRate) {
         const taxLabel = invoice.taxRate ? `Tax (${invoice.taxRate}%):` : 'Tax:';
         doc.text(taxLabel, totalsX, totalsY);
-        doc.text(`${currencySymbol}${tax.toFixed(2)}`, totalsX + 70, totalsY, { align: 'right', width: 80 });
+        doc.text(`${currencySymbol}${tax.toFixed(2)}`, totalsX + 70, totalsY, {
+          align: 'right',
+          width: 80,
+        });
         totalsY += 20;
       }
 
       // Total (bold)
       doc.fontSize(12).fillColor(primaryColor).font('Helvetica-Bold');
       doc.text('TOTAL:', totalsX, totalsY);
-      doc.text(`${currencySymbol}${total.toFixed(2)}`, totalsX + 70, totalsY, { align: 'right', width: 80 });
+      doc.text(`${currencySymbol}${total.toFixed(2)}`, totalsX + 70, totalsY, {
+        align: 'right',
+        width: 80,
+      });
       doc.font('Helvetica');
 
       // ========================================

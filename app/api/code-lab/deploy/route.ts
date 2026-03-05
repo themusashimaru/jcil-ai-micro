@@ -14,31 +14,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createServerClient } from '@/lib/supabase/server';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { errors } from '@/lib/api/utils';
 
 const log = logger('DeployAPI');
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  // Auth + CSRF protection for POST
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   const { platform } = (await request.json()) as { platform?: string };
 
-  log.info('Deploy API called - redirecting to Composio connectors', { platform, userId: user.id });
+  log.info('Deploy API called - redirecting to Composio connectors', {
+    platform,
+    userId: auth.user.id,
+  });
 
   return NextResponse.json(
     {
@@ -60,14 +53,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return errors.unauthorized();
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const platform = searchParams.get('platform');

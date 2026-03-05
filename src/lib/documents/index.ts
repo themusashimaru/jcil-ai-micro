@@ -14,6 +14,15 @@ export { generateSpreadsheetXlsx, createBudgetTemplate } from './spreadsheetGene
 export { generateInvoicePdf } from './invoiceGenerator';
 export { generateWordDocx, createLetterTemplate } from './documentGenerator';
 export { generateGeneralPdf } from './generalPdfGenerator';
+export { generatePresentationPptx } from './presentationGenerator';
+
+// Chart Rendering
+export { renderChart } from './chartRenderer';
+export type { ChartConfig, ChartDataSeries } from './chartRenderer';
+
+// Themes
+export { resolveTheme, getThemeNames, THEMES } from './themes';
+export type { DocumentTheme } from './themes';
 
 // Excel Formula Helpers
 export { ExcelFormulas, columnToLetter, cellRef, rangeRef } from './excelFormulas';
@@ -25,6 +34,7 @@ export {
   isWordDocument,
   isInvoiceDocument,
   isGeneralPdfDocument,
+  isPresentationDocument,
 } from './types';
 
 /**
@@ -38,12 +48,15 @@ import {
   isWordDocument,
   isInvoiceDocument,
   isGeneralPdfDocument,
+  isPresentationDocument,
 } from './types';
 import { generateResumeDocx } from './resumeGenerator';
 import { generateSpreadsheetXlsx } from './spreadsheetGenerator';
 import { generateInvoicePdf } from './invoiceGenerator';
 import { generateWordDocx } from './documentGenerator';
 import { generateGeneralPdf } from './generalPdfGenerator';
+import { generatePresentationPptx } from './presentationGenerator';
+import { resolveTheme } from './themes';
 
 export interface GeneratedDocument {
   buffer: Buffer;
@@ -60,6 +73,9 @@ export async function generateDocument(
   data: DocumentData,
   customFilename?: string
 ): Promise<GeneratedDocument> {
+  // Apply theme colors if a theme is specified and no explicit color is set
+  applyTheme(data);
+
   if (isResumeDocument(data)) {
     const buffer = await generateResumeDocx(data);
     const filename = customFilename || `${sanitizeFilename(data.name)}_Resume.docx`;
@@ -115,6 +131,17 @@ export async function generateDocument(
     };
   }
 
+  if (isPresentationDocument(data)) {
+    const buffer = await generatePresentationPptx(data);
+    const filename = customFilename || `${sanitizeFilename(data.title)}.pptx`;
+    return {
+      buffer,
+      filename,
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      extension: 'pptx',
+    };
+  }
+
   throw new Error(`Unknown document type: ${(data as { type: string }).type}`);
 }
 
@@ -126,6 +153,37 @@ function sanitizeFilename(name: string): string {
     .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .substring(0, 50); // Limit length
+}
+
+/**
+ * Apply theme colors to document format (only fills in missing color fields).
+ */
+function applyTheme(data: DocumentData): void {
+  const format = (data as { format?: { theme?: string } }).format;
+  if (!format?.theme) return;
+
+  const theme = resolveTheme(format.theme);
+  if (!theme) return;
+
+  if (isResumeDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isSpreadsheetDocument(data)) {
+    data.format = data.format || {};
+    data.format.headerColor = data.format.headerColor || theme.headerBg;
+  } else if (isWordDocument(data)) {
+    // Word docs don't have a primaryColor field but theme is noted for future use
+  } else if (isInvoiceDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isGeneralPdfDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+  } else if (isPresentationDocument(data)) {
+    data.format = data.format || {};
+    data.format.primaryColor = data.format.primaryColor || theme.primaryColor;
+    data.format.accentColor = data.format.accentColor || theme.accentColor;
+  }
 }
 
 /**
@@ -141,7 +199,14 @@ export function detectDocumentType(json: unknown): string | null {
     return null;
   }
 
-  const validTypes = ['resume', 'spreadsheet', 'document', 'invoice', 'general_pdf'];
+  const validTypes = [
+    'resume',
+    'spreadsheet',
+    'document',
+    'invoice',
+    'general_pdf',
+    'presentation',
+  ];
   return validTypes.includes(obj.type) ? obj.type : null;
 }
 
@@ -216,6 +281,28 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
             return { valid: false, error: `Sheet[${i}].row[${j}] missing "cells" array` };
           }
         }
+        // Validate charts if present
+        if (sheet.charts !== undefined) {
+          if (!Array.isArray(sheet.charts)) {
+            return { valid: false, error: `Sheet[${i}] "charts" must be an array` };
+          }
+          const validChartTypes = ['bar', 'line', 'pie'];
+          for (let k = 0; k < sheet.charts.length; k++) {
+            const chart = sheet.charts[k] as Record<string, unknown>;
+            if (!chart.type || !validChartTypes.includes(chart.type as string)) {
+              return {
+                valid: false,
+                error: `Sheet[${i}].chart[${k}] has invalid type (must be bar, line, or pie)`,
+              };
+            }
+            if (!chart.categories || !Array.isArray(chart.categories)) {
+              return { valid: false, error: `Sheet[${i}].chart[${k}] missing "categories" array` };
+            }
+            if (!chart.series || !Array.isArray(chart.series)) {
+              return { valid: false, error: `Sheet[${i}].chart[${k}] missing "series" array` };
+            }
+          }
+        }
       }
       break;
     }
@@ -228,7 +315,7 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         return { valid: false, error: 'Document missing "sections" array' };
       }
       // Validate each section has a type
-      const validSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule'];
+      const validSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'image'];
       for (let i = 0; i < obj.sections.length; i++) {
         const section = obj.sections[i] as Record<string, unknown>;
         if (!section.type || typeof section.type !== 'string') {
@@ -296,7 +383,14 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         return { valid: false, error: 'PDF missing "sections" array' };
       }
       // Validate each section has a type
-      const validPdfSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'spacer'];
+      const validPdfSectionTypes = [
+        'paragraph',
+        'table',
+        'pageBreak',
+        'horizontalRule',
+        'spacer',
+        'image',
+      ];
       for (let i = 0; i < obj.sections.length; i++) {
         const section = obj.sections[i] as Record<string, unknown>;
         if (!section.type || typeof section.type !== 'string') {
@@ -304,6 +398,40 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
         }
         if (!validPdfSectionTypes.includes(section.type)) {
           return { valid: false, error: `PDF Section[${i}] has invalid type: ${section.type}` };
+        }
+      }
+      break;
+    }
+
+    case 'presentation': {
+      if (!obj.title || typeof obj.title !== 'string') {
+        return { valid: false, error: 'Presentation missing valid "title" field' };
+      }
+      if (!obj.slides || !Array.isArray(obj.slides)) {
+        return { valid: false, error: 'Presentation missing "slides" array' };
+      }
+      if (obj.slides.length === 0) {
+        return { valid: false, error: 'Presentation must have at least one slide' };
+      }
+      const validLayouts = [
+        'title',
+        'content',
+        'section',
+        'two_column',
+        'image_left',
+        'image_right',
+        'blank',
+      ];
+      for (let i = 0; i < obj.slides.length; i++) {
+        const slide = obj.slides[i] as Record<string, unknown>;
+        if (!slide.title || typeof slide.title !== 'string') {
+          return { valid: false, error: `Slide[${i}] missing valid "title"` };
+        }
+        if (!slide.layout || typeof slide.layout !== 'string') {
+          return { valid: false, error: `Slide[${i}] missing valid "layout"` };
+        }
+        if (!validLayouts.includes(slide.layout)) {
+          return { valid: false, error: `Slide[${i}] has invalid layout: ${slide.layout}` };
         }
       }
       break;

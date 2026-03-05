@@ -24,8 +24,9 @@ describe('Model IDs', () => {
     expect(CLAUDE_SONNET_46).toContain('sonnet');
   });
 
-  it('should have default Haiku model ID', () => {
-    expect(CLAUDE_HAIKU_45).toContain('haiku');
+  it('should have default Haiku constant mapped to sonnet', () => {
+    // CLAUDE_HAIKU_45 now maps to claude-sonnet-4-6 (Haiku removed)
+    expect(CLAUDE_HAIKU_45).toContain('sonnet');
   });
 });
 

@@ -8,8 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getChatJob } from '@/lib/queue/bull-queue';
 import { logger } from '@/lib/logger';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireUser } from '@/lib/auth/user-guard';
 
 const log = logger('JobStatus');
 
@@ -18,15 +17,8 @@ interface RouteParams {
 }
 
 export async function GET(_request: NextRequest, { params }: RouteParams) {
-  // SECURITY FIX: Add authentication to prevent unauthorized job access
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireUser();
+  if (!auth.authorized) return auth.response;
 
   const { jobId } = await params;
 
@@ -91,21 +83,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  * Cancel a job
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  // SECURITY FIX: Add CSRF protection for state-changing operation
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) {
-    return csrfCheck.response!;
-  }
-
-  // SECURITY FIX: Add authentication to prevent unauthorized job cancellation
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Auth + CSRF protection for DELETE
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
 
   const { jobId } = await params;
 

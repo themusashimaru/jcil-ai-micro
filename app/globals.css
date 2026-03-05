@@ -96,7 +96,7 @@
   --carousel-text-muted: #d1d5db; /* Brighter gray-300 for readability */
 }
 
-/* Light theme (admin only) */
+/* Light theme */
 :root.light-mode {
   --background: #ffffff; /* Pure white for transparent logo compatibility */
   --foreground: #000000;
@@ -139,7 +139,7 @@
   --carousel-text-muted: rgba(255, 255, 255, 0.7);
 }
 
-/* Ocean theme - Ultra deep navy blue glassmorphism (admin only) */
+/* Ocean theme - Ultra deep navy blue glassmorphism */
 :root.ocean-mode {
   --background: #030810; /* Ultra deep navy - almost black with blue tint */
   --foreground: #ffffff;

@@ -9,8 +9,6 @@
  * - GET /api/user/usage - Get usage statistics
  */
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import {
   getTokenUsage,
   getImageUsage,
@@ -20,33 +18,7 @@ import {
 } from '@/lib/limits';
 import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
-
-const log = logger('UserUsage');
-
-// Get authenticated Supabase client
-async function getSupabaseClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Silently handle cookie errors
-          }
-        },
-      },
-    }
-  );
-}
+import { requireUser } from '@/lib/auth/user-guard';
 
 // Plan features (not limits - those come from limits.ts)
 const TIER_FEATURES = {
@@ -57,19 +29,13 @@ const TIER_FEATURES = {
   executive: { realtime_voice: true, image_generation: true },
 } as const;
 
+const log = logger('UserUsage');
+
 export async function GET() {
   try {
-    const supabase = await getSupabaseClient();
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     // Rate limit by user
     const rateLimitResult = await checkRequestRateLimit(

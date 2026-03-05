@@ -69,13 +69,6 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     cacheWritePer1k: 1.875,
     contextWindow: 200000,
   },
-  'claude-haiku-4-5-20251001': {
-    inputPer1k: 0.08,
-    outputPer1k: 0.4,
-    cacheReadPer1k: 0.008,
-    cacheWritePer1k: 0.1,
-    contextWindow: 200000,
-  },
 };
 
 /**

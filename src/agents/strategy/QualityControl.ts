@@ -1,8 +1,10 @@
 /**
  * QUALITY CONTROL AGENT - Monitor & Kill Switch
  *
- * Uses Opus 4.6 to monitor all agent work and can trigger the kill switch
+ * Uses Sonnet 4.6 to monitor all agent work and can trigger the kill switch
  * if something goes wrong. Has absolute authority over the operation.
+ * Downgraded from Opus — QC is primarily rule-based checks with
+ * occasional LLM analysis that Sonnet handles well.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -17,7 +19,7 @@ import type {
   StrategyStreamCallback,
   KillReason,
 } from './types';
-import { CLAUDE_OPUS_46, QUALITY_CONTROL_PROMPT, DEFAULT_LIMITS } from './constants';
+import { CLAUDE_SONNET_46, QUALITY_CONTROL_PROMPT, DEFAULT_LIMITS } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('QualityControl');
@@ -52,7 +54,7 @@ export class QualityControl {
   private limits: StrategyLimits;
   private onStream?: StrategyStreamCallback;
   private startTime: number;
-  private model = CLAUDE_OPUS_46;
+  private model = CLAUDE_SONNET_46;
   private systemPrompt: string;
 
   constructor(

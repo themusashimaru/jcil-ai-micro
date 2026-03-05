@@ -22,9 +22,8 @@ import { logger } from '@/lib/logger';
 
 const log = logger('Anthropic');
 
-// Default model: Use Haiku for internal utility calls (title gen, memory extraction)
-// Main chat defaults are set in the registry (getDefaultChatModelId → Sonnet 4.6)
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+// Default model: Sonnet 4.6 for all calls (chat, title gen, memory extraction)
+const DEFAULT_MODEL = 'claude-sonnet-4-6';
 
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
@@ -1205,38 +1204,30 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 }
 
 // ========================================
-// HYBRID ROUTING (Haiku + Sonnet)
+// MODEL CONSTANTS
 // ========================================
 
-// Model IDs - Current Claude 4.6 models (Claude 3.x retired July 2025)
+// All calls use Sonnet 4.6 — consistent quality across the board
 // See: https://docs.anthropic.com/en/docs/about-claude/models
-export const CLAUDE_HAIKU = 'claude-haiku-4-5-20251001'; // Fast, cost-effective
-export const CLAUDE_SONNET = 'claude-sonnet-4-6'; // Smart, balanced - used for document generation
+export const CLAUDE_SONNET = 'claude-sonnet-4-6';
+
+/** @deprecated Use CLAUDE_SONNET instead. Kept for backward compatibility. */
+export const CLAUDE_HAIKU = CLAUDE_SONNET;
 
 /**
- * Simple model selection: Haiku for chat, Sonnet for documents
- *
- * Cost optimization: Use Haiku 4.5 for all regular chat
- * Quality guarantee: Use Sonnet only for document creation (resumes, PDFs, etc.)
+ * Model selection — always returns Sonnet 4.6.
+ * Kept for API compatibility with callers that pass options.
  */
 export function selectClaudeModel(
   _content: string,
-  options?: {
+  _options?: {
     forceModel?: 'haiku' | 'sonnet';
     isResearch?: boolean;
     isDocumentGeneration?: boolean;
     isFaithTopic?: boolean;
   }
 ): string {
-  // Force override
-  if (options?.forceModel === 'haiku') return CLAUDE_HAIKU;
-  if (options?.forceModel === 'sonnet') return CLAUDE_SONNET;
-
-  // Sonnet only for document generation (resumes, PDFs, documents)
-  if (options?.isDocumentGeneration) return CLAUDE_SONNET;
-
-  // Haiku for everything else (cost optimization)
-  return CLAUDE_HAIKU;
+  return CLAUDE_SONNET;
 }
 
 /**

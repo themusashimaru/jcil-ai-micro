@@ -69,21 +69,7 @@ export async function PUT(request: NextRequest) {
   const bodyValidation = await validateBody(request, userSettingsSchema);
   if (!bodyValidation.success) return bodyValidation.response;
 
-  const { theme, custom_instructions } = bodyValidation.data;
-
-  // Validate theme - light mode is admin only for now
-  if (theme === 'light') {
-    // Check if user is admin (using admin_users table)
-    const { data: adminUser } = await auth.supabase
-      .from('admin_users')
-      .select('id')
-      .eq('user_id', auth.user.id)
-      .single();
-
-    if (!adminUser) {
-      return errors.forbidden('Light mode is currently only available for admins');
-    }
-  }
+  const { theme, custom_instructions, first_run_completed } = bodyValidation.data;
 
   // Build upsert payload (only include fields that were provided)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,6 +80,10 @@ export async function PUT(request: NextRequest) {
   };
   if (custom_instructions !== undefined) {
     upsertData.custom_instructions = custom_instructions;
+  }
+  if (first_run_completed === true) {
+    upsertData.first_run_completed = true;
+    upsertData.first_run_completed_at = new Date().toISOString();
   }
 
   // Upsert settings

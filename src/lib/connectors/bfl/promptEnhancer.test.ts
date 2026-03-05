@@ -72,10 +72,10 @@ describe('promptEnhancer', () => {
       expect(result).toBe('');
     });
 
-    it('should use haiku model', async () => {
+    it('should use sonnet model', async () => {
       await analyzeImage('base64data');
       const call = mockCreate.mock.calls[0][0];
-      expect(call.model).toContain('haiku');
+      expect(call.model).toContain('sonnet');
     });
   });
 

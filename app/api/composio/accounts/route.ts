@@ -8,11 +8,10 @@
 
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 
 // Force dynamic for auth
 export const dynamic = 'force-dynamic';
-import { createServerClient } from '@supabase/ssr';
 import {
   getConnectedAccounts,
   disconnectAccount,
@@ -23,46 +22,14 @@ import { logger } from '@/lib/logger';
 
 const log = logger('ComposioAccountsAPI');
 
-// Helper to get Supabase client and user
-async function getAuthenticatedUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            /* ignore */
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
-
 /**
  * GET - List all connected accounts
  */
 export async function GET() {
   try {
-    // Check auth
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Check Composio configured
     if (!isComposioConfigured()) {
@@ -98,11 +65,10 @@ export async function GET() {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // Check auth
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for DELETE
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user } = auth;
 
     // Get connectionId and toolkit from query params
     const searchParams = request.nextUrl.searchParams;

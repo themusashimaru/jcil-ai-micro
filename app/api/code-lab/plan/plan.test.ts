@@ -11,21 +11,10 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-// Mock Supabase
-const mockGetUser = vi.fn();
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () =>
-    Promise.resolve({
-      auth: {
-        getUser: () => mockGetUser(),
-      },
-    }),
-}));
-
-// Mock CSRF
-const mockValidateCSRF = vi.fn();
-vi.mock('@/lib/security/csrf', () => ({
-  validateCSRF: (...args: unknown[]) => mockValidateCSRF(...args),
+// Mock auth
+const mockRequireUser = vi.fn();
+vi.mock('@/lib/auth/user-guard', () => ({
+  requireUser: (...args: unknown[]) => mockRequireUser(...args),
 }));
 
 // Mock rate limiter
@@ -66,11 +55,15 @@ const { GET, POST } = await import('./route');
 describe('GET /api/code-lab/plan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireUser.mockResolvedValue({ authorized: true, user: { id: 'user-123' } });
     mockCodeLabEdit.mockResolvedValue({ allowed: true });
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 }),
+    });
 
     const res = await GET();
 
@@ -78,7 +71,6 @@ describe('GET /api/code-lab/plan', () => {
   });
 
   it('returns 429 when rate limited', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
     mockCodeLabEdit.mockResolvedValue({ allowed: false, retryAfter: 30 });
 
     const res = await GET();
@@ -87,7 +79,6 @@ describe('GET /api/code-lab/plan', () => {
   });
 
   it('returns current plan status', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
     mockGetCurrentPlan.mockReturnValue({ id: 'plan-1', steps: [] });
     mockGetProgress.mockReturnValue({ completed: 2, total: 5 });
     mockNeedsApproval.mockReturnValue(false);
@@ -106,12 +97,15 @@ describe('GET /api/code-lab/plan', () => {
 describe('POST /api/code-lab/plan', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockValidateCSRF.mockReturnValue({ valid: true });
+    mockRequireUser.mockResolvedValue({ authorized: true, user: { id: 'user-123' } });
     mockCodeLabEdit.mockResolvedValue({ allowed: true });
   });
 
   it('returns 401 when not authenticated', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } });
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'Authentication required' }), { status: 401 }),
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/plan', {
       method: 'POST',
@@ -124,8 +118,10 @@ describe('POST /api/code-lab/plan', () => {
   });
 
   it('returns 403 when CSRF fails', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
-    mockValidateCSRF.mockReturnValue({ valid: false });
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
+      response: new Response(JSON.stringify({ error: 'CSRF validation failed' }), { status: 403 }),
+    });
 
     const req = new NextRequest('http://localhost/api/code-lab/plan', {
       method: 'POST',
@@ -138,7 +134,6 @@ describe('POST /api/code-lab/plan', () => {
   });
 
   it('approves and starts plan', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
     mockApprovePlan.mockReturnValue(true);
     mockGetCurrentPlan.mockReturnValue({ id: 'plan-1', status: 'running' });
 
@@ -155,7 +150,6 @@ describe('POST /api/code-lab/plan', () => {
   });
 
   it('skips current step with reason', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
     mockSkipCurrentStep.mockReturnValue({ id: 'step-1', status: 'skipped' });
     mockGetCurrentPlan.mockReturnValue({ id: 'plan-1' });
 
@@ -172,7 +166,6 @@ describe('POST /api/code-lab/plan', () => {
   });
 
   it('cancels plan', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
     mockCancelPlan.mockReturnValue(true);
     mockGetCurrentPlan.mockReturnValue({ id: 'plan-1', status: 'cancelled' });
 
@@ -188,8 +181,6 @@ describe('POST /api/code-lab/plan', () => {
   });
 
   it('returns 400 for unknown action', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-123' } } });
-
     const req = new NextRequest('http://localhost/api/code-lab/plan', {
       method: 'POST',
       body: JSON.stringify({ action: 'destroy' }),

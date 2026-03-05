@@ -52,6 +52,7 @@ export interface ResumeDocument {
   certifications?: ResumeCertification[];
   // Formatting preferences (user can adjust via chat)
   format?: {
+    theme?: string; // Theme preset name (e.g., 'corporate_blue', 'modern_dark')
     fontFamily?: 'Arial' | 'Calibri' | 'Times New Roman' | 'Georgia';
     fontSize?: number; // Base font size in pt
     primaryColor?: string; // Hex color for headers
@@ -82,12 +83,33 @@ export interface SpreadsheetRow {
   height?: number;
 }
 
+export interface SpreadsheetChartSeries {
+  label: string;
+  values: number[];
+  color?: string; // Hex color
+}
+
+export interface SpreadsheetChart {
+  type: 'bar' | 'line' | 'pie';
+  title?: string;
+  categories: string[]; // X-axis labels or pie slice labels
+  series: SpreadsheetChartSeries[];
+  width?: number; // Image width in px (default 600)
+  height?: number; // Image height in px (default 400)
+  showLegend?: boolean;
+  showValues?: boolean; // Show value labels on data points
+  colors?: string[]; // Custom color palette (hex)
+  /** Where to place the chart image in the sheet (e.g. "E2") */
+  anchorCell?: string;
+}
+
 export interface SpreadsheetSheet {
   name: string;
   rows: SpreadsheetRow[];
   columnWidths?: number[]; // Width for each column
   freezeRow?: number; // Freeze rows above this (for headers)
   freezeColumn?: number; // Freeze columns to the left
+  charts?: SpreadsheetChart[]; // Embedded charts
 }
 
 export interface SpreadsheetDocument {
@@ -96,6 +118,7 @@ export interface SpreadsheetDocument {
   sheets: SpreadsheetSheet[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     defaultFontFamily?: string;
     defaultFontSize?: number;
     alternatingRowColors?: boolean;
@@ -125,9 +148,17 @@ export interface DocumentTable {
   };
 }
 
+export interface DocumentImage {
+  url: string; // URL or data URL of the image
+  width?: number; // Width in EMU (default: 600px equivalent)
+  height?: number; // Height in EMU
+  alignment?: 'left' | 'center' | 'right';
+  caption?: string;
+}
+
 export interface DocumentSection {
-  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule';
-  content?: DocumentParagraph | DocumentTable;
+  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'image';
+  content?: DocumentParagraph | DocumentTable | DocumentImage;
 }
 
 export interface WordDocument {
@@ -136,6 +167,7 @@ export interface WordDocument {
   sections: DocumentSection[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     fontFamily?: 'Arial' | 'Calibri' | 'Times New Roman' | 'Georgia';
     fontSize?: number;
     margins?: {
@@ -188,6 +220,7 @@ export interface InvoiceDocument {
   paymentTerms?: string;
   // Formatting
   format?: {
+    theme?: string; // Theme preset name
     primaryColor?: string;
     logoUrl?: string;
     currency?: string; // USD, EUR, etc.
@@ -218,9 +251,17 @@ export interface PdfTable {
   };
 }
 
+export interface PdfImage {
+  url: string; // URL or data URL of the image
+  width?: number; // Width in points (default: auto-fit to page width)
+  height?: number; // Height in points
+  alignment?: 'left' | 'center' | 'right';
+  caption?: string;
+}
+
 export interface PdfSection {
-  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'spacer';
-  content?: PdfParagraph | PdfTable;
+  type: 'paragraph' | 'table' | 'pageBreak' | 'horizontalRule' | 'spacer' | 'image';
+  content?: PdfParagraph | PdfTable | PdfImage;
 }
 
 export interface GeneralPdfDocument {
@@ -229,6 +270,7 @@ export interface GeneralPdfDocument {
   sections: PdfSection[];
   // Formatting preferences
   format?: {
+    theme?: string; // Theme preset name
     fontFamily?: 'Helvetica' | 'Times-Roman' | 'Courier';
     fontSize?: number;
     margins?: {
@@ -244,6 +286,37 @@ export interface GeneralPdfDocument {
 }
 
 // ========================================
+// PRESENTATION / POWERPOINT TYPES
+// ========================================
+
+export interface PresentationSlide {
+  layout: 'title' | 'content' | 'section' | 'two_column' | 'image_left' | 'image_right' | 'blank';
+  title: string;
+  subtitle?: string;
+  body?: string;
+  bullets?: string[];
+  speakerNotes?: string;
+  imageUrl?: string;
+  backgroundColor?: string;
+  table?: {
+    headers?: string[];
+    rows: string[][];
+  };
+}
+
+export interface PresentationDocument {
+  type: 'presentation';
+  title: string;
+  slides: PresentationSlide[];
+  format?: {
+    theme?: string; // Theme preset name
+    primaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+  };
+}
+
+// ========================================
 // UNION TYPE FOR ALL DOCUMENTS
 // ========================================
 
@@ -252,7 +325,8 @@ export type DocumentData =
   | SpreadsheetDocument
   | WordDocument
   | InvoiceDocument
-  | GeneralPdfDocument;
+  | GeneralPdfDocument
+  | PresentationDocument;
 
 // Helper to detect document type from AI response
 export function isResumeDocument(doc: DocumentData): doc is ResumeDocument {
@@ -273,4 +347,8 @@ export function isInvoiceDocument(doc: DocumentData): doc is InvoiceDocument {
 
 export function isGeneralPdfDocument(doc: DocumentData): doc is GeneralPdfDocument {
   return doc.type === 'general_pdf';
+}
+
+export function isPresentationDocument(doc: DocumentData): doc is PresentationDocument {
+  return doc.type === 'presentation';
 }

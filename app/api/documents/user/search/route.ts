@@ -7,43 +7,17 @@
 
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 
 const log = logger('DocumentsSearch');
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-            }
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    // Auth + CSRF protection for POST
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     const body = await request.json();
     const { query, matchCount = 5 } = body;
@@ -66,7 +40,12 @@ export async function POST(request: NextRequest) {
     const searchPatterns = keywords.slice(0, 5).map((k: string) => `%${k}%`);
 
     // Search chunks using keyword matching
-    const { data: results, error: searchError } = await supabase
+    // Type assertion needed: user_document_chunks -> user_documents relation not in generated types
+    const {
+      data: results,
+      error: searchError,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } = (await (supabase as any)
       .from('user_document_chunks')
       .select(
         `
@@ -80,7 +59,15 @@ export async function POST(request: NextRequest) {
       )
       .eq('user_id', user.id)
       .or(searchPatterns.map((p: string) => `content.ilike.${p}`).join(','))
-      .limit(matchCount);
+      .limit(matchCount)) as {
+      data: Array<{
+        id: string;
+        document_id: string;
+        content: string;
+        user_documents: { name: string } | { name: string }[];
+      }> | null;
+      error: Error | null;
+    };
 
     if (searchError) {
       log.error('Search error', { error: searchError ?? 'Unknown error' });
@@ -121,35 +108,9 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-            }
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser();
+    if (!auth.authorized) return auth.response;
+    const { user, supabase } = auth;
 
     const { count } = await supabase
       .from('user_documents')

@@ -64,7 +64,7 @@ export interface SubagentContext {
 const MODEL_MAP: Record<SubagentModel, string> = {
   sonnet: 'claude-sonnet-4-6',
   opus: 'claude-opus-4-6',
-  haiku: 'claude-haiku-4-5-20251001',
+  haiku: 'claude-sonnet-4-6', // All models use Sonnet 4.6
 };
 
 // ============================================================================

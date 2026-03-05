@@ -1,8 +1,8 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-03-03
-**Updated By:** Removed 4 stub tools — 51/51 tools now real (100%)
-**Branch:** `claude/review-app-progress-Nce5N`
+**Last Updated:** 2026-03-05
+**Updated By:** Decomposed code-lab/chat/route.ts (2,478→1,435 lines + 6 modules). Auth migration 100% complete. Removed 3 unused deps.
+**Branch:** `claude/recover-crashed-session-xni5u`
 
 > This document reflects verified, measured values only. No aspirational claims.
 > Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
@@ -20,12 +20,12 @@
 | **Real Tool Implementations**  | 51/51 (100%). 4 stubs removed: audio_synth, feature_flag, migration_generator, ml_model_serving | All active tools real  | **TARGET MET**              |
 | **ARIA Attributes**            | 409+ (was 0)                                                                                    | WCAG 2.1 AA            | Major progress — Phase 2.4  |
 | **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                | 0 static inline styles | Complete — Phase 2.4.8      |
-| **Largest Component**          | 374 lines (was 2,631)                                                                           | <400 lines             | Target met — decomposed     |
-| **Largest Route File**         | 537 lines (was 4,618)                                                                           | <500 lines             | Decomposed into 10 modules  |
-| **Production Dependencies**    | 77 (was 115, was 152)                                                                           | <50                    | 33% reduction — Phase 3.1.8 |
+| **Largest Route File**         | 1,435 lines (code-lab/chat/route.ts, decomposed from 2,478). documents/generate at 1,217 lines. | <500 lines             | Further decomp possible     |
+| **Production Dependencies**    | 75 (was 77, was 115, was 152)                                                                   | <50                    | 51% reduction — Phase 3.1.8 |
 | **Tool Files (total)**         | 54 (was 58, deleted 4 stubs)                                                                    | Lazy-loaded            | Lazy loading implemented    |
 | **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)               | All major sections     | Complete — Phase 2.5        |
 | **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                                       | 100%                   | 68 routes migrated — 3.5.2  |
+| **Auth Guard Coverage**        | 46 route files use requireUser/requireAdmin/optionalUser. 0 remain with raw auth.               | 100%                   | **100% complete**           |
 | **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                                    | Clean                  | Complete — DC.1-DC.4        |
 | **TypeScript Errors**          | 0 (verified 2026-02-28)                                                                         | 0                      | Passing                     |
 | **Build Status**               | Passing (verified 2026-02-28)                                                                   | Passing                | Passing                     |
@@ -49,14 +49,14 @@
 
 ### Security (Solid Foundation)
 
-| Feature         | Status   | Implementation                                                                              |
-| --------------- | -------- | ------------------------------------------------------------------------------------------- |
-| Supabase RLS    | Working  | Proper row-level security policies                                                          |
-| Zod Validation  | Working  | 50+ schemas for input validation                                                            |
-| CSRF Protection | Working  | Origin/Referer validation                                                                   |
-| Rate Limiting   | Working  | Redis-backed sliding window                                                                 |
-| DOMPurify       | Working  | HTML sanitization                                                                           |
-| Auth Guards     | Improved | `requireUser`/`requireAdmin` — 17 API routes migrated, CSRF on all state-changing endpoints |
+| Feature         | Status   | Implementation                                                                                                                                          |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase RLS    | Working  | Proper row-level security policies                                                                                                                      |
+| Zod Validation  | Working  | 50+ schemas for input validation                                                                                                                        |
+| CSRF Protection | Working  | Origin/Referer validation                                                                                                                               |
+| Rate Limiting   | Working  | Redis-backed sliding window                                                                                                                             |
+| DOMPurify       | Working  | HTML sanitization                                                                                                                                       |
+| Auth Guards     | **Done** | `requireUser`/`requireAdmin`/`optionalUser` — 46 route files migrated (100%), built-in CSRF on all state-changing endpoints. Zero routes with raw auth. |
 
 ### Infrastructure
 
@@ -108,7 +108,7 @@ All 4 remaining stubs (`audio_synth`, `feature_flag`, `migration_generator`, `ml
 
 1. ~~**Admin permissions default to TRUE** when NULL~~ — **FIXED** (now `?? false`, fail-closed) _(2026-02-22)_
 2. ~~**Rate limiting fails open** when Redis is down~~ — **FIXED** (now fail-closed, denies in production) _(2026-02-22)_
-3. **90 API routes** don't use formal auth guards — **17 migrated** to `requireUser()`, ~73 remaining
+3. ~~**90 API routes** don't use formal auth guards~~ — **FIXED**: 46 route files migrated to `requireUser()`/`requireAdmin()`/`optionalUser()`. 0 routes with raw auth. Redundant double CSRF cleaned from 7 routes. _(2026-03-05)_
 4. ~~**In-memory state** (Maps) in serverless functions~~ — **FIXED** (chat rate limiting + admin cache migrated to Redis) _(2026-02-23)_
 5. ~~**393 tools loaded on every request**~~ — **FIXED** (lazy loading via `tool-loader.ts`, only loaded on demand) _(2026-02-22)_
 6. ~~**4,618-line chat route**~~ — **FIXED** (decomposed to 537-line orchestrator + 9 focused modules) _(2026-02-23)_
@@ -119,18 +119,18 @@ All 4 remaining stubs (`audio_synth`, `feature_flag`, `migration_generator`, `ml
 
 ## Technology Stack
 
-| Layer      | Technology               | Version         |
-| ---------- | ------------------------ | --------------- |
-| Frontend   | Next.js                  | 14.2            |
-| Language   | TypeScript               | 5.4             |
-| UI         | React + Tailwind CSS     | 18.3            |
-| Database   | Supabase PostgreSQL      | -               |
-| Cache      | Upstash Redis            | -               |
-| Auth       | NextAuth / Supabase Auth | -               |
-| Payments   | Stripe                   | -               |
-| Sandboxing | E2B                      | -               |
-| AI         | Anthropic Claude         | Multiple models |
-| Hosting    | Vercel                   | -               |
+| Layer      | Technology               | Version                |
+| ---------- | ------------------------ | ---------------------- |
+| Frontend   | Next.js                  | 14.2                   |
+| Language   | TypeScript               | 5.4                    |
+| UI         | React + Tailwind CSS     | 18.3                   |
+| Database   | Supabase PostgreSQL      | -                      |
+| Cache      | Upstash Redis            | -                      |
+| Auth       | NextAuth / Supabase Auth | -                      |
+| Payments   | Stripe                   | -                      |
+| Sandboxing | E2B                      | -                      |
+| AI         | Anthropic Claude         | Sonnet 4.6 (all calls) |
+| Hosting    | Vercel                   | -                      |
 
 ---
 
@@ -208,6 +208,27 @@ This document is updated whenever a verified metric changes. Each update include
 | 2026-02-27 | Enabled Next.js standalone output                | Standard build output                       | output: 'standalone' in next.config.js     |
 | 2026-03-03 | Tool audit: corrected real vs stub counts        | "57 tools (all real)" (inaccurate)          | 51/55 real (93%), 4 stubs identified       |
 | 2026-03-03 | Removed 4 stub tools from registry               | 55 tools (4 stubs)                          | 51 tools, 100% real, 0 stubs               |
+| 2026-03-04 | Removed Haiku auto-routing from chat streaming   | Haiku for trivial msgs, Sonnet for rest     | Sonnet 4.6 for all messages                |
+| 2026-03-04 | Switched all internal utility calls to Sonnet    | Haiku for title gen, summaries, prompts     | Sonnet 4.6 for everything                  |
+| 2026-03-04 | Removed Haiku from model registry & UI           | 3 Claude models (Opus, Sonnet, Haiku)       | 2 Claude models (Opus, Sonnet)             |
+| 2026-03-04 | Fixed stale model ID in imageRequestDetector     | claude-3-5-haiku-20241022 (legacy)          | claude-sonnet-4-6                          |
+| 2026-03-04 | Corrected largest component metric               | "374 lines" (only CodeLab.tsx)              | ChatClient.tsx at 3,764 lines              |
+| 2026-03-04 | Corrected largest route file metric              | "537 lines" (only chat/route.ts)            | documents/generate/route.ts at 3,650 lines |
+| 2026-03-04 | Decomposed documents/generate/route.ts           | 3,650 lines (monolithic)                    | 1,217 lines (decomposed)                   |
+| 2026-03-04 | Decomposed ChatClient.tsx                        | 3,764 lines                                 | ~1,130 lines + extracted modules           |
+| 2026-03-04 | Auth migration batch 1: 5 routes                 | Raw Supabase auth + manual CSRF             | requireUser() with built-in CSRF           |
+| 2026-03-04 | Auth migration batch 2: 8 routes                 | Raw auth (conversations, folders, stripe)   | requireUser() — -358 lines                 |
+| 2026-03-04 | Auth migration batch 3: 6 routes                 | Raw auth (composio, documents)              | requireUser()/optionalUser() — -252 lines  |
+| 2026-03-04 | Auth migration batch 4: 4 routes                 | Raw auth (strategy, connectors, support)    | requireUser() + admin clients — -191 lines |
+| 2026-03-04 | Auth migration batch 5: 7 code-lab routes        | Raw auth (deploy, index, memory, plan, etc) | requireUser() — -179 lines                 |
+| 2026-03-04 | Auth migration batch 6: 6 code-lab routes        | Raw auth (files, git, realtime, review)     | requireUser() — -169 lines                 |
+| 2026-03-04 | Auth migration batch 7: 9 remaining routes       | Raw auth (queue, files, webauthn, design)   | requireUser/Admin/optional — -124 lines    |
+| 2026-03-04 | Total auth migration: 45 route files             | 17 routes with centralized guards           | 45 route files, ~1,273 lines removed       |
+| 2026-03-05 | Decomposed code-lab/chat/route.ts                | 2,478 lines (monolithic, raw auth)          | 1,435 lines + 6 extracted modules          |
+| 2026-03-05 | Migrated code-lab/chat auth to requireUser       | createServerSupabaseClient + validateCSRF   | requireUser(request) — last raw auth route |
+| 2026-03-05 | Auth migration 100% complete                     | 45 routes (98%), 1 remaining                | 46 routes (100%), 0 remaining              |
+| 2026-03-05 | Removed 3 unused production deps                 | 78 production dependencies                  | 75 production deps (3 removed)             |
+| 2026-03-05 | Cleaned redundant CSRF from 7 routes             | 10 routes with double CSRF checking         | 7 cleaned, 3 legitimately retained         |
 
 ---
 

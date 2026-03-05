@@ -4,7 +4,7 @@
  * Acts as a forensic psychologist to deeply understand the user's situation
  * before deploying the strategy agent army.
  *
- * Uses Opus 4.6 for maximum understanding and nuance.
+ * Uses Sonnet 4.6 for efficient understanding — Opus reserved for synthesis.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
@@ -14,7 +14,7 @@ import type {
   StrategyStreamCallback,
   PriorityItem,
 } from './types';
-import { CLAUDE_OPUS_46, FORENSIC_INTAKE_PROMPT } from './constants';
+import { CLAUDE_SONNET_46, FORENSIC_INTAKE_PROMPT } from './constants';
 import { logger } from '@/lib/logger';
 
 const log = logger('ForensicIntake');
@@ -39,7 +39,7 @@ export class ForensicIntake {
   private client: Anthropic;
   private state: IntakeState;
   private onStream?: StrategyStreamCallback;
-  private model = CLAUDE_OPUS_46;
+  private model = CLAUDE_SONNET_46;
   private systemPrompt: string;
   private openingMessage: string;
 

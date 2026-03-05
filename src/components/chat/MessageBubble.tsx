@@ -86,7 +86,10 @@ export const MessageBubble = memo(
     }, [message.content, isUser]);
 
     return (
-      <div className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}>
+      <div
+        className={`flex items-start gap-2 mb-2 ${isUser ? 'justify-end' : ''}`}
+        aria-busy={message.isStreaming || false}
+      >
         {/* User Avatar */}
         {isUser && (
           <div className="mt-1 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full order-first bg-avatar-bg text-primary">

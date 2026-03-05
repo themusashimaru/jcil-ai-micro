@@ -192,7 +192,7 @@ Please provide:
    - Customer acquisition and retention insights
 
 3. **Cost Analysis**
-   - API costs breakdown by model (claude-haiku, claude-sonnet, perplexity)
+   - API costs breakdown by model (claude-sonnet, claude-opus, perplexity)
    - News page costs (updated every 30 min)
    - Cost efficiency metrics
    - Areas of high spend

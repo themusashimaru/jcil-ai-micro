@@ -8,48 +8,19 @@
 
 import { NextRequest } from 'next/server';
 import { successResponse, errors } from '@/lib/api/utils';
-import { cookies } from 'next/headers';
-
-// Force dynamic for auth
-export const dynamic = 'force-dynamic';
-import { createServerClient } from '@supabase/ssr';
 import { executeTool, isComposioConfigured } from '@/lib/composio';
+import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+
+export const dynamic = 'force-dynamic';
 
 const log = logger('ComposioExecuteAPI');
 
 export async function POST(request: NextRequest) {
   try {
-    // Get user from Supabase auth
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              /* ignore */
-            }
-          },
-        },
-      }
-    );
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errors.unauthorized();
-    }
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+    const user = auth.user;
 
     // Check Composio configured
     if (!isComposioConfigured()) {

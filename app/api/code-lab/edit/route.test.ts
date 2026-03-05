@@ -233,8 +233,8 @@ describe('POST /api/code-lab/edit', () => {
   });
 
   it('returns 403 when CSRF validation fails', async () => {
-    mockValidateCSRF.mockReturnValue({
-      valid: false,
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
       response: new Response(JSON.stringify({ error: 'CSRF failed' }), { status: 403 }),
     });
 
@@ -467,8 +467,8 @@ describe('PUT /api/code-lab/edit', () => {
   });
 
   it('returns 403 when CSRF validation fails', async () => {
-    mockValidateCSRF.mockReturnValue({
-      valid: false,
+    mockRequireUser.mockResolvedValue({
+      authorized: false,
       response: new Response(JSON.stringify({ error: 'CSRF failed' }), { status: 403 }),
     });
 
