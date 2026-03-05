@@ -1,7 +1,7 @@
 # JCIL AI Micro — Master Task Tracker
 
 **Created:** 2026-02-22
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-05
 **Purpose:** Single source of truth for all work items. Check off tasks as they're completed. Carry this across every session.
 
 > **Instructions for new sessions:** Find the first unchecked `[ ]` item. That's your starting point. Mark tasks `[x]` with the completion date when done.
@@ -75,6 +75,9 @@
 - [x] **1.5.7** Remove fake `aggregateRating` from Schema.org data (`app/layout.tsx:146-150`) _(2026-02-22)_
 - [x] **1.5.8** Migrated 17 API routes from inline auth (createServerClient + getUser) to centralized `requireUser()` guard. Adds CSRF protection to all state-changing endpoints, eliminates ~300 lines of boilerplate. Support tickets POST kept as-is (external contact form needs optional auth). _(2026-02-22)_
 - [x] **1.5.11** Migrated 28 more API routes to `requireUser()`/`requireAdmin()`/`optionalUser()` guards — conversations, folders, stripe, composio, documents, strategy, connectors, support, MCP, all code-lab routes, queue, files, design-settings, webauthn, dismiss-passkey. Total: 45 route files using centralized auth. Only `code-lab/chat/route.ts` remains (needs decomposition first). Net -1,273 lines of auth boilerplate. _(2026-03-04)_
+- [x] **1.5.12** Decomposed `code-lab/chat/route.ts` (2,478→1,435 lines + 6 modules) and migrated auth to `requireUser(request)`. Last raw auth route eliminated. Auth migration now 100% complete (46 route files). _(2026-03-05)_
+- [x] **1.5.13** Removed 3 unused production dependencies (`@supabase/auth-helpers-nextjs`, `pdf-parse`, `mathjs`). Verified `yaml` and `puppeteer-core` are in use. Production deps: 78→75. _(2026-03-05)_
+- [x] **1.5.14** Cleaned redundant `validateCSRF` from 7 routes already using `requireUser(request)` (which has built-in CSRF). _(2026-03-05)_
 - [x] **1.5.9** Write tests for each security fix — admin-permissions.test.ts (5 tests: permissions default to FALSE), rate-limit fail-closed tests (3 tests), registry.test.ts (20 tests), safety.test.ts (10 tests). 35 new tests, 2157 total passing. _(2026-02-22)_
 - [x] **1.5.10** Verify all security changes pass build and tests — all 74 test files pass, zero TS errors in new code _(2026-02-22)_
 
@@ -330,12 +333,12 @@
 
 | Phase                         | Total Tasks | Completed | Percentage |
 | ----------------------------- | ----------- | --------- | ---------- |
-| Phase 1: Foundation           | 47          | 47        | 100%       |
+| Phase 1: Foundation           | 50          | 50        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
 | Phase 3: Production Readiness | 38          | 25        | 66%        |
 | Phase 4: Differentiation      | 23          | 0         | 0%         |
 | Doc Cleanup                   | 4           | 4         | 100%       |
-| **Total**                     | **169**     | **133**   | **79%**    |
+| **Total**                     | **172**     | **136**   | **79%**    |
 
 > Update this summary table as tasks are completed.
 
@@ -397,10 +400,31 @@
 
 **What's next:**
 
-- Decompose `code-lab/chat/route.ts` (2,478 lines) — last route using raw auth, too complex for simple migration
-- Clean up ~10 routes with redundant double CSRF (`validateCSRF` + `requireUser(request)`)
-- Dependency cleanup (3 duplicate PDF libs, deprecated Supabase packages)
+- ~~Decompose `code-lab/chat/route.ts` (2,478 lines)~~ — Done in session 2026-03-05
+- ~~Clean up ~10 routes with redundant double CSRF~~ — Done in session 2026-03-04/05
+- ~~Dependency cleanup~~ — Done in session 2026-03-05
 - Phase 3.6: Test coverage push (40% → 60%)
+
+### Session: 2026-03-05 (Decomposition & Cleanup Session)
+
+**What was done:**
+
+- **Decomposed `code-lab/chat/route.ts`** (2,478→1,435 lines, 42% reduction):
+  - Extracted 6 modules: search-detection (262), byok (106), conversation-summary (65), chat-rate-limit (69), action-commands (128), stream-utils (218)
+  - Migrated auth from `createServerSupabaseClient` + `validateCSRF` to `requireUser(request)`
+  - This was the **last route using raw auth** — auth migration is now 100% complete
+- **Removed 3 unused production dependencies**: `@supabase/auth-helpers-nextjs`, `pdf-parse`, `mathjs` (75 deps, down from 78)
+  - Verified `yaml` (used in file-convert-tool.ts) and `puppeteer-core` (used in web-capture-tool.ts) are NOT unused
+- **Cleaned redundant CSRF** from 7 routes (done previous session, documented here)
+- All commits pass TSC, ESLint, and full build
+- Updated all documentation (CLAUDE.md, PROJECT_STATUS.md, TASK_TRACKER.md)
+
+**What's next:**
+
+- Decompose `app/api/chat/route.ts` (554 lines — slightly over 500-line limit)
+- 105 component files over 400-line threshold still need decomposition
+- Phase 3.6: Test coverage push (40% → 60%)
+- Remaining `validateCSRF` in chat/route.ts and github/route.ts — needs individual attention
 
 ---
 

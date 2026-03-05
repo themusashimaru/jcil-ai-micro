@@ -1,6 +1,6 @@
 # JCIL AI Micro — Claude Code Session Instructions
 
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-05
 **Authoritative Assessment:** `APP_ASSESSMENT_AND_RECOMMENDATIONS.md`
 **Task Tracker:** `TASK_TRACKER.md`
 **CTO Report:** `CTO_ASSESSMENT_REPORT.md`
@@ -72,43 +72,42 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 
 ---
 
-## Architecture Overview (Updated Mar 4, 2026)
+## Architecture Overview (Updated Mar 5, 2026)
 
 ### What Actually Works
 
-| Component             | Status     | Notes                                               |
-| --------------------- | ---------- | --------------------------------------------------- |
-| 51 AI tools           | Real       | All registered tools have real implementations      |
-| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6  |
-| Supabase RLS          | Real       | Properly configured                                 |
-| Zod input validation  | Real       | 50+ schemas                                         |
-| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                    |
-| CSRF protection       | Real       | Built into `requireUser(request)` guard             |
-| Auth guards           | Real       | 45 route files migrated to requireUser/requireAdmin |
-| NextAuth              | Real       | Working auth flow                                   |
-| Stripe integration    | Partial    | Needs testing                                       |
+| Component             | Status     | Notes                                                      |
+| --------------------- | ---------- | ---------------------------------------------------------- |
+| 51 AI tools           | Real       | All registered tools have real implementations             |
+| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6         |
+| Supabase RLS          | Real       | Properly configured                                        |
+| Zod input validation  | Real       | 50+ schemas                                                |
+| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                           |
+| CSRF protection       | Real       | Built into `requireUser(request)` guard                    |
+| Auth guards           | Real       | 46 route files — 100% migrated to requireUser/requireAdmin |
+| NextAuth              | Real       | Working auth flow                                          |
+| Stripe integration    | Partial    | Needs testing                                              |
 
 ### What Still Needs Work
 
-- **code-lab/chat/route.ts** at 2,478 lines — needs decomposition + auth migration (last route using raw auth)
+- ~~**code-lab/chat/route.ts** at 2,478 lines~~ — **DONE**: Decomposed to 1,435 lines + 6 modules, auth migrated to requireUser(request) _(2026-03-05)_
 - **app/api/chat/route.ts** at 554 lines — uses `validateCSRF` directly (requireUser built into auth.ts module)
-- **~10 routes** have redundant double CSRF (both `validateCSRF` + `requireUser(request)`) — harmless but should be cleaned up
 - **105 component files** exceed the 300-line threshold
 
-### Key Metrics (Verified Mar 4, 2026)
+### Key Metrics (Verified Mar 5, 2026)
 
-| Metric                    | Actual Value                                       |
-| ------------------------- | -------------------------------------------------- |
-| Test coverage             | 41.25% lines (12,107 tests across 410 files)       |
-| ARIA attributes           | 428+ (but unevenly distributed)                    |
-| Inline styles             | 161 (down from 554)                                |
-| Real tools                | 51/51 (100%)                                       |
-| Largest route file        | 2,478 lines (code-lab/chat/route.ts)               |
-| Routes with auth guards   | 45 files use requireUser/requireAdmin/optionalUser |
-| Routes with raw auth      | 1 (code-lab/chat/route.ts — needs decomp)          |
-| Production dependencies   | 78 (down from 152)                                 |
-| AI model                  | Sonnet 4.6 for all calls                           |
-| Components over 400 lines | 105 files                                          |
+| Metric                    | Actual Value                                              |
+| ------------------------- | --------------------------------------------------------- |
+| Test coverage             | 41.25% lines (12,107 tests across 410 files)              |
+| ARIA attributes           | 428+ (but unevenly distributed)                           |
+| Inline styles             | 161 (down from 554)                                       |
+| Real tools                | 51/51 (100%)                                              |
+| Largest route file        | 1,435 lines (code-lab/chat/route.ts, decomposed)          |
+| Routes with auth guards   | 46 files — 100% use requireUser/requireAdmin/optionalUser |
+| Routes with raw auth      | 0 (all migrated)                                          |
+| Production dependencies   | 75 (down from 152)                                        |
+| AI model                  | Sonnet 4.6 for all calls                                  |
+| Components over 400 lines | 105 files                                                 |
 
 ---
 
@@ -117,7 +116,8 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 ```
 Key source files:
   app/api/chat/route.ts          — Main chat route (554 lines, decomposed)
-  app/api/code-lab/chat/route.ts — Code-lab chat (2,478 lines — needs decomposition + auth migration)
+  app/api/code-lab/chat/route.ts — Code-lab chat (1,435 lines, decomposed from 2,478)
+  app/api/code-lab/chat/*.ts     — 6 extracted modules (search-detection, byok, conversation-summary, chat-rate-limit, action-commands, stream-utils)
   app/api/documents/generate/route.ts — Document generation (1,217 lines, decomposed from 3,650)
   lib/ai/tools.ts                — Tool registry (~393 tools loaded per request)
   lib/ai/tools/index.ts          — Tool barrel export (4,033 lines)
