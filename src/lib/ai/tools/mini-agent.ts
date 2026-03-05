@@ -25,7 +25,7 @@ const log = logger('MiniAgentTool');
 const MAX_AGENTS = 10; // Never more than 10
 const MIN_AGENTS = 2; // At least 2 for parallel benefit
 const MAX_COST_PER_RUN = 2.0; // $2.00 hard cap
-const COST_PER_AGENT = 0.05; // ~$0.05 per agent (Haiku + search)
+const COST_PER_AGENT = 0.05; // ~$0.05 per agent (Sonnet + search)
 const AGENT_TIMEOUT_MS = 30000; // 30 seconds per agent
 const TOOL_COST = 0.1; // Base cost for orchestration
 
@@ -154,7 +154,7 @@ Rules:
 - Return valid JSON only`;
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6', // Haiku for planning (cheap)
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     messages: [{ role: 'user', content: planPrompt }],
   });

@@ -6,7 +6,7 @@
  * - Called after first message exchange in a chat
  * - Creates concise, meaningful titles (3-6 words)
  *
- * PROVIDER: Claude (Anthropic) - Haiku for fast title generation
+ * PROVIDER: Claude (Anthropic) - Sonnet 4.6
  */
 
 import { completeChat } from '@/lib/ai/chat-router';

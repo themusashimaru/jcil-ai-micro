@@ -47,10 +47,10 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   haiku: {
     id: CLAUDE_HAIKU_45,
     tier: 'haiku',
-    costPerMillionInput: 1.0,
-    costPerMillionOutput: 5.0,
+    costPerMillionInput: 3.0,
+    costPerMillionOutput: 15.0,
     maxTokens: 8192,
-    description: 'Fast and efficient - for simple data extraction tasks only',
+    description: 'Legacy tier - now uses Sonnet 4.6 (same as sonnet tier)',
   },
 };
 

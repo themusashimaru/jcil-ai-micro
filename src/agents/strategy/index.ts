@@ -5,8 +5,7 @@
  *
  * Uses:
  * - Opus 4.6: Master Architect, Synthesizer, Final Synthesis
- * - Sonnet 4.6: Forensic Intake, Quality Control, Scouts
- * - Haiku 4.5: Lightweight tasks
+ * - Sonnet 4.6: All other tasks (Forensic Intake, Quality Control, Scouts)
  *
  * Features:
  * - Self-designing agent architecture
