@@ -11,7 +11,7 @@
 
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { createServerSupabaseClient } from '@/lib/supabase/server-auth';
+import { requireUser } from '@/lib/auth/user-guard';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { chatErrorResponse } from '@/lib/api/utils';
 import { ERROR_CODES, HTTP_STATUS } from '@/lib/constants';
@@ -28,28 +28,20 @@ import {
   parseSlashCommand,
 } from '@/lib/workspace/slash-commands';
 import { detectCodeLabIntent } from '@/lib/workspace/intent-detector';
-// CRITICAL-008 FIX: Use secure service role client instead of direct createClient
 import {
   createSecureServiceClient,
   extractRequestContext,
 } from '@/lib/supabase/secure-service-role';
 import { untypedFrom } from '@/lib/supabase/workspace-client';
-import crypto from 'crypto';
 import { logger } from '@/lib/logger';
-import { validateCSRF } from '@/lib/security/csrf';
-// SECURITY FIX: Use centralized crypto module which requires dedicated ENCRYPTION_KEY
-// (no fallback to SERVICE_ROLE_KEY for separation of concerns)
 import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
-// Multi-provider support: import registry and adapter factory
 import { getProviderForModel, getProviderAndModel } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters/factory';
-import type { UnifiedMessage, UnifiedToolCall } from '@/lib/ai/providers/types';
-// Persistent memory + RAG + Tools (parity with main chat)
+import type { UnifiedMessage, UnifiedToolCall, ProviderId } from '@/lib/ai/providers/types';
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
-// Composio/Connectors (150+ connected apps)
 import {
   getComposioToolsForUser,
   executeComposioTool,
@@ -64,509 +56,40 @@ import {
   incrementTokenUsage,
 } from '@/lib/limits';
 
+// Decomposed modules
+import { shouldUseSearch } from './search-detection';
+import { getUserBYOKConfig } from './byok';
+import {
+  generateConversationSummary,
+  getAnthropicClient,
+  SUMMARY_THRESHOLD,
+  RECENT_MESSAGES_AFTER_SUMMARY,
+} from './conversation-summary';
+import { checkRateLimit } from './chat-rate-limit';
+import { executeActionCommand } from './action-commands';
+import {
+  generateId,
+  STREAM_HEADERS,
+  CHUNK_TIMEOUT_MS,
+  createKeepalive,
+  saveAssistantMessage,
+  createAgentStreamResponse,
+  formatProviderErrorMessage,
+} from './stream-utils';
+
 const log = logger('CodeLabChat');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabase = any;
 
-// ========================================
-// CODE LAB MODEL ROUTING
-// ========================================
-// Code Lab defaults to Opus 4.6 — users come here for serious work.
-// User can override via model selector or BYOK config.
-
-// ========================================
-// BYOK (Bring Your Own Key) SUPPORT
-// ========================================
-
-/**
- * Map provider IDs to the keys used in user_provider_preferences.provider_api_keys
- * Some providers have different naming in BYOK vs internal (e.g., 'google' vs 'gemini')
- */
-const BYOK_PROVIDER_MAP: Record<string, string> = {
-  claude: 'claude',
-  openai: 'openai',
-  xai: 'xai',
-  deepseek: 'deepseek',
-  google: 'gemini', // Users configure 'gemini' in settings, but provider is 'google'
-};
-
-/**
- * BYOK configuration returned from user preferences
- */
-interface BYOKConfig {
-  apiKey: string;
-  model?: string; // Optional custom model name
-}
-
-/**
- * Get user's BYOK configuration for a provider (API key + optional custom model)
- * Returns null if not configured or decryption fails
- */
-async function getUserBYOKConfig(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  providerId: string
-): Promise<BYOKConfig | null> {
-  // Map provider ID to BYOK key name
-  const byokKey = BYOK_PROVIDER_MAP[providerId];
-  if (!byokKey) {
-    return null; // Provider doesn't support BYOK
-  }
-
-  try {
-    // Get user's provider preferences
-    const { data: prefs } = await supabase
-      .from('user_provider_preferences')
-      .select('provider_api_keys')
-      .eq('user_id', userId)
-      .single();
-
-    if (!prefs?.provider_api_keys) {
-      return null;
-    }
-
-    const stored = prefs.provider_api_keys[byokKey];
-    if (!stored) {
-      return null;
-    }
-
-    // Handle both old format (string) and new format ({ key, model })
-    let encryptedKey: string;
-    let customModel: string | undefined;
-
-    if (typeof stored === 'string') {
-      // Old format: just the encrypted key
-      encryptedKey = stored;
-    } else if (stored && typeof stored === 'object' && stored.key) {
-      // New format: { key, model }
-      encryptedKey = stored.key;
-      customModel = stored.model;
-    } else {
-      return null;
-    }
-
-    // Decrypt the key
-    const decryptedKey = decryptToken(encryptedKey);
-    if (!decryptedKey) {
-      log.warn('Failed to decrypt BYOK key', { userId, provider: providerId });
-      return null;
-    }
-
-    log.info('Using BYOK for provider', {
-      userId,
-      provider: providerId,
-      hasCustomModel: !!customModel,
-    });
-
-    return {
-      apiKey: decryptedKey,
-      model: customModel,
-    };
-  } catch (error) {
-    log.warn('Error fetching BYOK config', {
-      userId,
-      provider: providerId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return null;
-  }
-}
-
-// SECURITY FIX: Use cryptographically secure UUID generation
-// Math.random() is NOT secure and IDs could be predicted
-function generateId(): string {
-  return crypto.randomUUID();
-}
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
-
-// ========================================
-// AUTO-SUMMARIZATION CONFIG
-// ========================================
-const SUMMARY_THRESHOLD = 15; // Summarize when message count exceeds this
-const RECENT_MESSAGES_AFTER_SUMMARY = 5; // Keep this many recent messages after summary
-
-/**
- * Generate a summary of conversation history
- * Called when message count exceeds threshold
- */
-async function generateConversationSummary(
-  messages: Array<{ role: string; content: string }>
-): Promise<string> {
-  const conversationText = messages
-    .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
-    .join('\n\n');
-
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6', // Use Sonnet for efficient summarization
-    max_tokens: 1024,
-    system: `You are summarizing a developer conversation for context continuation.
-Create a concise technical summary that captures:
-1. Main topics and goals discussed
-2. Key decisions made
-3. Code/technical context established
-4. Current state of any projects
-5. Open questions or next steps
-
-Format as bullet points. Be specific about file names, technologies, and code patterns mentioned.
-Keep it under 500 words but include all important technical details.`,
-    messages: [
-      {
-        role: 'user',
-        content: `Summarize this conversation for context continuation:\n\n${conversationText}`,
-      },
-    ],
-  });
-
-  let summary = '';
-  for (const block of response.content) {
-    if (block.type === 'text') {
-      summary += block.text;
-    }
-  }
-  return summary;
-}
-
-// Search detection - enhanced patterns for developer queries
-// Especially focused on rapidly-changing AI/ML APIs and developer tools
-function shouldUseSearch(message: string): boolean {
-  const lower = message.toLowerCase();
-
-  // ========================================
-  // DIRECT SEARCH REQUESTS (user explicitly asks for search)
-  // ========================================
-  const directSearchPatterns = [
-    /\b(search|look up|find|google|lookup|research)\b.*\b(web|online|internet)\b/i,
-    /\bsearch (for|the|web|online)\b/i,
-    /\b(can you|please|could you)\b.*\b(search|look up|find)\b/i,
-    /\bsearch.*\b(technical|documentation|docs|api|info)/i,
-  ];
-
-  // ========================================
-  // AI/ML API DOCUMENTATION (changes VERY fast - always search)
-  // ========================================
-  const aiApiPatterns = [
-    // OpenAI / GPT
-    /\b(openai|gpt-?[345o]|chatgpt|gpt|o[1-9]|davinci|turbo)\b.*\b(api|sdk|docs?|documentation|endpoint|model|version|release)/i,
-    /\b(api|docs?|documentation)\b.*\b(openai|gpt|chatgpt)/i,
-    /\bopenai\b.*\b(latest|current|new|pricing|rate.?limit)/i,
-
-    // Anthropic / Claude
-    /\b(anthropic|claude|sonnet|opus|haiku)\b.*\b(api|sdk|docs?|documentation|endpoint|model|version)/i,
-    /\b(api|docs?|documentation)\b.*\b(anthropic|claude)/i,
-    /\bclaude\b.*\b(latest|current|new|model|version|api)/i,
-
-    // Other AI providers
-    /\b(gemini|bard|palm|google.?ai)\b.*\b(api|sdk|docs?|model|version)/i,
-    /\b(llama|meta.?ai|mistral|cohere)\b.*\b(api|sdk|docs?|model|version)/i,
-    /\b(deepseek|xai|grok)\b.*\b(api|sdk|docs?|model|version)/i,
-    /\b(hugging.?face|transformers)\b.*\b(api|model|version|latest)/i,
-
-    // AI SDK / Vercel AI
-    /\b(vercel.?ai|ai.?sdk)\b.*\b(docs?|documentation|api|version)/i,
-    /\b(langchain|llamaindex|semantic.?kernel)\b.*\b(docs?|api|version)/i,
-  ];
-
-  // ========================================
-  // FRAMEWORK/LIBRARY VERSIONS (change frequently)
-  // ========================================
-  const frameworkPatterns = [
-    // React ecosystem
-    /\b(react|next\.?js|remix|gatsby)\b.*\b(latest|current|new|version|release|[0-9]+\.[0-9]+)/i,
-    /\b(latest|current|new)\b.*\b(react|next\.?js|version)/i,
-
-    // Other frontend
-    /\b(vue|nuxt|svelte|angular|astro)\b.*\b(latest|current|version|release)/i,
-
-    // Backend
-    /\b(node\.?js|deno|bun)\b.*\b(latest|current|version|release|lts)/i,
-    /\b(express|fastify|hono|elysia|nest\.?js)\b.*\b(version|docs?|api)/i,
-
-    // Languages
-    /\b(typescript|python|rust|go)\b.*\b(latest|current|version|release|what'?s.?new)/i,
-
-    // Package managers
-    /\b(npm|yarn|pnpm|bun|pip|cargo)\b.*\b(version|release|latest|update)/i,
-  ];
-
-  // ========================================
-  // LATEST/CURRENT INFORMATION REQUESTS
-  // ========================================
-  const latestInfoPatterns = [
-    /\bwhat('s| is)\b.*\b(latest|current|newest|recent)\b.*\b(version|release|update)/i,
-    /\b(latest|current|newest|recent)\b.*\b(version|release|update|documentation|docs)/i,
-    /\bhow to\b.*\b(latest|current|new|updated)\b/i,
-    /\bwhat'?s.?new\b.*\b(in|with|for)\b/i,
-    /\b(released|updated|changed)\b.*\b(recently|today|this.?(week|month|year))/i,
-    /\b(deprecat|breaking.?change|migration|upgrade)\b/i,
-  ];
-
-  // ========================================
-  // DOCUMENTATION REQUESTS
-  // ========================================
-  const docPatterns = [
-    /\b(official|api|sdk)\b.*\b(documentation|docs|reference|guide)/i,
-    /\b(documentation|docs|reference)\b.*\b(for|about|on)\b/i,
-    /\bwhere.?(can|do).?(i|we)\b.*\b(find|get)\b.*\b(docs?|documentation)/i,
-    /\b(link|url)\b.*\b(docs?|documentation|api|reference)/i,
-  ];
-
-  // ========================================
-  // PACKAGE/LIBRARY INFORMATION
-  // ========================================
-  const packagePatterns = [
-    /\b(npm|yarn|pip|cargo|composer)\b.*\b(package|library|module|install)/i,
-    /\b(install|setup|configure)\b.*\b(guide|instructions|docs|latest)/i,
-    /\bpackage\.json\b.*\b(version|dependency|update)/i,
-  ];
-
-  // ========================================
-  // TROUBLESHOOTING CURRENT ISSUES
-  // ========================================
-  const troubleshootPatterns = [
-    /\b(error|issue|problem|bug)\b.*\b(fix|solve|resolve|solution|workaround)/i,
-    /\bwhy (does|is|am|do)\b.*\b(not working|failing|broken|error)/i,
-    /\b(known.?issue|bug.?report|github.?issue)/i,
-  ];
-
-  // ========================================
-  // COMPARISON/EVALUATION
-  // ========================================
-  const comparisonPatterns = [
-    /\b(compare|vs\.?|versus|difference.?between|which is better)\b/i,
-    /\b(pros.?and.?cons|advantages|disadvantages|trade.?offs?)\b/i,
-    /\b(benchmark|performance|comparison)\b.*\b(latest|current|[0-9]+)/i,
-  ];
-
-  // ========================================
-  // PRICING/LIMITS (change without notice)
-  // ========================================
-  const pricingPatterns = [
-    /\b(pricing|cost|price|rate.?limit|quota|tier)\b.*\b(api|service|cloud)/i,
-    /\bhow much\b.*\b(cost|charge|price)/i,
-    /\b(free.?tier|free.?plan|pricing.?table)/i,
-  ];
-
-  // ========================================
-  // MODEL NAMES/IDs (change with every release - CRITICAL for API setup)
-  // Examples: claude-sonnet-4-6, gpt-4-turbo-2024-04-09, claude-opus-4-6
-  // ========================================
-  const modelNamePatterns = [
-    // Direct model name/ID queries
-    /\b(model|models?)\b.*\b(name|names?|id|ids?|identifier|string|code)\b/i,
-    /\bwhat('s| is)\b.*\b(model|models?)\b.*\b(name|id|call|use|string)\b/i,
-    /\bmodel.?(name|id|string|identifier)\b/i,
-
-    // Available/supported models
-    /\b(latest|current|newest|available|supported)\b.*\b(model|models)\b/i,
-    /\b(model|models)\b.*\b(list|available|supported|options|choices)\b/i,
-    /\bwhat.?models?\b.*\b(available|support|can.?i.?use|exist)/i,
-
-    // Model versions/releases
-    /\bmodel\b.*\b(version|release|update|date|[0-9]{8})\b/i,
-    /\b(claude|gpt|gemini|llama|mistral)\b.*\b(version|release|model.?id)\b/i,
-
-    // API model parameter
-    /\b(api|sdk|endpoint)\b.*\bmodel\b.*\b(parameter|argument|value|set)\b/i,
-    /\bmodel\b.*\b(parameter|argument)\b.*\b(api|sdk|client)\b/i,
-
-    // Environment variable setup for models
-    /\b(env|environment|\.env)\b.*\b(model|models?)\b/i,
-    /\bmodel\b.*\b(env|environment|config|variable)\b/i,
-
-    // Specific model ID patterns (dated versions)
-    /\b(claude|gpt|gemini)-[\w-]+-[0-9]{8}\b/i,
-    /\bmodel.?id\b.*\b(format|example|syntax)\b/i,
-
-    // Model deprecation/migration
-    /\bmodel\b.*\b(deprecat|obsolete|retire|sunset|migrat|replac)\b/i,
-    /\b(deprecat|sunset|replac)\b.*\bmodel/i,
-  ];
-
-  // Check all pattern groups
-  const allPatterns = [
-    ...directSearchPatterns,
-    ...aiApiPatterns,
-    ...frameworkPatterns,
-    ...latestInfoPatterns,
-    ...docPatterns,
-    ...packagePatterns,
-    ...troubleshootPatterns,
-    ...comparisonPatterns,
-    ...pricingPatterns,
-    ...modelNamePatterns,
-  ];
-
-  // Check regex patterns
-  if (allPatterns.some((p) => p.test(message))) {
-    return true;
-  }
-
-  // ========================================
-  // KEYWORD-BASED DETECTION
-  // High-signal keywords that suggest real-time info needed
-  // ========================================
-  const highSignalKeywords = [
-    'latest version',
-    'current version',
-    'new release',
-    'just released',
-    'recently updated',
-    'breaking changes',
-    'migration guide',
-    'upgrade guide',
-    'release notes',
-    'changelog',
-    "what's new",
-    'official docs',
-    'api reference',
-    'rate limits',
-    'pricing',
-  ];
-
-  if (highSignalKeywords.some((kw) => lower.includes(kw))) {
-    return true;
-  }
-
-  // ========================================
-  // AI-SPECIFIC KEYWORDS (always search - changes too fast)
-  // ========================================
-  const aiKeywordsWithContext = [
-    'openai api',
-    'anthropic api',
-    'claude api',
-    'gpt-4',
-    'gpt-5',
-    'claude 4',
-    'claude opus',
-    'claude sonnet',
-    'gemini api',
-    'ai sdk',
-    'langchain',
-    'llamaindex',
-  ];
-
-  // If AI keyword + version/api/docs context, search
-  if (aiKeywordsWithContext.some((kw) => lower.includes(kw))) {
-    return true;
-  }
-
-  // ========================================
-  // MODEL NAME/ID KEYWORDS (critical for API setup)
-  // ========================================
-  const modelKeywords = [
-    'model name',
-    'model names',
-    'model id',
-    'model ids',
-    'model identifier',
-    'model string',
-    'model list',
-    'available models',
-    'supported models',
-    'model parameter',
-    'model version',
-    'model release',
-    'which model',
-    'what model',
-    'latest model',
-    'current model',
-    'model deprecated',
-    'model sunset',
-  ];
-
-  if (modelKeywords.some((kw) => lower.includes(kw))) {
-    return true;
-  }
-
-  return false;
-}
-
-// In-memory rate limit store (per user, resets every minute)
-// MEMORY LEAK FIX: Add periodic cleanup of expired entries
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Cleanup every 5 minutes
-let lastCleanupTime = Date.now();
-
-/**
- * Clean up expired rate limit entries to prevent memory leaks.
- * Called periodically during rate limit checks.
- */
-function cleanupExpiredRateLimits(): void {
-  const now = Date.now();
-
-  // Only run cleanup every CLEANUP_INTERVAL_MS
-  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
-    return;
-  }
-
-  lastCleanupTime = now;
-  let cleanedCount = 0;
-
-  for (const [userId, limit] of rateLimitStore.entries()) {
-    if (now > limit.resetTime) {
-      rateLimitStore.delete(userId);
-      cleanedCount++;
-    }
-  }
-
-  if (cleanedCount > 0) {
-    log.debug('Cleaned up expired rate limit entries', {
-      count: cleanedCount,
-      remaining: rateLimitStore.size,
-    });
-  }
-}
-
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-
-  // MEMORY LEAK FIX: Periodically clean up expired entries
-  cleanupExpiredRateLimits();
-
-  const userLimit = rateLimitStore.get(userId);
-
-  if (!userLimit || now > userLimit.resetTime) {
-    // Reset or initialize
-    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_REQUESTS - 1 };
-  }
-
-  if (userLimit.count >= RATE_LIMIT_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  userLimit.count++;
-  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - userLimit.count };
-}
-
 export async function POST(request: NextRequest) {
-  // CSRF Protection
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
+  // Centralized auth with built-in CSRF protection
+  const auth = await requireUser(request);
+  if (!auth.authorized) return auth.response;
+  const { user, supabase } = auth;
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return chatErrorResponse(HTTP_STATUS.UNAUTHORIZED, {
-        error: 'Authentication required',
-        code: ERROR_CODES.UNAUTHORIZED,
-        action: 'authenticate',
-      });
-    }
-
-    // SECURITY FIX: Rate limiting to prevent abuse
+    // Rate limiting to prevent abuse
     const { allowed } = checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
@@ -582,8 +105,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { sessionId, content, repo, attachments, forceSearch, modelId, thinking } = body;
 
-    // P2a: Input validation - max content length to prevent abuse
-    const MAX_CONTENT_LENGTH = 100000; // 100KB reasonable limit for chat messages
+    // Input validation - max content length to prevent abuse
+    const MAX_CONTENT_LENGTH = 100000;
     if (content && typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
       return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
         error: 'Message too long',
@@ -593,10 +116,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Model selection (Claude Code parity) - default to Opus 4.6
+    // Model selection - default to Opus 4.6
     const selectedModel = modelId || 'claude-opus-4-6';
-
-    // Extended thinking configuration (Claude Code parity)
     const thinkingEnabled = thinking?.enabled === true;
     const thinkingBudget = thinking?.budgetTokens || 10000;
 
@@ -608,7 +129,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Load user's GitHub token and subscription tier for tool use + quota enforcement
+    // Load user's GitHub token and subscription tier
     let userGitHubToken: string | undefined;
     let userPlanKey = 'free';
     try {
@@ -630,9 +151,7 @@ export async function POST(request: NextRequest) {
       // User data loading should never block chat
     }
 
-    // ========================================
-    // TOKEN QUOTA ENFORCEMENT
-    // ========================================
+    // Token quota enforcement
     const canProceed = await canMakeRequest(user.id, userPlanKey);
     if (!canProceed) {
       const usage = await getTokenUsage(user.id, userPlanKey);
@@ -651,11 +170,7 @@ export async function POST(request: NextRequest) {
         message:
           warningMessage ||
           'You have exceeded your token limit. Please upgrade your plan to continue.',
-        usage: {
-          used: usage.used,
-          limit: usage.limit,
-          percentage: usage.percentage,
-        },
+        usage: { used: usage.used, limit: usage.limit, percentage: usage.percentage },
         action: 'upgrade',
         actionUrl: '/settings?tab=subscription',
       });
@@ -683,7 +198,7 @@ export async function POST(request: NextRequest) {
         ']';
     }
 
-    // Process slash commands - convert /fix, /test, etc. to enhanced prompts
+    // Process slash commands
     let slashCommandFailed = false;
     let slashCommandError = '';
     let isActionCommand = false;
@@ -706,24 +221,20 @@ export async function POST(request: NextRequest) {
         if (processedPrompt) {
           log.debug('Slash command detected', { command: content?.substring(0, 50) });
 
-          // Handle action commands that require immediate execution
           if (processedPrompt === '[CLEAR_HISTORY]') {
             isActionCommand = true;
-            // Delete all messages for this session (will be executed after ownership verification)
             actionResponse = '**History cleared.** Starting fresh conversation.';
           } else if (processedPrompt.startsWith('[RESET_SESSION]')) {
             isActionCommand = true;
             actionResponse = '**Session reset.** All preferences restored to defaults.';
           } else if (processedPrompt.startsWith('[COMPACT_CONTEXT]')) {
             isActionCommand = true;
-            // Trigger context compaction
             actionResponse = '**Context compacted.** Older messages summarized to free up space.';
           } else {
             enhancedContent = processedPrompt;
           }
         }
       } else {
-        // Unknown slash command - provide helpful feedback
         const commandName = enhancedContent.split(' ')[0];
         slashCommandFailed = true;
         slashCommandError = `Unknown command: ${commandName}. Try /help to see available commands.`;
@@ -731,7 +242,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // SECURITY: Get session AND verify ownership BEFORE any operations
+    // Verify session ownership
     const { data: currentSession, error: sessionFetchError } = await (
       supabase.from('code_lab_sessions') as AnySupabase
     )
@@ -747,7 +258,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // SECURITY: Verify the authenticated user owns this session
     if (currentSession.user_id !== user.id) {
       log.warn('Session ownership violation attempt', {
         sessionId,
@@ -761,109 +271,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Handle action commands that execute immediately (ownership verified)
+    // Handle action commands (ownership verified)
     if (isActionCommand) {
-      const encoder = new TextEncoder();
-
-      // Execute the actual action
-      if (actionResponse.includes('History cleared')) {
-        // Delete all messages for this session
-        await (supabase.from('code_lab_messages') as AnySupabase)
-          .delete()
-          .eq('session_id', sessionId);
-        // Reset message count
-        await (supabase.from('code_lab_sessions') as AnySupabase)
-          .update({ message_count: 0 })
-          .eq('id', sessionId);
-        log.info('Session history cleared', { sessionId });
-      } else if (actionResponse.includes('Session reset')) {
-        // Delete all messages and reset session
-        await (supabase.from('code_lab_messages') as AnySupabase)
-          .delete()
-          .eq('session_id', sessionId);
-        await (supabase.from('code_lab_sessions') as AnySupabase)
-          .update({
-            message_count: 0,
-            has_summary: false,
-            last_summary_at: null,
-          })
-          .eq('id', sessionId);
-        log.info('Session reset', { sessionId });
-      } else if (actionResponse.includes('Context compacted')) {
-        // Trigger summarization of older messages
-        const { data: allMessages } = await (supabase.from('code_lab_messages') as AnySupabase)
-          .select('id, role, content')
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: true });
-
-        if (allMessages && allMessages.length > 5) {
-          // Summarize older messages (keep last 5)
-          const toSummarize = allMessages.slice(0, -5);
-          const summary = await generateConversationSummary(
-            toSummarize.map((m: { role: string; content: string }) => ({
-              role: m.role,
-              content: m.content,
-            }))
-          );
-
-          // SAFETY FIX: Insert summary FIRST, then delete old messages
-          // This ensures we never lose data - if insert fails, we keep old messages
-          const summaryId = generateId();
-          const { error: insertError } = await (
-            supabase.from('code_lab_messages') as AnySupabase
-          ).insert({
-            id: summaryId,
-            session_id: sessionId,
-            role: 'system',
-            content: summary,
-            created_at: new Date().toISOString(),
-            type: 'summary',
-          });
-
-          if (insertError) {
-            log.error('Failed to insert summary, keeping original messages', {
-              error: insertError.message,
-            });
-          } else {
-            // Only delete old messages if summary was successfully saved
-            const idsToDelete = toSummarize.map((m: { id: string }) => m.id);
-            const { error: deleteError } = await (supabase.from('code_lab_messages') as AnySupabase)
-              .delete()
-              .in('id', idsToDelete);
-
-            if (deleteError) {
-              log.warn('Failed to delete old messages after summarization', {
-                error: deleteError.message,
-              });
-            }
-
-            await (supabase.from('code_lab_sessions') as AnySupabase)
-              .update({ has_summary: true, last_summary_at: new Date().toISOString() })
-              .eq('id', sessionId);
-
-            log.info('Context compacted', { sessionId, summarizedCount: toSummarize.length });
-          }
-        }
-      }
-
-      // Return success response
-      return new Response(
-        new ReadableStream({
-          start(controller) {
-            controller.enqueue(encoder.encode(actionResponse));
-            controller.close();
-          },
-        }),
-        {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Action-Command': 'true',
-          },
-        }
-      );
+      return executeActionCommand(actionResponse, sessionId, supabase);
     }
 
-    // Run intelligent intent detection
+    // Intent detection
     const intentResult = detectCodeLabIntent(enhancedContent);
     log.debug('Intent detected', {
       type: intentResult.type,
@@ -871,7 +284,7 @@ export async function POST(request: NextRequest) {
       workspace: intentResult.shouldUseWorkspace,
     });
 
-    // Save user message (now safe - ownership verified)
+    // Save user message
     const userMessageId = generateId();
     const { error: msgError } = await (supabase.from('code_lab_messages') as AnySupabase).insert({
       id: userMessageId,
@@ -883,10 +296,9 @@ export async function POST(request: NextRequest) {
 
     if (msgError) {
       log.warn('Failed to save user message', { error: msgError.message });
-      // Continue anyway - we can still process the request
     }
 
-    // Update session timestamp and message count (session already fetched and verified above)
+    // Update session timestamp and message count
     const { error: updateError } = await (supabase.from('code_lab_sessions') as AnySupabase)
       .update({
         updated_at: new Date().toISOString(),
@@ -904,15 +316,11 @@ export async function POST(request: NextRequest) {
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
-    // Check for existing summary
     const existingSummary = (allMessages || []).find((m: { type: string }) => m.type === 'summary');
-
-    // Build effective history for context
     let history: Array<{ role: string; content: string }> = [];
     const messageCount = currentSession?.message_count || 0;
 
     if (messageCount > SUMMARY_THRESHOLD && !existingSummary) {
-      // Need to generate a summary
       log.info('Auto-summarizing conversation', { messageCount });
 
       const messagesToSummarize = (allMessages || [])
@@ -928,7 +336,6 @@ export async function POST(request: NextRequest) {
             }))
           );
 
-          // SAFETY FIX: Check insert result before updating session state
           const { error: insertError } = await (
             supabase.from('code_lab_messages') as AnySupabase
           ).insert({
@@ -942,7 +349,6 @@ export async function POST(request: NextRequest) {
 
           if (insertError) {
             log.error('Failed to save summary', { error: insertError.message });
-            // Fall back to recent messages only
             history = (allMessages || [])
               .slice(-20)
               .map((m: { role: string; content: string }) => ({
@@ -950,12 +356,10 @@ export async function POST(request: NextRequest) {
                 content: m.content,
               }));
           } else {
-            // Update session has_summary flag only if insert succeeded
             await (supabase.from('code_lab_sessions') as AnySupabase)
               .update({ has_summary: true, last_summary_at: new Date().toISOString() })
               .eq('id', sessionId);
 
-            // Use summary + recent messages
             history = [
               { role: 'system', content: `[Previous conversation summary]\n${summary}` },
               ...(allMessages || [])
@@ -969,7 +373,6 @@ export async function POST(request: NextRequest) {
           }
         } catch (err) {
           log.error('Summary generation failed', err as Error);
-          // Fall back to recent messages only
           history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
             role: m.role,
             content: m.content,
@@ -977,7 +380,6 @@ export async function POST(request: NextRequest) {
         }
       }
     } else if (existingSummary) {
-      // Use existing summary + messages after it
       const summaryIndex = (allMessages || []).findIndex(
         (m: { id: string }) => m.id === existingSummary.id
       );
@@ -985,20 +387,16 @@ export async function POST(request: NextRequest) {
         { role: 'system', content: `[Previous conversation summary]\n${existingSummary.content}` },
         ...(allMessages || [])
           .slice(summaryIndex + 1)
-          .map((m: { role: string; content: string }) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          .map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
       ];
     } else {
-      // No summarization needed, use all messages
       history = (allMessages || []).slice(-20).map((m: { role: string; content: string }) => ({
         role: m.role,
         content: m.content,
       }));
     }
 
-    // Handle slash command failures by returning error response
+    // Handle slash command failures
     if (slashCommandFailed) {
       const errorMessageId = generateId();
       const errorContent = `**${slashCommandError}**\n\nAvailable commands:\n- \`/fix\` - Fix errors in the codebase\n- \`/test\` - Run tests\n- \`/build\` - Run build\n- \`/commit\` - Commit changes\n- \`/push\` - Push to remote\n- \`/review\` - Code review\n- \`/explain\` - Explain code\n- \`/workspace\` - Enable sandbox mode\n- \`/help\` - Show all commands`;
@@ -1011,7 +409,6 @@ export async function POST(request: NextRequest) {
         created_at: new Date().toISOString(),
       });
 
-      // Return error as stream
       const encoder = new TextEncoder();
       return new Response(
         new ReadableStream({
@@ -1029,19 +426,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Detect intent (forceSearch from button overrides auto-detection)
+    // Detect intent routing
     const useCodeAgent = checkCodeAgentIntent(enhancedContent);
     const useSearch = forceSearch || shouldUseSearch(enhancedContent);
     const useMultiAgent = shouldUseMultiAgent(enhancedContent);
-    // Use intelligent intent detector result
     const useWorkspaceAgent = intentResult.shouldUseWorkspace;
 
     // ========================================
-    // WORKSPACE AGENT - E2B Sandbox Execution (Claude Code-like)
+    // WORKSPACE AGENT - E2B Sandbox Execution
     // ========================================
-    // Check if user has an active workspace for THIS SESSION (not any session)
-    // CRITICAL FIX: Query by session_id to get session-specific workspace
-    // SAFETY FIX: Use .maybeSingle() instead of .single() to avoid crash on 0 or multiple rows
     const { data: workspaceData, error: workspaceError } = await (
       supabase.from('code_lab_workspaces') as AnySupabase
     )
@@ -1054,40 +447,32 @@ export async function POST(request: NextRequest) {
 
     if (workspaceError) {
       log.warn('Failed to query workspace', { error: workspaceError.message, sessionId });
-      // Continue without workspace - don't crash the entire chat
     }
 
-    // Use workspace agent if: has active workspace AND request is agentic (high confidence)
-    // OR if user explicitly asks for workspace mode with keywords
     const forceWorkspace =
       body.useWorkspace === true ||
       enhancedContent.toLowerCase().includes('/workspace') ||
       enhancedContent.toLowerCase().includes('/sandbox') ||
       enhancedContent.toLowerCase().includes('/execute');
 
-    // Only use workspace for high-confidence agentic requests
     const shouldActivateWorkspace =
       (workspaceData?.id && useWorkspaceAgent && intentResult.confidence >= 50) || forceWorkspace;
 
     if (shouldActivateWorkspace) {
       log.info('Using Workspace Agent (E2B sandbox mode)');
 
-      // Get or create workspace
       let workspaceId = workspaceData?.id;
-      let sandboxId = workspaceData?.sandbox_id;
+      const sandboxId = workspaceData?.sandbox_id;
 
       if (!workspaceId) {
-        // Generate a sandbox ID (will be replaced by real E2B sandbox ID when created)
-        sandboxId = `sandbox-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-        // Create a new workspace for this user
+        const newSandboxId = `sandbox-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const { data: newWorkspace, error: wsError } = await (
           supabase.from('code_lab_workspaces') as AnySupabase
         )
           .insert({
             user_id: user.id,
             session_id: sessionId,
-            sandbox_id: sandboxId,
+            sandbox_id: sandboxId || newSandboxId,
             template: 'nodejs',
             status: 'active',
             created_at: new Date().toISOString(),
@@ -1099,12 +484,10 @@ export async function POST(request: NextRequest) {
         if (wsError) {
           log.error('Failed to create workspace', { error: wsError ?? 'Unknown error' });
         }
-
         workspaceId = newWorkspace?.id;
       }
 
       if (workspaceId) {
-        // Update last activity
         const { error: activityError } = await (supabase.from('code_lab_workspaces') as AnySupabase)
           .update({ last_activity_at: new Date().toISOString() })
           .eq('id', workspaceId);
@@ -1113,9 +496,6 @@ export async function POST(request: NextRequest) {
           log.warn('Failed to update workspace activity', { error: activityError.message });
         }
 
-        // Execute workspace agent with streaming
-        // CRITICAL FIX: Pass sessionId as workspaceId since ContainerManager queries by session_id
-        // The workspace row ID is only used for DB operations, not for sandbox lookups
         const workspaceStream = await executeWorkspaceAgent(content, {
           workspaceId: sessionId,
           userId: user.id,
@@ -1126,68 +506,13 @@ export async function POST(request: NextRequest) {
           })),
         });
 
-        // Collect stream and save to database
-        const reader = workspaceStream.getReader();
-        const decoder = new TextDecoder();
-        let fullContent = '';
-
-        const encoder = new TextEncoder();
-        const stream = new ReadableStream({
-          async start(controller) {
-            try {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const text = decoder.decode(value);
-                fullContent += text;
-                controller.enqueue(encoder.encode(text));
-              }
-
-              // Save assistant message
-              await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                id: generateId(),
-                session_id: sessionId,
-                role: 'assistant',
-                content: fullContent,
-                created_at: new Date().toISOString(),
-                type: 'workspace',
-              });
-
-              controller.close();
-            } catch (error) {
-              log.error('Workspace Agent error', error as Error);
-              const errorContent =
-                '\n\n`✕ Error:` I encountered an error during workspace execution. Please try again.';
-              fullContent += errorContent;
-
-              // CRITICAL FIX: Save error message to maintain conversation history
-              try {
-                await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                  id: generateId(),
-                  session_id: sessionId,
-                  role: 'assistant',
-                  content: fullContent || errorContent,
-                  created_at: new Date().toISOString(),
-                  type: 'error',
-                });
-              } catch (saveError) {
-                log.error('Failed to save workspace error message', saveError as Error);
-              }
-
-              controller.enqueue(encoder.encode(errorContent));
-              controller.close();
-            }
-          },
-        });
-
-        return new Response(stream, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-          },
-        });
+        return createAgentStreamResponse(
+          workspaceStream,
+          supabase,
+          sessionId,
+          'workspace',
+          'Workspace Agent'
+        );
       }
     }
 
@@ -1195,16 +520,12 @@ export async function POST(request: NextRequest) {
     // CODE AGENT V2 - Full Project Generation
     // ========================================
     if (useCodeAgent) {
-      // CRITICAL-008 FIX: Use secure service role client with audit logging
-      // This ensures all privileged database access is authenticated and logged
       const secureClient = createSecureServiceClient(
         { id: user.id, email: user.email || undefined },
         extractRequestContext(request, '/api/code-lab/chat')
       );
 
-      // Get GitHub token using secure client (enforces user ownership)
       const encryptedToken = await secureClient.getUserGitHubToken(user.id);
-
       let githubToken: string | undefined;
       if (encryptedToken) {
         const decrypted = decryptToken(encryptedToken);
@@ -1215,7 +536,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Execute Code Agent with streaming
       const codeAgentStream = await executeCodeAgent(content, {
         userId: user.id,
         conversationId: sessionId,
@@ -1225,11 +545,7 @@ export async function POST(request: NextRequest) {
         })),
         githubToken,
         selectedRepo: repo
-          ? {
-              owner: repo.owner,
-              repo: repo.name,
-              fullName: repo.fullName,
-            }
+          ? { owner: repo.owner, repo: repo.name, fullName: repo.fullName }
           : undefined,
         skipClarification:
           content.toLowerCase().includes('just build') ||
@@ -1237,68 +553,7 @@ export async function POST(request: NextRequest) {
           content.toLowerCase().includes('go ahead'),
       });
 
-      // Collect the stream and save to database
-      const reader = codeAgentStream.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              const text = decoder.decode(value);
-              fullContent += text;
-              controller.enqueue(encoder.encode(text));
-            }
-
-            // Save assistant message
-            await (supabase.from('code_lab_messages') as AnySupabase).insert({
-              id: generateId(),
-              session_id: sessionId,
-              role: 'assistant',
-              content: fullContent,
-              created_at: new Date().toISOString(),
-              type: 'code',
-            });
-
-            controller.close();
-          } catch (error) {
-            log.error('Code Agent error', error as Error);
-            const errorContent =
-              '\n\nI encountered an error during code generation. Please try again.';
-            fullContent += errorContent;
-
-            // CRITICAL FIX: Save error message to maintain conversation history
-            try {
-              await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                id: generateId(),
-                session_id: sessionId,
-                role: 'assistant',
-                content: fullContent || errorContent,
-                created_at: new Date().toISOString(),
-                type: 'error',
-              });
-            } catch (saveError) {
-              log.error('Failed to save code agent error message', saveError as Error);
-            }
-
-            controller.enqueue(encoder.encode(errorContent));
-            controller.close();
-          }
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
+      return createAgentStreamResponse(codeAgentStream, supabase, sessionId, 'code', 'Code Agent');
     }
 
     // ========================================
@@ -1309,11 +564,10 @@ export async function POST(request: NextRequest) {
       log.info('Multi-Agent mode activated', { agents: suggestedAgents });
 
       const encoder = new TextEncoder();
-      let fullContent = ''; // Moved outside try block for error handler access
+      let fullContent = '';
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Stream the orchestrated response
             const agentStream = orchestrateStream(enhancedContent, {
               userId: user.id,
               sessionId,
@@ -1336,50 +590,21 @@ export async function POST(request: NextRequest) {
               controller.enqueue(encoder.encode(chunk));
             }
 
-            // Save assistant message
-            await (supabase.from('code_lab_messages') as AnySupabase).insert({
-              id: generateId(),
-              session_id: sessionId,
-              role: 'assistant',
-              content: fullContent,
-              created_at: new Date().toISOString(),
-              type: 'multi-agent',
-            });
-
+            await saveAssistantMessage(supabase, sessionId, fullContent, 'multi-agent');
             controller.close();
           } catch (error) {
             log.error('Multi-Agent error', error as Error);
             const errorContent =
               '\n\nI encountered an error with the multi-agent system. Please try again.';
             fullContent += errorContent;
-
-            // CRITICAL FIX: Save error message to maintain conversation history
-            try {
-              await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                id: generateId(),
-                session_id: sessionId,
-                role: 'assistant',
-                content: fullContent || errorContent,
-                created_at: new Date().toISOString(),
-                type: 'error',
-              });
-            } catch (saveError) {
-              log.error('Failed to save multi-agent error message', saveError as Error);
-            }
-
+            await saveAssistantMessage(supabase, sessionId, fullContent || errorContent, 'error');
             controller.enqueue(encoder.encode(errorContent));
             controller.close();
           }
         },
       });
 
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
+      return new Response(stream, { headers: STREAM_HEADERS });
     }
 
     // ========================================
@@ -1387,11 +612,10 @@ export async function POST(request: NextRequest) {
     // ========================================
     if (useSearch && isPerplexityConfigured()) {
       const encoder = new TextEncoder();
-      let fullContent = ''; // Moved outside try block for error handler access
+      let fullContent = '';
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Perform Perplexity search
             const searchResult = await perplexitySearch({
               query: content,
               systemPrompt: `You are a developer-focused search assistant. Provide accurate, technical information.
@@ -1402,10 +626,8 @@ Format your response with:
 Keep it professional and focused on development.`,
             });
 
-            // Format the search result
             fullContent = searchResult.answer;
 
-            // Add sources
             if (searchResult.sources && searchResult.sources.length > 0) {
               fullContent += '\n\n---\n\n**Sources:**\n';
               searchResult.sources.slice(0, 5).forEach((source, i) => {
@@ -1413,10 +635,8 @@ Keep it professional and focused on development.`,
               });
             }
 
-            // Stream the response
             controller.enqueue(encoder.encode(fullContent));
 
-            // Save assistant message
             await (supabase.from('code_lab_messages') as AnySupabase).insert({
               id: generateId(),
               session_id: sessionId,
@@ -1434,12 +654,12 @@ Keep it professional and focused on development.`,
             controller.close();
           } catch (error) {
             log.error('Perplexity search error', error as Error);
-            // Fall back to Claude if Perplexity fails
             controller.enqueue(encoder.encode('`Search unavailable, using knowledge base...`\n\n'));
 
             try {
+              const anthropic = getAnthropicClient();
               const fallbackResponse = await anthropic.messages.create({
-                model: selectedModel, // Use user-selected model (Claude Code parity)
+                model: selectedModel,
                 max_tokens: 4096,
                 system: `You are Claude in Code Lab. The user asked a search question but web search failed.
 Provide the best answer you can from your training knowledge.
@@ -1455,33 +675,11 @@ Be honest about knowledge cutoff limitations when relevant.`,
                 }
               }
 
-              // Save fallback response
-              await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                id: generateId(),
-                session_id: sessionId,
-                role: 'assistant',
-                content: fallbackContent,
-                created_at: new Date().toISOString(),
-                type: 'search',
-              });
+              await saveAssistantMessage(supabase, sessionId, fallbackContent, 'search');
             } catch (fallbackError) {
               log.error('Fallback error', fallbackError as Error);
               const errorContent = '\n\nI encountered an error. Please try again.';
-
-              // CRITICAL FIX: Save error message to maintain conversation history
-              try {
-                await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                  id: generateId(),
-                  session_id: sessionId,
-                  role: 'assistant',
-                  content: errorContent,
-                  created_at: new Date().toISOString(),
-                  type: 'error',
-                });
-              } catch (saveError) {
-                log.error('Failed to save search fallback error message', saveError as Error);
-              }
-
+              await saveAssistantMessage(supabase, sessionId, errorContent, 'error');
               controller.enqueue(encoder.encode(errorContent));
             }
 
@@ -1490,21 +688,12 @@ Be honest about knowledge cutoff limitations when relevant.`,
         },
       });
 
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
+      return new Response(stream, { headers: STREAM_HEADERS });
     }
 
     // ========================================
     // REGULAR CHAT - Multi-Provider Support
     // ========================================
-    // Supports Claude, OpenAI (GPT-5), xAI (Grok), DeepSeek, and Google (Gemini)
-
-    // Determine which provider to use based on the selected model
     const providerId = getProviderForModel(selectedModel);
     const providerInfo = getProviderAndModel(selectedModel);
 
@@ -1514,12 +703,166 @@ Be honest about knowledge cutoff limitations when relevant.`,
       modelName: providerInfo?.model.name || 'unknown',
     });
 
-    // Build system prompt (shared across all providers)
-    // Dynamic context awareness - tell the AI exactly what resources are available
+    // Build system prompt
     const hasRepo = repo && repo.fullName;
     const hasImages = imageAttachments.length > 0;
 
-    let systemPrompt = `You are a highly capable AI assistant in Code Lab - a professional developer workspace.
+    let systemPrompt = buildSystemPrompt(hasRepo, hasImages, repo, imageAttachments);
+
+    // Inject CLAUDE.md memory
+    const { data: sessionWithSettings } = await untypedFrom(supabase, 'code_lab_sessions')
+      .select('settings')
+      .eq('id', sessionId)
+      .single();
+
+    const memoryContent = sessionWithSettings?.settings?.memory_content;
+    if (memoryContent && memoryContent.trim()) {
+      systemPrompt += `\n\n---\n# Project Memory\n\nThe user has defined the following project-specific context and instructions:\n\n${memoryContent}\n\n---\nIMPORTANT: Follow the instructions above. They represent the user's preferences for this project.`;
+      log.info('Injected memory context', { length: memoryContent.length });
+    }
+
+    // Persistent memory
+    try {
+      const memoryCtx = await getMemoryContext(user.id);
+      if (memoryCtx.loaded && memoryCtx.contextString) {
+        systemPrompt += `\n\n${memoryCtx.contextString}`;
+        log.info('Injected persistent user memory');
+      }
+    } catch (memErr) {
+      log.warn('Failed to load persistent memory', { error: memErr });
+    }
+
+    // Learned style preferences
+    try {
+      const learning = await getLearningContext(user.id);
+      if (learning.loaded && learning.contextString) {
+        systemPrompt += `\n\n${learning.contextString}`;
+        log.info('Injected learned style preferences');
+      }
+    } catch (learnErr) {
+      log.warn('Failed to load learning context', { error: learnErr });
+    }
+
+    // Fire-and-forget: observe current message for learning signals
+    observeAndLearn(user.id, content).catch((err: unknown) =>
+      log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
+    );
+
+    // RAG - Document Context
+    try {
+      const docSearch = await searchUserDocuments(user.id, content, { matchCount: 3 });
+      if (docSearch?.contextString) {
+        systemPrompt += `\n\n${docSearch.contextString}`;
+        log.info('Injected document context (RAG)', { length: docSearch.contextString.length });
+      }
+    } catch (ragErr) {
+      log.warn('Failed to search user documents', { error: ragErr });
+    }
+
+    // Follow-up suggestions
+    systemPrompt += `\n\nFOLLOW-UP SUGGESTIONS:\nAt the end of substantive responses (NOT greetings, NOT simple yes/no answers), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:\n<suggested-followups>\n["Question 1?", "Question 2?", "Question 3?"]\n</suggested-followups>\nRules:\n- Questions should feel natural and insightful, like what a smart developer would ask next\n- They should deepen the conversation, not repeat what was already covered\n- Keep each question under 60 characters\n- Do NOT include follow-ups for greetings or one-word answers\n- The follow-ups tag must be the VERY LAST thing in your response`;
+
+    // Load tools
+    let chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = [];
+    try {
+      chatTools = await getAvailableChatTools();
+      log.info('Loaded chat tools for Code Lab', { count: chatTools.length });
+    } catch (toolErr) {
+      log.warn('Failed to load chat tools', { error: toolErr });
+    }
+
+    // Composio / Connectors
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let composioToolContext: any = null;
+    if (isComposioConfigured()) {
+      try {
+        composioToolContext = await getComposioToolsForUser(user.id);
+        if (composioToolContext?.tools?.length > 0) {
+          for (const composioTool of composioToolContext.tools) {
+            chatTools.push({
+              name: composioTool.name,
+              description: composioTool.description,
+              parameters: composioTool.input_schema,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any);
+          }
+          log.info('Loaded Composio tools for Code Lab', {
+            count: composioToolContext.tools.length,
+            hasGitHub: composioToolContext.hasGitHub,
+          });
+
+          if (composioToolContext.systemPromptAddition) {
+            systemPrompt += composioToolContext.systemPromptAddition;
+          }
+        }
+      } catch (composioErr) {
+        log.warn('Failed to load Composio tools', { error: composioErr });
+      }
+    }
+
+    const encoder = new TextEncoder();
+
+    // ========================================
+    // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+    // ========================================
+    if (providerId && providerId !== 'claude') {
+      return handleNonClaudeProvider(
+        providerId,
+        selectedModel,
+        providerInfo,
+        supabase,
+        user,
+        history,
+        enhancedContent,
+        imageAttachments,
+        systemPrompt,
+        sessionId,
+        encoder
+      );
+    }
+
+    // ========================================
+    // CLAUDE PROVIDER (Anthropic) - Default
+    // ========================================
+    return handleClaudeProvider(
+      supabase,
+      user,
+      history,
+      enhancedContent,
+      imageAttachments,
+      systemPrompt,
+      chatTools,
+      selectedModel,
+      modelId,
+      thinkingEnabled,
+      thinkingBudget,
+      sessionId,
+      content,
+      userPlanKey,
+      userGitHubToken,
+      useSearch,
+      encoder
+    );
+  } catch (error) {
+    log.error('Request error', error as Error);
+    return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
+      error: 'Internal server error',
+      code: ERROR_CODES.INTERNAL_ERROR,
+    });
+  }
+}
+
+// ========================================
+// SYSTEM PROMPT BUILDER
+// ========================================
+function buildSystemPrompt(
+  hasRepo: boolean,
+  hasImages: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  repo: any,
+  imageAttachments: Array<{ name: string; type: string; data: string }>
+): string {
+  return `You are a highly capable AI assistant in Code Lab - a professional developer workspace.
 
 You help developers with:
 - Building code and applications
@@ -1566,911 +909,581 @@ Analyze the attached images carefully and provide helpful feedback.`
 - Be concise but thorough
 - Provide working, tested code
 - Explain your reasoning briefly`;
+}
 
-    // Inject CLAUDE.md memory into context
-    const { data: sessionWithSettings } = await untypedFrom(supabase, 'code_lab_sessions')
-      .select('settings')
-      .eq('id', sessionId)
-      .single();
+// ========================================
+// NON-CLAUDE PROVIDER HANDLER
+// ========================================
+async function handleNonClaudeProvider(
+  providerId: string,
+  selectedModel: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  providerInfo: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+  history: Array<{ role: string; content: string }>,
+  enhancedContent: string,
+  imageAttachments: Array<{ name: string; type: string; data: string }>,
+  systemPrompt: string,
+  sessionId: string,
+  encoder: TextEncoder
+): Promise<Response> {
+  log.info('Using non-Claude provider', { providerId, model: selectedModel });
 
-    const memoryContent = sessionWithSettings?.settings?.memory_content;
-    if (memoryContent && memoryContent.trim()) {
-      systemPrompt += `
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepalive = createKeepalive(controller, encoder);
+      let fullContent = '';
 
----
-# Project Memory
-
-The user has defined the following project-specific context and instructions:
-
-${memoryContent}
-
----
-IMPORTANT: Follow the instructions above. They represent the user's preferences for this project.`;
-      log.info('Injected memory context', { length: memoryContent.length });
-    }
-
-    // ========================================
-    // PERSISTENT MEMORY (cross-conversation, Supabase)
-    // ========================================
-    try {
-      const memoryCtx = await getMemoryContext(user.id);
-      if (memoryCtx.loaded && memoryCtx.contextString) {
-        systemPrompt += `\n\n${memoryCtx.contextString}`;
-        log.info('Injected persistent user memory');
-      }
-    } catch (memErr) {
-      log.warn('Failed to load persistent memory', { error: memErr });
-    }
-
-    // ========================================
-    // LEARNED STYLE PREFERENCES
-    // ========================================
-    try {
-      const learning = await getLearningContext(user.id);
-      if (learning.loaded && learning.contextString) {
-        systemPrompt += `\n\n${learning.contextString}`;
-        log.info('Injected learned style preferences');
-      }
-    } catch (learnErr) {
-      log.warn('Failed to load learning context', { error: learnErr });
-    }
-
-    // Fire-and-forget: observe current message for learning signals
-    observeAndLearn(user.id, content).catch((err: unknown) =>
-      log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
-    );
-
-    // ========================================
-    // RAG - Document Context
-    // ========================================
-    try {
-      const docSearch = await searchUserDocuments(user.id, content, { matchCount: 3 });
-      if (docSearch?.contextString) {
-        systemPrompt += `\n\n${docSearch.contextString}`;
-        log.info('Injected document context (RAG)', { length: docSearch.contextString.length });
-      }
-    } catch (ragErr) {
-      log.warn('Failed to search user documents', { error: ragErr });
-    }
-
-    // ========================================
-    // SUGGESTED FOLLOW-UPS
-    // ========================================
-    systemPrompt += `
-
-FOLLOW-UP SUGGESTIONS:
-At the end of substantive responses (NOT greetings, NOT simple yes/no answers), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:
-<suggested-followups>
-["Question 1?", "Question 2?", "Question 3?"]
-</suggested-followups>
-Rules:
-- Questions should feel natural and insightful, like what a smart developer would ask next
-- They should deepen the conversation, not repeat what was already covered
-- Keep each question under 60 characters
-- Do NOT include follow-ups for greetings or one-word answers
-- The follow-ups tag must be the VERY LAST thing in your response`;
-
-    // ========================================
-    // ALL TOOLS (244+ from main chat)
-    // ========================================
-    let chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = [];
-    try {
-      chatTools = await getAvailableChatTools();
-      log.info('Loaded chat tools for Code Lab', { count: chatTools.length });
-    } catch (toolErr) {
-      log.warn('Failed to load chat tools', { error: toolErr });
-    }
-
-    // ========================================
-    // COMPOSIO / CONNECTORS (150+ Apps + Full GitHub Toolkit)
-    // ========================================
-    // When GitHub is connected via Composio, provides 100+ prioritized
-    // GitHub actions and removes the custom github tool to prevent duplicates.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let composioToolContext: any = null;
-    if (isComposioConfigured()) {
       try {
-        composioToolContext = await getComposioToolsForUser(user.id);
-        if (composioToolContext?.tools?.length > 0) {
-          for (const composioTool of composioToolContext.tools) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            chatTools.push({
-              name: composioTool.name,
-              description: composioTool.description,
-              parameters: composioTool.input_schema,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-          }
-          log.info('Loaded Composio tools for Code Lab', {
-            count: composioToolContext.tools.length,
-            hasGitHub: composioToolContext.hasGitHub,
-          });
+        const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
+        const userApiKey = byokConfig?.apiKey || null;
+        const effectiveModel = byokConfig?.model || selectedModel;
 
-          // Add connected apps context to system prompt
-          if (composioToolContext.systemPromptAddition) {
-            systemPrompt += composioToolContext.systemPromptAddition;
-          }
-        }
-      } catch (composioErr) {
-        log.warn('Failed to load Composio tools', { error: composioErr });
-      }
-    }
-
-    // Stream the response with reliability features
-    const encoder = new TextEncoder();
-
-    // Configuration for reliability
-    const CHUNK_TIMEOUT_MS = 60000; // 60s timeout per chunk
-    const KEEPALIVE_INTERVAL_MS = 15000; // Send keepalive every 15s
-
-    // ========================================
-    // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
-    // ========================================
-    if (providerId && providerId !== 'claude') {
-      log.info('Using non-Claude provider', { providerId, model: selectedModel });
-
-      const stream = new ReadableStream({
-        async start(controller) {
-          let keepaliveInterval: NodeJS.Timeout | null = null;
-          let lastActivity = Date.now();
-
-          const startKeepalive = () => {
-            keepaliveInterval = setInterval(() => {
-              const timeSinceActivity = Date.now() - lastActivity;
-              if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
-                try {
-                  controller.enqueue(encoder.encode(' '));
-                  log.debug('Sent keepalive heartbeat');
-                } catch {
-                  // Controller might be closed
-                }
-              }
-            }, KEEPALIVE_INTERVAL_MS);
+        // Validate API key availability
+        if (!userApiKey) {
+          const apiKeyEnvMap: Record<string, string[]> = {
+            openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
+            xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
+            deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
+            google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
           };
-
-          const stopKeepalive = () => {
-            if (keepaliveInterval) {
-              clearInterval(keepaliveInterval);
-              keepaliveInterval = null;
-            }
-          };
-
-          let fullContent = '';
-
-          try {
-            // BYOK: Check if user has their own API key and custom model for this provider
-            const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
-            const userApiKey = byokConfig?.apiKey || null;
-            // Use custom model from BYOK if specified, otherwise use selectedModel
-            const effectiveModel = byokConfig?.model || selectedModel;
-
-            // Validate API key is available (either BYOK or platform key)
-            // All providers support numbered keys (_1, _2, etc.) for key rotation
-            if (!userApiKey) {
-              const apiKeyEnvMap: Record<string, string[]> = {
-                openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
-                xai: ['XAI_API_KEY', 'XAI_API_KEY_1'],
-                deepseek: ['DEEPSEEK_API_KEY', 'DEEPSEEK_API_KEY_1'],
-                google: ['GEMINI_API_KEY', 'GEMINI_API_KEY_1'],
-              };
-              const requiredEnvVars = apiKeyEnvMap[providerId];
-              if (requiredEnvVars) {
-                const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
-                if (!hasAnyKey) {
-                  const primaryKey = requiredEnvVars[0];
-                  throw new Error(
-                    `${primaryKey} is not configured. Add your own API key in Settings, or contact the administrator.`
-                  );
-                }
-              }
-            }
-
-            // Get the appropriate adapter for this provider
-            const adapter = getAdapter(providerId);
-
-            // Convert history to unified message format
-            const unifiedMessages: UnifiedMessage[] = (history || []).map(
-              (m: { role: string; content: string }) => ({
-                role: m.role as 'user' | 'assistant' | 'system',
-                content: m.content,
-              })
-            );
-
-            // Build the current user message content with vision support
-            const userContentBlocks: Array<
-              | { type: 'text'; text: string }
-              | { type: 'image'; source: { type: 'base64'; mediaType: string; data: string } }
-            > = [];
-
-            if (enhancedContent) {
-              userContentBlocks.push({ type: 'text', text: enhancedContent });
-            }
-
-            // Add images for vision
-            for (const img of imageAttachments) {
-              const base64Data = img.data.split(',')[1] || img.data;
-              userContentBlocks.push({
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  mediaType: img.type,
-                  data: base64Data,
-                },
-              });
-            }
-
-            // Add the user message
-            if (userContentBlocks.length > 0) {
-              unifiedMessages.push({
-                role: 'user',
-                content:
-                  userContentBlocks.length === 1 && userContentBlocks[0].type === 'text'
-                    ? userContentBlocks[0].text
-                    : userContentBlocks,
-              });
-            }
-
-            // Start keepalive
-            startKeepalive();
-
-            // Track token usage
-            let inputTokens = 0;
-            let outputTokens = 0;
-
-            // Stream from the adapter
-            // Pass userApiKey if using BYOK (bypasses pooled keys)
-            // Use effectiveModel which may be user's custom model from BYOK config
-            const chatStream = adapter.chat(unifiedMessages, {
-              model: effectiveModel,
-              maxTokens: providerInfo?.model.maxOutputTokens || 8192,
-              temperature: 0.7,
-              systemPrompt,
-              ...(userApiKey ? { userApiKey } : {}),
-            });
-
-            for await (const chunk of chatStream) {
-              lastActivity = Date.now();
-
-              if (chunk.type === 'text') {
-                fullContent += chunk.text;
-                controller.enqueue(encoder.encode(chunk.text));
-              } else if (chunk.type === 'error' && chunk.error) {
-                log.error('Adapter stream error', {
-                  code: chunk.error.code,
-                  message: chunk.error.message,
-                });
-                throw new Error(chunk.error.message);
-              } else if (chunk.type === 'message_end' && chunk.usage) {
-                inputTokens = chunk.usage.inputTokens || 0;
-                outputTokens = chunk.usage.outputTokens || 0;
-              }
-            }
-
-            // Send token usage marker
-            if (inputTokens > 0 || outputTokens > 0) {
-              const usageMarker = `\n<!--USAGE:${JSON.stringify({
-                input: inputTokens,
-                output: outputTokens,
-                cacheRead: 0,
-                cacheWrite: 0,
-                model: selectedModel,
-              })}-->`;
-              controller.enqueue(encoder.encode(usageMarker));
-              log.debug('Token usage', { inputTokens, outputTokens, provider: providerId });
-            }
-
-            // Save assistant message
-            await (supabase.from('code_lab_messages') as AnySupabase).insert({
-              id: generateId(),
-              session_id: sessionId,
-              role: 'assistant',
-              content: fullContent,
-              created_at: new Date().toISOString(),
-              type: 'chat',
-              model_id: selectedModel,
-            });
-
-            controller.close();
-          } catch (error) {
-            log.error('Stream error', error as Error);
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const lowerError = errorMessage.toLowerCase();
-
-            // Provide specific error messages for common issues
-            let userMessage: string;
-            if (lowerError.includes('timeout')) {
-              userMessage = '\n\n*[Response interrupted: Connection timed out. Please try again.]*';
-            } else if (
-              lowerError.includes('not configured') ||
-              lowerError.includes('is not set') ||
-              lowerError.includes('missing api key') ||
-              lowerError.includes('no api key')
-            ) {
-              // Key is genuinely not configured - admin needs to add it
-              userMessage = `\n\n**API Configuration Error**\n\nThe ${providerId?.toUpperCase() || 'provider'} API key is not configured. Please contact the administrator to set up the API key.`;
-            } else if (
-              lowerError.includes('invalid api key') ||
-              lowerError.includes('invalid_api_key') ||
-              lowerError.includes('incorrect api key') ||
-              lowerError.includes('api key') ||
-              lowerError.includes('api_key') ||
-              lowerError.includes('authentication') ||
-              lowerError.includes('unauthorized') ||
-              lowerError.includes('401')
-            ) {
-              // Key exists but is invalid/expired - different message
-              userMessage = `\n\n**API Authentication Error**\n\nThe ${providerId?.toUpperCase() || 'provider'} API key authentication failed. The key may be invalid, expired, or lacking permissions. Please contact the administrator.`;
-            } else if (lowerError.includes('model') && lowerError.includes('not found')) {
-              userMessage = `\n\n**Model Error**\n\nThe model "${selectedModel}" was not found. It may be unavailable or incorrectly configured.`;
-            } else if (
-              lowerError.includes('429') ||
-              lowerError.includes('quota') ||
-              lowerError.includes('rate limit') ||
-              lowerError.includes('rate_limit') ||
-              lowerError.includes('ratelimit') ||
-              lowerError.includes('too many requests') ||
-              lowerError.includes('resource_exhausted')
-            ) {
-              // Note: Avoid matching just 'rate' alone - it appears in URLs like "streamGenerateContent"
-              userMessage = `\n\n**Rate Limit**\n\nThe ${providerId || 'provider'} API rate limit has been reached. Please wait a moment and try again.`;
-            } else if (
-              lowerError.includes('400') ||
-              lowerError.includes('invalid_argument') ||
-              lowerError.includes('invalid argument') ||
-              lowerError.includes('invalid value') ||
-              lowerError.includes('bad request') ||
-              lowerError.includes('malformed')
-            ) {
-              // Handle 400 Bad Request / Invalid Argument errors (common with preview models)
-              userMessage = `\n\n**Request Error**\n\nThe request format is not supported by this model. This can happen with preview models that have different API requirements. Please try a stable model.`;
-            } else if (lowerError.includes('safety') || lowerError.includes('blocked')) {
-              userMessage =
-                '\n\n**Content Filtered**\n\nThe response was blocked by safety filters. Please rephrase your request.';
-            } else {
-              // Include actual error for debugging (sanitized)
-              const sanitizedError = errorMessage
-                .substring(0, 200)
-                .replace(/api[_-]?key[=:][^\s]*/gi, '[REDACTED]');
-              userMessage = `\n\n**Error**\n\nI encountered an error: ${sanitizedError}\n\nPlease try again or select a different model.`;
-            }
-
-            fullContent += userMessage;
-
-            try {
-              await (supabase.from('code_lab_messages') as AnySupabase).insert({
-                id: generateId(),
-                session_id: sessionId,
-                role: 'assistant',
-                content: fullContent || userMessage,
-                created_at: new Date().toISOString(),
-                type: 'error',
-                model_id: selectedModel,
-              });
-            } catch (saveError) {
-              log.error('Failed to save error message', saveError as Error);
-            }
-
-            controller.enqueue(encoder.encode(userMessage));
-            controller.close();
-          } finally {
-            stopKeepalive();
-          }
-        },
-      });
-
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive',
-        },
-      });
-    }
-
-    // ========================================
-    // CLAUDE PROVIDER (Anthropic) - Default
-    // ========================================
-    // Uses native Anthropic SDK for extended thinking support
-    const messages: Anthropic.MessageParam[] = (history || []).map(
-      (m: { role: string; content: string }) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })
-    );
-
-    // Build the current user message content (with vision support)
-    type MessageContent = Anthropic.TextBlockParam | Anthropic.ImageBlockParam;
-    const userContent: MessageContent[] = [];
-
-    // Add text content
-    if (enhancedContent) {
-      userContent.push({ type: 'text', text: enhancedContent });
-    }
-
-    // Add images for vision (Claude can process images)
-    for (const img of imageAttachments) {
-      // Extract base64 data (remove "data:image/...;base64," prefix)
-      const base64Data = img.data.split(',')[1] || img.data;
-      const mediaType = img.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-
-      userContent.push({
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: mediaType,
-          data: base64Data,
-        },
-      });
-    }
-
-    // Add the user message with all content
-    if (userContent.length > 0) {
-      messages.push({
-        role: 'user',
-        content: userContent,
-      });
-    }
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        let keepaliveInterval: NodeJS.Timeout | null = null;
-        let lastActivity = Date.now();
-
-        // Keepalive function to prevent proxy timeouts
-        const startKeepalive = () => {
-          keepaliveInterval = setInterval(() => {
-            const timeSinceActivity = Date.now() - lastActivity;
-            if (timeSinceActivity > KEEPALIVE_INTERVAL_MS - 1000) {
-              try {
-                controller.enqueue(encoder.encode(' ')); // Invisible keepalive
-                log.debug('Sent keepalive heartbeat');
-              } catch {
-                // Controller might be closed
-              }
-            }
-          }, KEEPALIVE_INTERVAL_MS);
-        };
-
-        const stopKeepalive = () => {
-          if (keepaliveInterval) {
-            clearInterval(keepaliveInterval);
-            keepaliveInterval = null;
-          }
-        };
-
-        // Moved outside try block for error handler access
-        let fullContent = '';
-
-        try {
-          // BYOK: Check if user has their own Claude API key and custom model
-          const claudeByokConfig = await getUserBYOKConfig(supabase, user.id, 'claude');
-
-          // Use user's Anthropic client if they have BYOK, otherwise use platform client
-          const anthropicClient = claudeByokConfig?.apiKey
-            ? new Anthropic({ apiKey: claudeByokConfig.apiKey })
-            : anthropic;
-
-          // INTELLIGENT MODEL ROUTING (Meta-routing)
-          // Priority: 1) BYOK custom model, 2) User-selected model, 3) Auto-classify
-          let effectiveModel: string;
-          if (claudeByokConfig?.model) {
-            // User has BYOK with custom model - use their choice
-            effectiveModel = claudeByokConfig.model;
-            log.info('Using BYOK custom model', { model: effectiveModel });
-          } else if (modelId) {
-            // User explicitly selected a model - use their choice
-            effectiveModel = modelId;
-            log.info('Using user-selected model', { model: effectiveModel });
-          } else {
-            // No model specified — default to Opus 4.6 (the whole point of Code Lab)
-            effectiveModel = 'claude-opus-4-6';
-            log.info('Using default Opus 4.6 for Code Lab', { model: effectiveModel });
-          }
-
-          // Build API parameters with optional extended thinking (Claude Code parity)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const apiParams: any = {
-            model: effectiveModel,
-            max_tokens: 8192,
-            system: systemPrompt,
-            messages,
-            stream: true,
-          };
-
-          // Add all 244+ tools (parity with main chat)
-          if (chatTools.length > 0) {
-            apiParams.tools = chatTools.map((t) => ({
-              name: t.name,
-              description: t.description,
-              input_schema: t.parameters || { type: 'object', properties: {} },
-            }));
-            log.info('Added tools to Code Lab Claude request', { count: chatTools.length });
-          }
-
-          // Add extended thinking if enabled (requires Sonnet or Opus with thinking support)
-          if (
-            thinkingEnabled &&
-            (effectiveModel.includes('sonnet') || effectiveModel.includes('opus'))
-          ) {
-            // Extended thinking uses the thinking parameter
-            // Note: Haiku doesn't support extended thinking
-            apiParams.thinking = {
-              type: 'enabled',
-              budget_tokens: thinkingBudget,
-            };
-            // When thinking is enabled, max_tokens must be larger to accommodate thinking
-            apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
-            log.info('Extended thinking enabled', {
-              budget: thinkingBudget,
-              model: effectiveModel,
-              byok: !!claudeByokConfig?.apiKey,
-            });
-          }
-
-          const response = await anthropicClient.messages.create(
-            apiParams as Anthropic.MessageCreateParamsStreaming
-          );
-
-          // Start keepalive once stream is established
-          startKeepalive();
-
-          // Track real token usage from API
-          let inputTokens = 0;
-          let outputTokens = 0;
-          let cacheReadTokens = 0;
-          let cacheWriteTokens = 0;
-
-          // Tool execution loop: Claude may request tools, we execute and continue
-          const currentMessages = [...messages];
-          let currentResponse = response;
-          let toolLoopCount = 0;
-          const MAX_TOOL_LOOPS = 10; // Safety limit
-
-          // eslint-disable-next-line no-constant-condition
-          while (true) {
-            let stopReason = '';
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const pendingToolCalls: Array<{ id: string; name: string; input: any }> = [];
-            let currentToolIndex = -1;
-            let currentToolInput = '';
-
-            const iterator = (currentResponse as AsyncIterable<Anthropic.MessageStreamEvent>)[
-              Symbol.asyncIterator
-            ]();
-
-            while (true) {
-              const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
-                setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
-              });
-
-              try {
-                const result = await Promise.race([iterator.next(), timeoutPromise]);
-
-                if (result.done) break;
-
-                lastActivity = Date.now();
-                const event = result.value;
-
-                // Capture token usage from message events
-                if (event.type === 'message_start' && event.message?.usage) {
-                  inputTokens += event.message.usage.input_tokens || 0;
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const usageObj = event.message.usage as any;
-                  cacheReadTokens += usageObj.cache_read_input_tokens || 0;
-                  cacheWriteTokens += usageObj.cache_creation_input_tokens || 0;
-                }
-
-                if (event.type === 'message_delta') {
-                  if (event.usage) {
-                    outputTokens += event.usage.output_tokens || 0;
-                  }
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const delta = event.delta as any;
-                  if (delta.stop_reason) {
-                    stopReason = delta.stop_reason;
-                  }
-                }
-
-                // Handle content block start to detect thinking and tool_use blocks
-                if (event.type === 'content_block_start') {
-                  const block = event.content_block;
-                  if (block && block.type === 'thinking') {
-                    controller.enqueue(encoder.encode('\n<!--THINKING_START-->'));
-                  }
-                  if (block && block.type === 'tool_use') {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const toolBlock = block as any;
-                    currentToolIndex = pendingToolCalls.length;
-                    currentToolInput = '';
-                    pendingToolCalls.push({
-                      id: toolBlock.id,
-                      name: toolBlock.name,
-                      input: {},
-                    });
-                    // Show user that a tool is being used
-                    controller.enqueue(encoder.encode(`\n<!--TOOL_START:${toolBlock.name}-->`));
-                  }
-                }
-
-                // Handle content block stop
-                if (event.type === 'content_block_stop') {
-                  if (
-                    fullContent.includes('<!--THINKING_START-->') &&
-                    !fullContent.includes('<!--THINKING_END-->')
-                  ) {
-                    controller.enqueue(encoder.encode('<!--THINKING_END-->\n'));
-                  }
-                  // Finalize tool input JSON
-                  if (currentToolIndex >= 0 && currentToolInput) {
-                    try {
-                      pendingToolCalls[currentToolIndex].input = JSON.parse(currentToolInput);
-                    } catch {
-                      // Partial JSON - leave as empty object
-                    }
-                    controller.enqueue(encoder.encode('<!--TOOL_END-->'));
-                    currentToolIndex = -1;
-                    currentToolInput = '';
-                  }
-                }
-
-                if (event.type === 'content_block_delta') {
-                  const delta = event.delta;
-                  // Handle regular text
-                  if ('text' in delta) {
-                    fullContent += delta.text;
-                    controller.enqueue(encoder.encode(delta.text));
-                  }
-                  // Handle thinking text (extended thinking feature)
-                  if ('thinking' in delta && typeof delta.thinking === 'string') {
-                    fullContent += delta.thinking;
-                    controller.enqueue(encoder.encode(delta.thinking));
-                  }
-                  // Handle tool input JSON delta
-                  if ('partial_json' in delta && typeof delta.partial_json === 'string') {
-                    currentToolInput += delta.partial_json;
-                  }
-                }
-              } catch (error) {
-                if (error instanceof Error && error.message === 'Stream chunk timeout') {
-                  log.error('Stream chunk timeout - no data for 60s');
-                  controller.enqueue(
-                    encoder.encode(
-                      '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
-                    )
-                  );
-                }
-                throw error;
-              }
-            }
-
-            // Check if Claude wants to use tools
-            if (
-              stopReason === 'tool_use' &&
-              pendingToolCalls.length > 0 &&
-              toolLoopCount < MAX_TOOL_LOOPS
-            ) {
-              toolLoopCount++;
-              log.info('Executing tools', { count: pendingToolCalls.length, loop: toolLoopCount });
-
-              // Build assistant message with tool_use blocks
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const assistantContent: any[] = [];
-              if (fullContent) {
-                assistantContent.push({ type: 'text', text: fullContent });
-              }
-              for (const tc of pendingToolCalls) {
-                assistantContent.push({
-                  type: 'tool_use',
-                  id: tc.id,
-                  name: tc.name,
-                  input: tc.input,
-                });
-              }
-              currentMessages.push({ role: 'assistant', content: assistantContent });
-
-              // Execute all pending tools
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const toolResults: any[] = [];
-              for (const tc of pendingToolCalls) {
-                try {
-                  let resultContent: string;
-                  let resultIsError = false;
-
-                  if (isComposioTool(tc.name)) {
-                    // Composio tool (connected apps: Twitter, Slack, Gmail, etc.)
-                    log.info('Executing Composio tool', { tool: tc.name });
-                    const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
-                    resultContent =
-                      typeof composioResult === 'string'
-                        ? composioResult
-                        : JSON.stringify(composioResult);
-                  } else {
-                    // Standard chat tool (244+ tools)
-                    let toolArgs = tc.input;
-                    // Inject user's GitHub token for authenticated operations
-                    if (tc.name === 'github' && userGitHubToken) {
-                      const parsedArgs =
-                        typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
-                      parsedArgs._githubToken = userGitHubToken;
-                      toolArgs = parsedArgs;
-                    }
-                    const toolCall: UnifiedToolCall = {
-                      id: tc.id,
-                      name: tc.name,
-                      arguments: toolArgs,
-                    };
-                    const result = await executeChatTool(toolCall);
-                    resultContent =
-                      typeof result.content === 'string'
-                        ? result.content
-                        : JSON.stringify(result.content);
-                    resultIsError = result.isError || false;
-                  }
-
-                  toolResults.push({
-                    type: 'tool_result',
-                    tool_use_id: tc.id,
-                    content: resultContent,
-                    is_error: resultIsError,
-                  });
-                  controller.enqueue(
-                    encoder.encode(
-                      `\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`
-                    )
-                  );
-                } catch (toolErr) {
-                  log.error('Tool execution error', { tool: tc.name, error: toolErr });
-                  toolResults.push({
-                    type: 'tool_result',
-                    tool_use_id: tc.id,
-                    content: `Error: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}`,
-                    is_error: true,
-                  });
-                }
-              }
-              currentMessages.push({ role: 'user', content: toolResults });
-
-              // Reset fullContent for the continuation (text will be appended)
-              fullContent = '';
-
-              // Make a follow-up API call with tool results
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const continueParams: any = {
-                model: effectiveModel,
-                max_tokens: 8192,
-                system: systemPrompt,
-                messages: currentMessages,
-                stream: true,
-              };
-              if (chatTools.length > 0) {
-                continueParams.tools = apiParams.tools;
-              }
-
-              currentResponse = await anthropicClient.messages.create(
-                continueParams as Anthropic.MessageCreateParamsStreaming
+          const requiredEnvVars = apiKeyEnvMap[providerId];
+          if (requiredEnvVars) {
+            const hasAnyKey = requiredEnvVars.some((envVar) => process.env[envVar]);
+            if (!hasAnyKey) {
+              const primaryKey = requiredEnvVars[0];
+              throw new Error(
+                `${primaryKey} is not configured. Add your own API key in Settings, or contact the administrator.`
               );
-
-              // Continue the outer loop to process the new response
-              continue;
             }
-
-            // No more tool calls — we're done
-            break;
           }
-
-          // Send token usage as special marker at end of stream
-          if (inputTokens > 0 || outputTokens > 0) {
-            const usageMarker = `\n<!--USAGE:${JSON.stringify({
-              input: inputTokens,
-              output: outputTokens,
-              cacheRead: cacheReadTokens,
-              cacheWrite: cacheWriteTokens,
-              model: effectiveModel,
-            })}-->`;
-            controller.enqueue(encoder.encode(usageMarker));
-            log.debug('Token usage', {
-              inputTokens,
-              outputTokens,
-              cacheReadTokens,
-              cacheWriteTokens,
-              model: effectiveModel,
-            });
-          }
-
-          // Track token usage for billing (fire and forget)
-          trackTokenUsage({
-            userId: user.id,
-            modelName: effectiveModel,
-            inputTokens,
-            outputTokens,
-            cachedInputTokens: cacheReadTokens,
-            source: 'code-lab',
-            conversationId: sessionId,
-          }).catch((err: unknown) =>
-            log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
-          );
-
-          // Enforce token budget limits (parity with main chat route)
-          const totalTokens = (inputTokens || 0) + (outputTokens || 0);
-          incrementTokenUsage(user.id, userPlanKey, totalTokens).catch((err: unknown) =>
-            log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
-          );
-
-          // Save assistant message
-          await (supabase.from('code_lab_messages') as AnySupabase).insert({
-            id: generateId(),
-            session_id: sessionId,
-            role: 'assistant',
-            content: fullContent,
-            created_at: new Date().toISOString(),
-            type: useSearch ? 'search' : 'chat',
-            model_id: effectiveModel,
-          });
-
-          // Process conversation for persistent memory (fire and forget)
-          processConversationForMemory(
-            user.id,
-            [
-              ...history,
-              { role: 'user', content },
-              { role: 'assistant', content: fullContent },
-            ].map((m) => ({
-              role: m.role,
-              content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-            })),
-            sessionId
-          ).catch((err) => log.warn('Memory processing failed', { error: err }));
-
-          controller.close();
-        } catch (error) {
-          log.error('Stream error', error as Error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const isTimeout = errorMessage.includes('timeout');
-          const userMessage = isTimeout
-            ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
-            : '\n\nI encountered an error. Please try again.';
-
-          // Append error to accumulated content
-          fullContent += userMessage;
-
-          // CRITICAL FIX: Save assistant message even on error to maintain conversation history
-          // Without this, history becomes misaligned (user message without assistant response)
-          try {
-            await (supabase.from('code_lab_messages') as AnySupabase).insert({
-              id: generateId(),
-              session_id: sessionId,
-              role: 'assistant',
-              content: fullContent || userMessage,
-              created_at: new Date().toISOString(),
-              type: 'error',
-              model_id: selectedModel,
-            });
-          } catch (saveError) {
-            log.error('Failed to save error message', saveError as Error);
-          }
-
-          controller.enqueue(encoder.encode(userMessage));
-          controller.close();
-        } finally {
-          stopKeepalive();
         }
-      },
-    });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
-      },
-    });
-  } catch (error) {
-    log.error('Request error', error as Error);
-    return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
-      error: 'Internal server error',
-      code: ERROR_CODES.INTERNAL_ERROR,
+        const adapter = getAdapter(providerId as ProviderId);
+
+        const unifiedMessages: UnifiedMessage[] = (history || []).map(
+          (m: { role: string; content: string }) => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content,
+          })
+        );
+
+        // Build user message with vision
+        const userContentBlocks: Array<
+          | { type: 'text'; text: string }
+          | { type: 'image'; source: { type: 'base64'; mediaType: string; data: string } }
+        > = [];
+
+        if (enhancedContent) {
+          userContentBlocks.push({ type: 'text', text: enhancedContent });
+        }
+
+        for (const img of imageAttachments) {
+          const base64Data = img.data.split(',')[1] || img.data;
+          userContentBlocks.push({
+            type: 'image',
+            source: { type: 'base64', mediaType: img.type, data: base64Data },
+          });
+        }
+
+        if (userContentBlocks.length > 0) {
+          unifiedMessages.push({
+            role: 'user',
+            content:
+              userContentBlocks.length === 1 && userContentBlocks[0].type === 'text'
+                ? userContentBlocks[0].text
+                : userContentBlocks,
+          });
+        }
+
+        keepalive.start();
+
+        let inputTokens = 0;
+        let outputTokens = 0;
+
+        const chatStream = adapter.chat(unifiedMessages, {
+          model: effectiveModel,
+          maxTokens: providerInfo?.model.maxOutputTokens || 8192,
+          temperature: 0.7,
+          systemPrompt,
+          ...(userApiKey ? { userApiKey } : {}),
+        });
+
+        for await (const chunk of chatStream) {
+          keepalive.touch();
+
+          if (chunk.type === 'text') {
+            fullContent += chunk.text;
+            controller.enqueue(encoder.encode(chunk.text));
+          } else if (chunk.type === 'error' && chunk.error) {
+            log.error('Adapter stream error', {
+              code: chunk.error.code,
+              message: chunk.error.message,
+            });
+            throw new Error(chunk.error.message);
+          } else if (chunk.type === 'message_end' && chunk.usage) {
+            inputTokens = chunk.usage.inputTokens || 0;
+            outputTokens = chunk.usage.outputTokens || 0;
+          }
+        }
+
+        // Send token usage marker
+        if (inputTokens > 0 || outputTokens > 0) {
+          const usageMarker = `\n<!--USAGE:${JSON.stringify({
+            input: inputTokens,
+            output: outputTokens,
+            cacheRead: 0,
+            cacheWrite: 0,
+            model: selectedModel,
+          })}-->`;
+          controller.enqueue(encoder.encode(usageMarker));
+        }
+
+        await saveAssistantMessage(supabase, sessionId, fullContent, 'chat', selectedModel);
+        controller.close();
+      } catch (error) {
+        log.error('Stream error', error as Error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const userMessage = formatProviderErrorMessage(errorMessage, providerId);
+
+        fullContent += userMessage;
+        await saveAssistantMessage(
+          supabase,
+          sessionId,
+          fullContent || userMessage,
+          'error',
+          selectedModel
+        );
+        controller.enqueue(encoder.encode(userMessage));
+        controller.close();
+      } finally {
+        keepalive.stop();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: STREAM_HEADERS });
+}
+
+// ========================================
+// CLAUDE PROVIDER HANDLER
+// ========================================
+async function handleClaudeProvider(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any,
+  history: Array<{ role: string; content: string }>,
+  enhancedContent: string,
+  imageAttachments: Array<{ name: string; type: string; data: string }>,
+  systemPrompt: string,
+  chatTools: Awaited<ReturnType<typeof getAvailableChatTools>>,
+  selectedModel: string,
+  modelId: string | undefined,
+  thinkingEnabled: boolean,
+  thinkingBudget: number,
+  sessionId: string,
+  content: string,
+  userPlanKey: string,
+  userGitHubToken: string | undefined,
+  useSearch: boolean,
+  encoder: TextEncoder
+): Promise<Response> {
+  const anthropic = getAnthropicClient();
+
+  const messages: Anthropic.MessageParam[] = (history || []).map(
+    (m: { role: string; content: string }) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    })
+  );
+
+  // Build user message with vision
+  type MessageContent = Anthropic.TextBlockParam | Anthropic.ImageBlockParam;
+  const userContent: MessageContent[] = [];
+
+  if (enhancedContent) {
+    userContent.push({ type: 'text', text: enhancedContent });
+  }
+
+  for (const img of imageAttachments) {
+    const base64Data = img.data.split(',')[1] || img.data;
+    const mediaType = img.type as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    userContent.push({
+      type: 'image',
+      source: { type: 'base64', media_type: mediaType, data: base64Data },
     });
   }
+
+  if (userContent.length > 0) {
+    messages.push({ role: 'user', content: userContent });
+  }
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepalive = createKeepalive(controller, encoder);
+      let fullContent = '';
+
+      try {
+        // BYOK check
+        const claudeByokConfig = await getUserBYOKConfig(supabase, user.id, 'claude');
+        const anthropicClient = claudeByokConfig?.apiKey
+          ? new Anthropic({ apiKey: claudeByokConfig.apiKey })
+          : anthropic;
+
+        // Model routing
+        let effectiveModel: string;
+        if (claudeByokConfig?.model) {
+          effectiveModel = claudeByokConfig.model;
+          log.info('Using BYOK custom model', { model: effectiveModel });
+        } else if (modelId) {
+          effectiveModel = modelId;
+          log.info('Using user-selected model', { model: effectiveModel });
+        } else {
+          effectiveModel = 'claude-opus-4-6';
+          log.info('Using default Opus 4.6 for Code Lab', { model: effectiveModel });
+        }
+
+        // Build API parameters
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const apiParams: any = {
+          model: effectiveModel,
+          max_tokens: 8192,
+          system: systemPrompt,
+          messages,
+          stream: true,
+        };
+
+        if (chatTools.length > 0) {
+          apiParams.tools = chatTools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            input_schema: t.parameters || { type: 'object', properties: {} },
+          }));
+          log.info('Added tools to Code Lab Claude request', { count: chatTools.length });
+        }
+
+        // Extended thinking
+        if (
+          thinkingEnabled &&
+          (effectiveModel.includes('sonnet') || effectiveModel.includes('opus'))
+        ) {
+          apiParams.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
+          apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
+          log.info('Extended thinking enabled', {
+            budget: thinkingBudget,
+            model: effectiveModel,
+            byok: !!claudeByokConfig?.apiKey,
+          });
+        }
+
+        const response = await anthropicClient.messages.create(
+          apiParams as Anthropic.MessageCreateParamsStreaming
+        );
+
+        keepalive.start();
+
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let cacheReadTokens = 0;
+        let cacheWriteTokens = 0;
+
+        // Tool execution loop
+        const currentMessages = [...messages];
+        let currentResponse = response;
+        let toolLoopCount = 0;
+        const MAX_TOOL_LOOPS = 10;
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          let stopReason = '';
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pendingToolCalls: Array<{ id: string; name: string; input: any }> = [];
+          let currentToolIndex = -1;
+          let currentToolInput = '';
+
+          const iterator = (currentResponse as AsyncIterable<Anthropic.MessageStreamEvent>)[
+            Symbol.asyncIterator
+          ]();
+
+          while (true) {
+            const timeoutPromise = new Promise<{ done: true; value: undefined }>((_, reject) => {
+              setTimeout(() => reject(new Error('Stream chunk timeout')), CHUNK_TIMEOUT_MS);
+            });
+
+            try {
+              const result = await Promise.race([iterator.next(), timeoutPromise]);
+              if (result.done) break;
+
+              keepalive.touch();
+              const event = result.value;
+
+              // Token usage from message events
+              if (event.type === 'message_start' && event.message?.usage) {
+                inputTokens += event.message.usage.input_tokens || 0;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const usageObj = event.message.usage as any;
+                cacheReadTokens += usageObj.cache_read_input_tokens || 0;
+                cacheWriteTokens += usageObj.cache_creation_input_tokens || 0;
+              }
+
+              if (event.type === 'message_delta') {
+                if (event.usage) {
+                  outputTokens += event.usage.output_tokens || 0;
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const delta = event.delta as any;
+                if (delta.stop_reason) {
+                  stopReason = delta.stop_reason;
+                }
+              }
+
+              if (event.type === 'content_block_start') {
+                const block = event.content_block;
+                if (block && block.type === 'thinking') {
+                  controller.enqueue(encoder.encode('\n<!--THINKING_START-->'));
+                }
+                if (block && block.type === 'tool_use') {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const toolBlock = block as any;
+                  currentToolIndex = pendingToolCalls.length;
+                  currentToolInput = '';
+                  pendingToolCalls.push({ id: toolBlock.id, name: toolBlock.name, input: {} });
+                  controller.enqueue(encoder.encode(`\n<!--TOOL_START:${toolBlock.name}-->`));
+                }
+              }
+
+              if (event.type === 'content_block_stop') {
+                if (
+                  fullContent.includes('<!--THINKING_START-->') &&
+                  !fullContent.includes('<!--THINKING_END-->')
+                ) {
+                  controller.enqueue(encoder.encode('<!--THINKING_END-->\n'));
+                }
+                if (currentToolIndex >= 0 && currentToolInput) {
+                  try {
+                    pendingToolCalls[currentToolIndex].input = JSON.parse(currentToolInput);
+                  } catch {
+                    // Partial JSON - leave as empty object
+                  }
+                  controller.enqueue(encoder.encode('<!--TOOL_END-->'));
+                  currentToolIndex = -1;
+                  currentToolInput = '';
+                }
+              }
+
+              if (event.type === 'content_block_delta') {
+                const delta = event.delta;
+                if ('text' in delta) {
+                  fullContent += delta.text;
+                  controller.enqueue(encoder.encode(delta.text));
+                }
+                if ('thinking' in delta && typeof delta.thinking === 'string') {
+                  fullContent += delta.thinking;
+                  controller.enqueue(encoder.encode(delta.thinking));
+                }
+                if ('partial_json' in delta && typeof delta.partial_json === 'string') {
+                  currentToolInput += delta.partial_json;
+                }
+              }
+            } catch (error) {
+              if (error instanceof Error && error.message === 'Stream chunk timeout') {
+                log.error('Stream chunk timeout - no data for 60s');
+                controller.enqueue(
+                  encoder.encode(
+                    '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+                  )
+                );
+              }
+              throw error;
+            }
+          }
+
+          // Tool execution
+          if (
+            stopReason === 'tool_use' &&
+            pendingToolCalls.length > 0 &&
+            toolLoopCount < MAX_TOOL_LOOPS
+          ) {
+            toolLoopCount++;
+            log.info('Executing tools', { count: pendingToolCalls.length, loop: toolLoopCount });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const assistantContent: any[] = [];
+            if (fullContent) {
+              assistantContent.push({ type: 'text', text: fullContent });
+            }
+            for (const tc of pendingToolCalls) {
+              assistantContent.push({
+                type: 'tool_use',
+                id: tc.id,
+                name: tc.name,
+                input: tc.input,
+              });
+            }
+            currentMessages.push({ role: 'assistant', content: assistantContent });
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const toolResults: any[] = [];
+            for (const tc of pendingToolCalls) {
+              try {
+                let resultContent: string;
+                let resultIsError = false;
+
+                if (isComposioTool(tc.name)) {
+                  log.info('Executing Composio tool', { tool: tc.name });
+                  const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
+                  resultContent =
+                    typeof composioResult === 'string'
+                      ? composioResult
+                      : JSON.stringify(composioResult);
+                } else {
+                  let toolArgs = tc.input;
+                  if (tc.name === 'github' && userGitHubToken) {
+                    const parsedArgs =
+                      typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
+                    parsedArgs._githubToken = userGitHubToken;
+                    toolArgs = parsedArgs;
+                  }
+                  const toolCall: UnifiedToolCall = {
+                    id: tc.id,
+                    name: tc.name,
+                    arguments: toolArgs,
+                  };
+                  const result = await executeChatTool(toolCall);
+                  resultContent =
+                    typeof result.content === 'string'
+                      ? result.content
+                      : JSON.stringify(result.content);
+                  resultIsError = result.isError || false;
+                }
+
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: tc.id,
+                  content: resultContent,
+                  is_error: resultIsError,
+                });
+                controller.enqueue(
+                  encoder.encode(
+                    `\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`
+                  )
+                );
+              } catch (toolErr) {
+                log.error('Tool execution error', { tool: tc.name, error: toolErr });
+                toolResults.push({
+                  type: 'tool_result',
+                  tool_use_id: tc.id,
+                  content: `Error: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}`,
+                  is_error: true,
+                });
+              }
+            }
+            currentMessages.push({ role: 'user', content: toolResults });
+
+            fullContent = '';
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const continueParams: any = {
+              model: effectiveModel,
+              max_tokens: 8192,
+              system: systemPrompt,
+              messages: currentMessages,
+              stream: true,
+            };
+            if (chatTools.length > 0) {
+              continueParams.tools = apiParams.tools;
+            }
+
+            currentResponse = await anthropicClient.messages.create(
+              continueParams as Anthropic.MessageCreateParamsStreaming
+            );
+
+            continue;
+          }
+
+          break;
+        }
+
+        // Token usage marker
+        if (inputTokens > 0 || outputTokens > 0) {
+          const usageMarker = `\n<!--USAGE:${JSON.stringify({
+            input: inputTokens,
+            output: outputTokens,
+            cacheRead: cacheReadTokens,
+            cacheWrite: cacheWriteTokens,
+            model: effectiveModel,
+          })}-->`;
+          controller.enqueue(encoder.encode(usageMarker));
+        }
+
+        // Track token usage (fire and forget)
+        trackTokenUsage({
+          userId: user.id,
+          modelName: effectiveModel,
+          inputTokens,
+          outputTokens,
+          cachedInputTokens: cacheReadTokens,
+          source: 'code-lab',
+          conversationId: sessionId,
+        }).catch((err: unknown) =>
+          log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
+        );
+
+        const totalTokens = (inputTokens || 0) + (outputTokens || 0);
+        incrementTokenUsage(user.id, userPlanKey, totalTokens).catch((err: unknown) =>
+          log.error('incrementTokenUsage failed', err instanceof Error ? err : undefined)
+        );
+
+        await saveAssistantMessage(
+          supabase,
+          sessionId,
+          fullContent,
+          useSearch ? 'search' : 'chat',
+          effectiveModel
+        );
+
+        // Process conversation for persistent memory (fire and forget)
+        processConversationForMemory(
+          user.id,
+          [...history, { role: 'user', content }, { role: 'assistant', content: fullContent }].map(
+            (m) => ({
+              role: m.role,
+              content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+            })
+          ),
+          sessionId
+        ).catch((err) => log.warn('Memory processing failed', { error: err }));
+
+        controller.close();
+      } catch (error) {
+        log.error('Stream error', error as Error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isTimeout = errorMessage.includes('timeout');
+        const userMessage = isTimeout
+          ? '\n\n*[Response interrupted: Connection timed out. Please try again.]*'
+          : '\n\nI encountered an error. Please try again.';
+
+        fullContent += userMessage;
+        await saveAssistantMessage(
+          supabase,
+          sessionId,
+          fullContent || userMessage,
+          'error',
+          selectedModel
+        );
+        controller.enqueue(encoder.encode(userMessage));
+        controller.close();
+      } finally {
+        keepalive.stop();
+      }
+    },
+  });
+
+  return new Response(stream, { headers: STREAM_HEADERS });
 }
 
 // Vercel serverless configuration
