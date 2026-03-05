@@ -65,7 +65,7 @@ describe('POST /api/code-lab/lsp', () => {
 
   it('rejects when CSRF check fails', async () => {
     const csrfResponse = new Response('CSRF failed', { status: 403 });
-    mockValidateCSRF.mockReturnValue({ valid: false, response: csrfResponse });
+    mockRequireUser.mockResolvedValue({ authorized: false, response: csrfResponse });
 
     const req = createRequest({ operation: 'hover', sessionId: 's1' });
     const res = await POST(req);

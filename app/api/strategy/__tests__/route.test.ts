@@ -16,10 +16,10 @@ vi.mock('@/lib/logger', () => ({
   auditLog: { log: vi.fn() },
 }));
 
-// Mock CSRF validation
-const mockValidateCSRF = vi.fn();
-vi.mock('@/lib/security/csrf', () => ({
-  validateCSRF: (...args: unknown[]) => mockValidateCSRF(...args),
+// Mock requireUser (auth guard with built-in CSRF)
+const mockRequireUser = vi.fn();
+vi.mock('@/lib/auth/user-guard', () => ({
+  requireUser: (...args: unknown[]) => mockRequireUser(...args),
 }));
 
 // Mock safeParseJSON
@@ -28,16 +28,15 @@ vi.mock('@/lib/security/validation', () => ({
   safeParseJSON: (...args: unknown[]) => mockSafeParseJSON(...args),
 }));
 
-// Mock Supabase auth client (createClient from server)
-const mockGetUser = vi.fn();
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: () =>
-    Promise.resolve({
-      auth: { getUser: () => mockGetUser() },
-    }),
+// Mock limits
+vi.mock('@/lib/limits', () => ({
+  canMakeRequest: vi.fn().mockResolvedValue(true),
+  getTokenUsage: vi.fn().mockResolvedValue({ used: 0, limit: 100000 }),
+  incrementTokenUsage: vi.fn().mockResolvedValue(undefined),
+  formatTokenCount: vi.fn().mockReturnValue('0'),
 }));
 
-// Mock Supabase admin client (createServerClient from client)
+// Mock Supabase admin/service client (createServerClient from client)
 const mockAdminFrom = vi.fn();
 const mockAdminClient = {
   from: (...args: unknown[]) => mockAdminFrom(...args),
@@ -174,9 +173,12 @@ describe('/api/strategy route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Defaults: CSRF passes, user authenticated, admin check returns null
-    mockValidateCSRF.mockReturnValue({ valid: true });
-    mockGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    // Default: user authenticated via requireUser
+    mockRequireUser.mockResolvedValue({
+      authorized: true,
+      user: { id: 'user-1' },
+      supabase: mockAdminClient,
+    });
 
     // Admin check chain: from('admin_users').select('id').eq('user_id', ...).single()
     const adminChain = createSupabaseChain({ data: null, error: null });
@@ -194,8 +196,9 @@ describe('/api/strategy route', () => {
     it('returns CSRF error response when CSRF check fails', async () => {
       const csrfResponse = new Response(JSON.stringify({ error: 'CSRF validation failed' }), {
         status: 403,
+        headers: { 'Content-Type': 'application/json' },
       });
-      mockValidateCSRF.mockReturnValue({ valid: false, response: csrfResponse });
+      mockRequireUser.mockResolvedValue({ authorized: false, response: csrfResponse });
 
       const res = await POST(makePostRequest({ action: 'start' }));
 
@@ -211,13 +214,19 @@ describe('/api/strategy route', () => {
 
   describe('POST — authentication', () => {
     it('returns 401 when user is not authenticated', async () => {
-      mockGetUser.mockResolvedValue({ data: { user: null } });
+      mockRequireUser.mockResolvedValue({
+        authorized: false,
+        response: new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      });
 
       const res = await POST(makePostRequest({ action: 'start' }));
 
       expect(res.status).toBe(401);
       const data = await res.json();
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Authentication required');
     });
   });
 
@@ -776,8 +785,8 @@ describe('/api/strategy route', () => {
 
   describe('POST — general error handling', () => {
     it('returns 500 when an unexpected error is thrown', async () => {
-      // Make getUser throw unexpectedly
-      mockGetUser.mockRejectedValue(new Error('Unexpected DB failure'));
+      // Make safeParseJSON throw unexpectedly (inside try block)
+      mockSafeParseJSON.mockRejectedValue(new Error('Unexpected DB failure'));
 
       const res = await POST(makePostRequest());
 
@@ -793,8 +802,11 @@ describe('/api/strategy route', () => {
 
   describe('DELETE /api/strategy', () => {
     it('returns CSRF error when CSRF check fails', async () => {
-      const csrfResponse = new Response(JSON.stringify({ error: 'CSRF failed' }), { status: 403 });
-      mockValidateCSRF.mockReturnValue({ valid: false, response: csrfResponse });
+      const csrfResponse = new Response(JSON.stringify({ error: 'CSRF failed' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+      mockRequireUser.mockResolvedValue({ authorized: false, response: csrfResponse });
 
       const res = await DELETE_HANDLER(makeDeleteRequest('sess-1'));
 
@@ -802,13 +814,19 @@ describe('/api/strategy route', () => {
     });
 
     it('returns 401 when user is not authenticated', async () => {
-      mockGetUser.mockResolvedValue({ data: { user: null } });
+      mockRequireUser.mockResolvedValue({
+        authorized: false,
+        response: new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      });
 
       const res = await DELETE_HANDLER(makeDeleteRequest('sess-1'));
 
       expect(res.status).toBe(401);
       const data = await res.json();
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Authentication required');
     });
 
     it('returns 400 when sessionId query param is missing', async () => {
@@ -832,7 +850,10 @@ describe('/api/strategy route', () => {
     });
 
     it('returns 500 when cancel throws unexpectedly', async () => {
-      mockGetUser.mockRejectedValue(new Error('auth explosion'));
+      // Make DB operation throw inside the try block
+      mockAdminFrom.mockImplementation(() => {
+        throw new Error('DB explosion');
+      });
 
       const res = await DELETE_HANDLER(makeDeleteRequest('sess-err'));
 
@@ -848,13 +869,19 @@ describe('/api/strategy route', () => {
 
   describe('GET /api/strategy', () => {
     it('returns 401 when user is not authenticated', async () => {
-      mockGetUser.mockResolvedValue({ data: { user: null } });
+      mockRequireUser.mockResolvedValue({
+        authorized: false,
+        response: new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      });
 
       const res = await GET(makeGetRequest());
 
       expect(res.status).toBe(401);
       const data = await res.json();
-      expect(data.error).toBe('Unauthorized');
+      expect(data.error).toBe('Authentication required');
     });
 
     it('returns list of sessions when no sessionId param is provided', async () => {
@@ -971,7 +998,10 @@ describe('/api/strategy route', () => {
     });
 
     it('returns 500 when GET throws unexpectedly', async () => {
-      mockGetUser.mockRejectedValue(new Error('auth crash'));
+      // Make DB operation throw inside the try block
+      mockAdminFrom.mockImplementation(() => {
+        throw new Error('DB crash');
+      });
 
       const res = await GET(makeGetRequest({ sessionId: 'sess-1' }));
 
@@ -1012,29 +1042,39 @@ describe('/api/strategy route', () => {
 
   describe('response format', () => {
     it('all error responses include Content-Type: application/json', async () => {
-      mockGetUser.mockResolvedValue({ data: { user: null } });
+      const unauthResponse = () =>
+        new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      mockRequireUser.mockResolvedValue({ authorized: false, response: unauthResponse() });
 
       const postRes = await POST(makePostRequest());
       expect(postRes.headers.get('Content-Type')).toBe('application/json');
 
+      mockRequireUser.mockResolvedValue({ authorized: false, response: unauthResponse() });
       const deleteRes = await DELETE_HANDLER(makeDeleteRequest('s1'));
       expect(deleteRes.headers.get('Content-Type')).toBe('application/json');
 
+      mockRequireUser.mockResolvedValue({ authorized: false, response: unauthResponse() });
       const getRes = await GET(makeGetRequest());
       expect(getRes.headers.get('Content-Type')).toBe('application/json');
     });
 
     it('all error responses have JSON-parseable body with error field', async () => {
-      mockGetUser.mockResolvedValue({ data: { user: null } });
+      const unauthResponse = () =>
+        new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      mockRequireUser.mockResolvedValue({ authorized: false, response: unauthResponse() });
 
       const postRes = await POST(makePostRequest());
       const postData = await postRes.json();
       expect(postData).toHaveProperty('error');
       expect(typeof postData.error).toBe('string');
 
-      // Reset for next call
-      mockGetUser.mockResolvedValue({ data: { user: null } });
-
+      mockRequireUser.mockResolvedValue({ authorized: false, response: unauthResponse() });
       const getRes = await GET(makeGetRequest());
       const getData = await getRes.json();
       expect(getData).toHaveProperty('error');

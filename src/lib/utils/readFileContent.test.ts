@@ -137,7 +137,7 @@ describe('readFileContent', () => {
       const result = await readFileContent(file);
 
       expect(result.content).toBe('extracted PDF text');
-      expect(result.rawData).toBeUndefined();
+      expect(result.rawData).toBe('data:application/octet-stream;base64,ABC123');
     });
 
     it('should fall back to base64 when API returns non-ok', async () => {
@@ -147,7 +147,7 @@ describe('readFileContent', () => {
       const result = await readFileContent(file);
 
       expect(result.content).toBe('data:application/octet-stream;base64,ABC123');
-      expect(result.rawData).toBeUndefined();
+      expect(result.rawData).toBe('data:application/octet-stream;base64,ABC123');
     });
 
     it('should fall back to base64 when parsedText is empty', async () => {

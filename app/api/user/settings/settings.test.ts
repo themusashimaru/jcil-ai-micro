@@ -301,39 +301,19 @@ describe('PUT /api/user/settings', () => {
     expect(response.status).toBe(200);
   });
 
-  it('should reject light mode for non-admin users', async () => {
+  it('should allow light mode for all users', async () => {
     const { validateBody } = await import('@/lib/api/utils');
     vi.mocked(validateBody).mockResolvedValue({
       success: true,
       data: { theme: 'light' },
     });
 
-    // Non-admin user: admin_users query returns null
-    const { createServerClient } = await import('@supabase/ssr');
-    vi.mocked(createServerClient).mockReturnValue({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: { user: mockUser },
-          error: null,
-        }),
-      },
-      from: vi.fn((table: string) => {
-        if (table === 'admin_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
-          };
-        }
-        return mockSettingsChain;
-      }),
-    } as never);
-
     const { PUT } = await import('./route');
     const request = createRequest('PUT', undefined, { theme: 'light' });
     const response = await PUT(request);
 
-    expect(response.status).toBe(403);
+    // Light mode is available to all users (admin restriction removed)
+    expect(response.status).toBe(200);
   });
 
   it('should allow light mode for admin users', async () => {

@@ -94,7 +94,7 @@ describe('POST /api/chat/generate-title', () => {
 
   it('blocks request when CSRF check fails', async () => {
     const csrfResponse = new Response(JSON.stringify({ error: 'CSRF failed' }), { status: 403 });
-    mockValidateCSRF.mockReturnValue({ valid: false, response: csrfResponse });
+    mockRequireUser.mockResolvedValue({ authorized: false, response: csrfResponse });
 
     const req = createRequest({ userMessage: 'Hello' });
     const res = await POST(req);

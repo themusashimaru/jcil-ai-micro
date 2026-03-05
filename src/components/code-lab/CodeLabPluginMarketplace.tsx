@@ -117,6 +117,8 @@ export function CodeLabPluginMarketplace({
       setActionLoading(pluginId);
       try {
         await onInstall(pluginId);
+      } catch {
+        // Error handled by caller
       } finally {
         setActionLoading(null);
       }
@@ -130,6 +132,8 @@ export function CodeLabPluginMarketplace({
       setActionLoading(pluginId);
       try {
         await onUninstall(pluginId);
+      } catch {
+        // Error handled by caller
       } finally {
         setActionLoading(null);
       }
@@ -143,6 +147,8 @@ export function CodeLabPluginMarketplace({
       setActionLoading(pluginId);
       try {
         await onEnable(pluginId);
+      } catch {
+        // Error handled by caller
       } finally {
         setActionLoading(null);
       }
@@ -156,6 +162,8 @@ export function CodeLabPluginMarketplace({
       setActionLoading(pluginId);
       try {
         await onDisable(pluginId);
+      } catch {
+        // Error handled by caller
       } finally {
         setActionLoading(null);
       }
