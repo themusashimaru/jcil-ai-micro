@@ -108,7 +108,7 @@ function createRequest(
   if (body) {
     init.body = JSON.stringify(body);
   }
-  return new NextRequest(url, init);
+  return new NextRequest(url, init as never);
 }
 
 function validTicketBody(overrides: Record<string, unknown> = {}) {

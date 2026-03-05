@@ -111,6 +111,7 @@ describe('WebAuthn Authenticate API', () => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+    // @ts-expect-error -- NODE_ENV is read-only in types but writable at runtime in vitest
     process.env.NODE_ENV = 'test';
   });
 

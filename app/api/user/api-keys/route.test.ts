@@ -121,7 +121,7 @@ function makeRequest(method: string, url: string, body?: unknown): NextRequest {
     init.body = JSON.stringify(body);
     init.headers = { 'Content-Type': 'application/json' };
   }
-  return new NextRequest(new URL(url, 'http://localhost:3000'), init);
+  return new NextRequest(new URL(url, 'http://localhost:3000'), init as never);
 }
 
 async function parseResponse(response: Response) {

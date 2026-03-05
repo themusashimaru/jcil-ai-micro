@@ -17,12 +17,6 @@ import { NextRequest } from 'next/server';
 // MOCKS
 // ============================================================================
 
-const mockFrom = vi.fn();
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
-const mockGte = vi.fn();
-const mockLte = vi.fn();
-
 vi.mock('@/lib/auth/admin-guard', () => ({
   requireAdmin: vi.fn().mockResolvedValue({
     authorized: true,

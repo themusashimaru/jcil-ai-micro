@@ -119,7 +119,7 @@ vi.mock('@/lib/supabase/service-role', () => ({
 }));
 
 vi.mock('@/lib/supabase/workspace-client', () => ({
-  untypedFrom: (...args: unknown[]) => mockUntypedFrom(...args),
+  untypedFrom: (...args: Parameters<typeof mockUntypedFrom>) => mockUntypedFrom(...args),
 }));
 
 // ============================================================================

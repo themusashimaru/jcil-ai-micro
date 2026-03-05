@@ -81,7 +81,6 @@ vi.mock('@/lib/logger', () => ({
   })),
 }));
 
-const mockInsert = vi.fn();
 const mockSupabase = {
   from: vi.fn(),
 };
@@ -95,7 +94,7 @@ vi.mock('@supabase/supabase-js', () => ({
 // ============================================================================
 
 function createRequest(url: string, options?: RequestInit): NextRequest {
-  return new NextRequest(url, options);
+  return new NextRequest(url, options as never);
 }
 
 function createPostRequest(url: string, body: unknown): NextRequest {
@@ -245,7 +244,6 @@ describe('Admin Messages API', () => {
 
     it('should send individual message successfully', async () => {
       // Mock admin_users query
-      const fromCallCount = 0;
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'admin_users') {
           return {

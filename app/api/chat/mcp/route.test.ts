@@ -64,10 +64,6 @@ vi.mock('./helpers', () => ({
 // HELPERS
 // ============================================================================
 
-function createRequest(url: string): NextRequest {
-  return new NextRequest(url);
-}
-
 function createPostRequest(url: string, body: unknown): NextRequest {
   return new NextRequest(url, {
     method: 'POST',

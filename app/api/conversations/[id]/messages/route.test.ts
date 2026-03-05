@@ -153,7 +153,7 @@ function makeRequest(
   if (body && contentType === 'application/json') {
     init.body = JSON.stringify(body);
   }
-  return new NextRequest('http://localhost:3000/api/conversations/conv-1/messages', init);
+  return new NextRequest('http://localhost:3000/api/conversations/conv-1/messages', init as never);
 }
 
 function makeParams(id = 'conv-1') {
@@ -174,7 +174,7 @@ function setupAuth(authorized = true) {
     vi.mocked(requireUser).mockResolvedValue({
       authorized: false,
       response: new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), { status: 401 }),
-    });
+    } as never);
     return null;
   }
 }
@@ -186,7 +186,7 @@ function setupRateLimit(allowed = true) {
     vi.mocked(checkRequestRateLimit).mockResolvedValue({
       allowed: false,
       response: new Response(JSON.stringify({ ok: false, error: 'Rate limited' }), { status: 429 }),
-    });
+    } as never);
   }
 }
 

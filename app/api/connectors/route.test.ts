@@ -247,7 +247,6 @@ describe('Connectors API Route', () => {
       vi.mocked(mockDecrypt).mockClear();
 
       // Re-mock supabase to return null token
-      const _origFrom = mockSupabaseFrom;
       vi.doMock('@supabase/supabase-js', () => ({
         createClient: () => ({
           from: () => ({
