@@ -228,7 +228,7 @@ export interface LoadedTools {
 
 // Keyword patterns that trigger extended-tier tools
 const EXTENDED_PATTERNS =
-  /\b(code|program|debug|error|fix|refactor|format|diff|sql|query|document|pdf|excel|spreadsheet|word|docx|table|chart|graph|visualize|image|photo|resize|compress|video|audio|transcribe|ocr|screenshot|browser|scrape|webpage|github|repo|http|api|url|link|convert|youtube|media)\b/i;
+  /\b(code|program|debug|error|fix|refactor|format|diff|sql|query|document|pdf|excel|spreadsheet|word|docx|table|chart|graph|visualize|image|photo|resize|compress|video|audio|transcribe|ocr|screenshot|browser|scrape|webpage|website|github|repo|http|api|url|link|convert|youtube|media|research|look up|look at|visit|browse|check out)\b/i;
 
 // Keyword patterns that trigger specialist-tier tools
 const SPECIALIST_PATTERNS =
