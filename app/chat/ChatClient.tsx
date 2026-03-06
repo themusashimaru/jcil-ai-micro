@@ -703,11 +703,19 @@ function ChatClientInner() {
     if (!content.trim() && attachments.length === 0) return;
     if (isStreaming) return;
 
-    // Proactive continuation at hard limit
+    // Proactive continuation at hard limit — with guard against infinite recursion
     const HARD_CONTEXT_LIMIT = 45;
     if (messages.length >= HARD_CONTEXT_LIMIT && !continuationDismissed) {
-      await handleChatContinuation();
-      setTimeout(() => handleSendMessage(content, attachments, searchMode, selectedRepo), 500);
+      try {
+        await handleChatContinuation();
+        // Only retry if continuation actually created a new chat (messages should be reset)
+        // Use a one-shot flag to prevent infinite loops
+        setContinuationDismissed(true);
+        setTimeout(() => handleSendMessage(content, attachments, searchMode, selectedRepo), 500);
+      } catch {
+        // Continuation failed — send message anyway rather than losing it
+        setContinuationDismissed(true);
+      }
       return;
     }
 
@@ -855,7 +863,7 @@ function ChatClientInner() {
       await saveMessageToDatabase(
         newChatId,
         'user',
-        content,
+        finalContent,
         'text',
         undefined,
         attachmentUrls.length > 0 ? attachmentUrls : undefined

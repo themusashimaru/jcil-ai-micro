@@ -91,16 +91,20 @@ export function clampMaxTokens(requestedTokens?: number): number {
 
 export function getLastUserContent(messages: CoreMessage[]): string {
   if (!messages || messages.length === 0) return '';
-  const lastUserMessage = messages[messages.length - 1];
-  if (!lastUserMessage) return '';
-  if (typeof lastUserMessage.content === 'string') {
-    return lastUserMessage.content;
-  }
-  if (Array.isArray(lastUserMessage.content)) {
-    return lastUserMessage.content
-      .filter((part: { type: string }) => part.type === 'text')
-      .map((part: { type: string; text?: string }) => part.text || '')
-      .join(' ');
+  // Find the last message with role 'user', not just the last message
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== 'user') continue;
+    if (typeof msg.content === 'string') {
+      return msg.content;
+    }
+    if (Array.isArray(msg.content)) {
+      return msg.content
+        .filter((part: { type: string }) => part.type === 'text')
+        .map((part: { type: string; text?: string }) => part.text || '')
+        .join(' ');
+    }
+    return '';
   }
   return '';
 }
