@@ -30,7 +30,8 @@ vi.mock('puppeteer-core', () => ({
   launch: (...args: unknown[]) => mockLaunch(...args),
 }));
 
-// Mock fs.existsSync for findChrome
+// Mock fs.existsSync for findChrome — default true so execution tests find Chrome
+import { existsSync as mockExistsSync } from 'fs';
 vi.mock('fs', () => ({
   existsSync: vi.fn().mockReturnValue(true),
 }));
@@ -148,7 +149,8 @@ describe('executeWebCapture - unknown operation', () => {
 // -------------------------------------------------------------------
 describe('isWebCaptureAvailable', () => {
   it('should return false when Chrome is not installed', () => {
-    // In CI/test environments without Chrome, availability should be false
+    // Mock fs.existsSync to return false (no Chrome found)
+    vi.mocked(mockExistsSync).mockReturnValue(false);
     expect(isWebCaptureAvailable()).toBe(false);
   });
 });
