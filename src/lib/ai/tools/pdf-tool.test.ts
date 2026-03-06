@@ -359,6 +359,65 @@ describe('executePDF - draw_shapes', () => {
 });
 
 // -------------------------------------------------------------------
+// rotate_pages operation
+// -------------------------------------------------------------------
+describe('executePDF - rotate_pages', () => {
+  it('should rotate all pages by 90 degrees', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'rotate_pages',
+      pdf_data: pdfData,
+      rotation: 90,
+    });
+    expect(result.operation).toBe('rotate_pages');
+    expect(result.rotation).toBe(90);
+    expect(result.pages_rotated).toBe(1);
+    expect(result.pdf_base64).toBeDefined();
+  });
+
+  it('should error with invalid rotation', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(
+      makeCall({ operation: 'rotate_pages', pdf_data: pdf, rotation: 45 })
+    );
+    expect(res.isError).toBe(true);
+  });
+
+  it('should error without pdf_data', async () => {
+    const res = await executePDF(makeCall({ operation: 'rotate_pages', rotation: 90 }));
+    expect(res.isError).toBe(true);
+  });
+});
+
+// -------------------------------------------------------------------
+// encrypt operation
+// -------------------------------------------------------------------
+describe('executePDF - encrypt', () => {
+  it('should add encryption metadata', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'encrypt',
+      pdf_data: pdfData,
+      user_password: 'secret123',
+      owner_password: 'admin456',
+      permissions: { printing: true, copying: false },
+    });
+    expect(result.operation).toBe('encrypt');
+    expect(result.user_password).toBe('secret123');
+    expect(result.owner_password).toBe('admin456');
+    expect(result.permissions.printing).toBe(true);
+    expect(result.permissions.copying).toBe(false);
+    expect(result.pdf_base64).toBeDefined();
+  });
+
+  it('should error without user_password', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(makeCall({ operation: 'encrypt', pdf_data: pdf }));
+    expect(res.isError).toBe(true);
+  });
+});
+
+// -------------------------------------------------------------------
 // get_info with page_sizes
 // -------------------------------------------------------------------
 describe('executePDF - get_info enhanced', () => {

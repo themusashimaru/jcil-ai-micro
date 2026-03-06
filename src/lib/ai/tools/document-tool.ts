@@ -142,6 +142,8 @@ Rich Markdown Support (in content field):
 - - bullet lists and 1. numbered lists
 - | col1 | col2 | tables with | header | separators
 - ![alt text](image-url) inline images
+- [text](url) clickable hyperlinks
+- [QR:data-or-url] QR code generation
 - --- horizontal rule = page break
 - [TOC] placeholder = auto table of contents
 - [SIGNATURE] placeholder = signature line
@@ -154,6 +156,8 @@ Features:
 - Tables with borders and cell alignment
 - Inline images anywhere in content
 - Signature fields
+- QR code generation via [QR:data] syntax
+- Clickable hyperlinks via [text](url) syntax
 - DOCX template filling: provide a templateData (base64 DOCX) and templateFields to replace {{placeholders}}
 
 The document will be generated and returned as a downloadable base64 file.
@@ -245,6 +249,7 @@ interface DocOptions {
   includeTableOfContents?: boolean;
   signatureBuffer?: Buffer | null;
   inlineImages?: Map<string, Buffer>;
+  qrCodeBuffers?: Map<string, Buffer>;
 }
 
 function parseHexColor(hex: string | undefined): [number, number, number] | null {
@@ -316,6 +321,45 @@ function parseInlineImage(line: string): InlineImage | null {
 }
 
 /**
+ * Pre-generate QR codes from [QR:data] placeholders in content.
+ * Returns a map of data → PNG Buffer.
+ */
+async function prefetchQRCodes(content: string): Promise<Map<string, Buffer>> {
+  const qrMap = new Map<string, Buffer>();
+  const qrData = new Set<string>();
+
+  for (const line of content.split('\n')) {
+    const match = line.trim().match(/^\[QR:(.+)\]$/);
+    if (match) qrData.add(match[1]);
+  }
+
+  if (qrData.size === 0) return qrMap;
+
+  try {
+    const QRCode = await import('qrcode');
+    await Promise.allSettled(
+      [...qrData].map(async (data) => {
+        try {
+          const buffer = await QRCode.toBuffer(data, {
+            type: 'png',
+            width: 200,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+          });
+          qrMap.set(data, buffer);
+        } catch {
+          log.warn('Failed to generate QR code', { data: data.slice(0, 50) });
+        }
+      })
+    );
+  } catch {
+    log.warn('QR code library not available');
+  }
+
+  return qrMap;
+}
+
+/**
  * Pre-fetch all inline images from content so they're available during sync rendering.
  * Returns a map of URL → Buffer.
  */
@@ -350,8 +394,8 @@ async function prefetchInlineImages(content: string): Promise<Map<string, Buffer
 // PDF GENERATION (ENHANCED)
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function drawTable(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   doc: any,
   table: TableData,
   fonts: ReturnType<typeof getFonts>,
@@ -439,8 +483,8 @@ function drawTable(
   doc.x = 72;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function drawSignature(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   doc: any,
   signatureBuffer: Buffer | null,
   fonts: ReturnType<typeof getFonts>
@@ -591,7 +635,8 @@ async function generatePdf(
             tocEntries,
             currentPage,
             opts.signatureBuffer,
-            opts.inlineImages
+            opts.inlineImages,
+            opts.qrCodeBuffers
           );
           doc.moveDown();
         }
@@ -605,7 +650,8 @@ async function generatePdf(
           tocEntries,
           currentPage,
           opts.signatureBuffer,
-          opts.inlineImages
+          opts.inlineImages,
+          opts.qrCodeBuffers
         );
       }
 
@@ -654,7 +700,8 @@ function renderRichMarkdown(
   tocEntries: { text: string; level: number; page: number }[],
   currentPage: number,
   signatureBuffer?: Buffer | null,
-  inlineImages?: Map<string, Buffer>
+  inlineImages?: Map<string, Buffer>,
+  qrCodeBuffers?: Map<string, Buffer>
 ) {
   const lines = content.split('\n');
   let i = 0;
@@ -688,6 +735,33 @@ function renderRichMarkdown(
     // Signature placeholder
     if (line.trim() === '[SIGNATURE]') {
       drawSignature(doc, signatureBuffer || null, fonts);
+      i++;
+      continue;
+    }
+
+    // QR code placeholder: [QR:data] or [QR:url]
+    const qrMatch = line.trim().match(/^\[QR:(.+)\]$/);
+    if (qrMatch) {
+      const qrBuffer = qrCodeBuffers?.get(qrMatch[1]);
+      if (qrBuffer) {
+        try {
+          doc.image(qrBuffer, doc.x, doc.y, { fit: [120, 120] });
+          doc.moveDown(6);
+        } catch {
+          doc
+            .fontSize(baseFontSize)
+            .font(fonts.italic)
+            .fillColor([100, 100, 100])
+            .text(`[QR Code: ${qrMatch[1]}]`);
+        }
+      } else {
+        doc
+          .fontSize(baseFontSize)
+          .font(fonts.italic)
+          .fillColor([100, 100, 100])
+          .text(`[QR Code: ${qrMatch[1]}]`);
+      }
+      doc.fillColor([0, 0, 0]);
       i++;
       continue;
     }
@@ -796,15 +870,10 @@ function renderRichMarkdown(
       doc.moveDown(0.5);
       numberedListCounter = 0;
     }
-    // Regular paragraph with inline formatting
+    // Regular paragraph with inline formatting and hyperlinks
     else {
       numberedListCounter = 0;
-      const text = renderInlineFormatting(line);
-      doc
-        .fontSize(baseFontSize)
-        .font(fonts.regular)
-        .fillColor([0, 0, 0])
-        .text(text, { align: 'justify' });
+      renderTextWithLinks(doc, line, fonts, baseFontSize);
     }
 
     i++;
@@ -824,6 +893,75 @@ function renderInlineFormatting(text: string): string {
   result = result.replace(/_([^_]+)_/g, '$1');
   result = result.replace(/`([^`]+)`/g, '$1');
   return result;
+}
+
+/**
+ * Render a line of text with clickable hyperlinks in pdfkit.
+ * Supports markdown [text](url) links and bare https:// URLs.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function renderTextWithLinks(
+  doc: any,
+  line: string,
+  fonts: ReturnType<typeof getFonts>,
+  baseFontSize: number
+) {
+  // Match markdown links [text](url) or bare URLs
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)|(https?:\/\/\S+)/g;
+  let lastIndex = 0;
+  let hasLinks = false;
+
+  const segments: { text: string; link?: string }[] = [];
+  let match;
+
+  while ((match = linkRegex.exec(line)) !== null) {
+    hasLinks = true;
+    // Text before the link
+    if (match.index > lastIndex) {
+      segments.push({ text: renderInlineFormatting(line.slice(lastIndex, match.index)) });
+    }
+    if (match[1] && match[2]) {
+      // Markdown link [text](url)
+      segments.push({ text: match[1], link: match[2] });
+    } else if (match[3]) {
+      // Bare URL
+      segments.push({ text: match[3], link: match[3] });
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (!hasLinks) {
+    // No links — render as plain text
+    const text = renderInlineFormatting(line);
+    doc
+      .fontSize(baseFontSize)
+      .font(fonts.regular)
+      .fillColor([0, 0, 0])
+      .text(text, { align: 'justify' });
+    return;
+  }
+
+  // Remaining text after last link
+  if (lastIndex < line.length) {
+    segments.push({ text: renderInlineFormatting(line.slice(lastIndex)) });
+  }
+
+  // Render segments inline using pdfkit's continued text
+  doc.fontSize(baseFontSize);
+  segments.forEach((seg, idx) => {
+    const isLast = idx === segments.length - 1;
+    if (seg.link) {
+      doc.font(fonts.regular).fillColor([0, 102, 204]).text(seg.text, {
+        link: seg.link,
+        underline: true,
+        continued: !isLast,
+      });
+    } else {
+      doc.font(fonts.regular).fillColor([0, 0, 0]).text(seg.text, {
+        continued: !isLast,
+      });
+    }
+  });
 }
 
 // ============================================================================
@@ -1308,12 +1446,13 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
 
   log.info('Generating document', { format, title, hasLogo: !!logoUrl, brandColor, fontFamily });
 
-  // Fetch all images in parallel (logo, signature, inline images)
+  // Fetch all images and generate QR codes in parallel
   const allContent = sections ? sections.map((s) => s.body).join('\n') : content;
-  const [logoResult, signatureResult, inlineImages] = await Promise.all([
+  const [logoResult, signatureResult, inlineImages, qrCodeBuffers] = await Promise.all([
     logoUrl ? fetchImageBuffer(logoUrl) : Promise.resolve(null),
     signatureUrl ? fetchImageBuffer(signatureUrl) : Promise.resolve(null),
     prefetchInlineImages(allContent),
+    prefetchQRCodes(allContent),
   ]);
 
   const opts: DocOptions = {
@@ -1328,6 +1467,7 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
     includeTableOfContents,
     signatureBuffer: signatureResult?.buffer || null,
     inlineImages,
+    qrCodeBuffers,
   };
 
   let result: { success: boolean; data?: string; error?: string };
