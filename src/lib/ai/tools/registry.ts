@@ -134,11 +134,11 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   {
     name: 'capture_webpage',
     file: 'web-capture-tool.ts',
-    status: 'active',
+    status: 'beta',
     category: 'web',
     tier: 'extended',
-    description: 'Full-page capture and archival of web pages',
-    dependencies: ['puppeteer'],
+    description: 'Full-page capture and archival of web pages (requires local Chrome)',
+    dependencies: ['puppeteer', 'chrome'],
   },
   {
     name: 'youtube_transcript',

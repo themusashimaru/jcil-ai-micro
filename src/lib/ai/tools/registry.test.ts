@@ -99,9 +99,10 @@ describe('Tool Registry', () => {
       expect(active.every((t) => t.status === 'active')).toBe(true);
     });
 
-    it('should return empty for beta (all stubs removed)', () => {
+    it('should return beta tools (capture_webpage requires local Chrome)', () => {
       const beta = getToolsByStatus('beta');
-      expect(beta.length).toBe(0);
+      expect(beta.length).toBe(1);
+      expect(beta[0].name).toBe('capture_webpage');
     });
 
     it('should return empty array for planned (none exist currently)', () => {

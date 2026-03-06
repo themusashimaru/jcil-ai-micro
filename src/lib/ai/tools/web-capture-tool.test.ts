@@ -147,7 +147,8 @@ describe('executeWebCapture - unknown operation', () => {
 // Availability
 // -------------------------------------------------------------------
 describe('isWebCaptureAvailable', () => {
-  it('should return true', () => {
-    expect(isWebCaptureAvailable()).toBe(true);
+  it('should return false when Chrome is not installed', () => {
+    // In CI/test environments without Chrome, availability should be false
+    expect(isWebCaptureAvailable()).toBe(false);
   });
 });

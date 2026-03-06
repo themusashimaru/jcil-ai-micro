@@ -126,8 +126,8 @@ Note: Requires Chrome/Chromium browser to be available.`,
 // ============================================================================
 
 export function isWebCaptureAvailable(): boolean {
-  // Check if Chrome/Chromium is likely available
-  return true; // Will fail gracefully if browser not found
+  // Only available if Chrome/Chromium is installed locally
+  return findChrome() !== null;
 }
 
 // ============================================================================
