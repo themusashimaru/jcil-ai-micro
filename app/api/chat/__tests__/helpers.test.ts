@@ -43,12 +43,12 @@ function repeat(char: string, n: number): string {
 // ---------------------------------------------------------------------------
 
 describe('exported constants', () => {
-  it('MAX_RESPONSE_TOKENS is 4096', () => {
-    expect(MAX_RESPONSE_TOKENS).toBe(4096);
+  it('MAX_RESPONSE_TOKENS is 64000', () => {
+    expect(MAX_RESPONSE_TOKENS).toBe(64000);
   });
 
-  it('DEFAULT_RESPONSE_TOKENS is 2048', () => {
-    expect(DEFAULT_RESPONSE_TOKENS).toBe(2048);
+  it('DEFAULT_RESPONSE_TOKENS is 16384', () => {
+    expect(DEFAULT_RESPONSE_TOKENS).toBe(16384);
   });
 
   it('MAX_CONTEXT_MESSAGES is 60', () => {
@@ -326,12 +326,18 @@ describe('clampMaxTokens', () => {
   });
 
   it('clamps to MAX_RESPONSE_TOKENS when a larger value is requested', () => {
-    expect(clampMaxTokens(5000)).toBe(MAX_RESPONSE_TOKENS);
-    expect(clampMaxTokens(99999)).toBe(MAX_RESPONSE_TOKENS);
+    expect(clampMaxTokens(70000)).toBe(MAX_RESPONSE_TOKENS);
+    expect(clampMaxTokens(999999)).toBe(MAX_RESPONSE_TOKENS);
   });
 
   it('returns exactly MAX_RESPONSE_TOKENS for the boundary value', () => {
     expect(clampMaxTokens(MAX_RESPONSE_TOKENS)).toBe(MAX_RESPONSE_TOKENS);
+  });
+
+  it('clamps to modelMaxOutputTokens when provided', () => {
+    expect(clampMaxTokens(50000, 32000)).toBe(32000);
+    expect(clampMaxTokens(1000, 32000)).toBe(1000);
+    expect(clampMaxTokens(undefined, 32000)).toBe(16384); // DEFAULT capped by model max
   });
 
   it('returns DEFAULT_RESPONSE_TOKENS for NaN (falsy)', () => {
