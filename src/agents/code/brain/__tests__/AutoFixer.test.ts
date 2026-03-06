@@ -34,7 +34,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import { AutoFixer, autoFixer, type CodeIssue, type FixResult } from '../AutoFixer';
+import { AutoFixer, autoFixer, type CodeIssue } from '../AutoFixer';
 import { agentChat } from '@/lib/ai/providers';
 import type { GeneratedFile } from '../../../core/types';
 import type { SecurityVulnerability } from '../SecurityScanner';

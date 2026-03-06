@@ -40,14 +40,23 @@ export default function EmailCapture({
     setStatus('loading');
 
     try {
-      // TODO: Implement actual email capture API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: variant }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error || 'Signup failed');
+      }
+
       setStatus('success');
-      setMessage('Welcome to the family! Check your inbox for confirmation.');
+      setMessage('Welcome to the family! We will be in touch soon.');
       setEmail('');
-    } catch {
+    } catch (err) {
       setStatus('error');
-      setMessage('Something went wrong. Please try again.');
+      setMessage(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     }
   };
 
@@ -163,9 +172,18 @@ export function EmailBanner() {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email && email.includes('@')) {
+      try {
+        await fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, source: 'banner' }),
+        });
+      } catch {
+        // Non-fatal — still show success
+      }
       setSubmitted(true);
     }
   };

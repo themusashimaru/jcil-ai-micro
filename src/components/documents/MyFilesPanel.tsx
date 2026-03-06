@@ -9,412 +9,52 @@
  * Admin-only for now (testing phase).
  */
 
-import { useState, useEffect, useRef } from 'react';
-import { logger } from '@/lib/logger';
-
-interface Folder {
-  id: string;
-  name: string;
-  color: string;
-  parent_folder_id: string | null;
-}
-
-interface Document {
-  id: string;
-  name: string;
-  original_filename: string;
-  file_type: string;
-  file_size: number;
-  status: 'pending' | 'processing' | 'ready' | 'error';
-  folder_id: string | null;
-  created_at: string;
-}
-
-interface UserStats {
-  total_documents: number;
-  total_folders: number;
-  total_size_bytes: number;
-  total_chunks: number;
-}
-
-const FOLDER_COLORS = [
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-];
-
-const log = logger('MyFilesPanel');
+import { formatFileSize } from './my-files-types';
+import { useMyFiles } from './useMyFiles';
+import FileItem from './FileItem';
+import FolderItem from './FolderItem';
+import MyFilesContextMenu from './MyFilesContextMenu';
+import FolderModal from './FolderModal';
 
 export default function MyFilesPanel() {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [stats, setStats] = useState<UserStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Folder management state
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const [folderName, setFolderName] = useState('');
-  const [folderColor, setFolderColor] = useState(FOLDER_COLORS[0]);
-  const [isSavingFolder, setIsSavingFolder] = useState(false);
-
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    type: 'folder' | 'file';
-    item: Folder | Document;
-  } | null>(null);
-
-  // Move menu state (for mobile-friendly file moving)
-  const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
-
-  // Load data when panel expands
-  useEffect(() => {
-    if (isExpanded) {
-      loadData();
-    }
-  }, [isExpanded]);
-
-  // Close context menu on click outside
-  useEffect(() => {
-    const handleClick = () => {
-      setContextMenu(null);
-      setShowMoveMenu(null);
-    };
-    if (contextMenu || showMoveMenu) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-  }, [contextMenu, showMoveMenu]);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [foldersRes, filesRes] = await Promise.all([
-        fetch('/api/documents/user/folders'),
-        fetch('/api/documents/user/files'),
-      ]);
-
-      if (foldersRes.ok) {
-        const data = await foldersRes.json();
-        setFolders(data.folders || []);
-      } else {
-        const errData = await foldersRes.json();
-        log.error('Folders error', { error: errData });
-      }
-
-      if (filesRes.ok) {
-        const data = await filesRes.json();
-        setDocuments(data.documents || []);
-        setStats(data.stats || null);
-      } else {
-        const errData = await filesRes.json();
-        log.error('Files error', { error: errData });
-      }
-    } catch (err) {
-      log.error('Error loading data', { error: err instanceof Error ? err : { error: err } });
-      setError('Failed to load files');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleFileSelect = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    targetFolderId?: string
-  ) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsUploading(true);
-    setError(null);
-
-    for (const file of Array.from(files)) {
-      try {
-        setUploadProgress(`Uploading ${file.name}...`);
-
-        // Create FormData
-        const formData = new FormData();
-        formData.append('file', file);
-        if (targetFolderId) {
-          formData.append('folderId', targetFolderId);
-        }
-
-        // Upload file
-        const uploadRes = await fetch('/api/documents/user/files', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          const err = await uploadRes.json();
-          log.error('Upload failed', { error: err });
-          throw new Error(err.error || 'Upload failed');
-        }
-
-        const { document } = await uploadRes.json();
-        log.info('Upload successful', { document });
-
-        // Trigger processing
-        setUploadProgress(`Processing ${file.name}...`);
-        const processRes = await fetch('/api/documents/user/process', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ documentId: document.id }),
-        });
-
-        if (!processRes.ok) {
-          log.error('Processing failed');
-        }
-      } catch (err) {
-        log.error('Upload error', { error: err instanceof Error ? err : { error: err } });
-        setError(err instanceof Error ? err.message : 'Upload failed');
-      }
-    }
-
-    setIsUploading(false);
-    setUploadProgress('');
-
-    // Clear input and reload
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    loadData();
-  };
-
-  const handleDeleteFile = async (docId: string) => {
-    if (!confirm('Delete this file? This cannot be undone.')) return;
-
-    try {
-      const res = await fetch(`/api/documents/user/files?id=${docId}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to delete');
-      }
-
-      loadData();
-    } catch (err) {
-      log.error('Delete error', { error: err instanceof Error ? err : { error: err } });
-      setError('Failed to delete file');
-    }
-  };
-
-  // Folder CRUD
-  const handleCreateFolder = () => {
-    setEditingFolder(null);
-    setFolderName('');
-    setFolderColor(FOLDER_COLORS[0]);
-    setShowFolderModal(true);
-  };
-
-  const handleEditFolder = (folder: Folder) => {
-    setEditingFolder(folder);
-    setFolderName(folder.name);
-    setFolderColor(folder.color);
-    setShowFolderModal(true);
-    setContextMenu(null);
-  };
-
-  const handleSaveFolder = async () => {
-    if (!folderName.trim()) return;
-
-    setIsSavingFolder(true);
-    try {
-      if (editingFolder) {
-        // Update existing folder
-        const res = await fetch('/api/documents/user/folders', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: editingFolder.id,
-            name: folderName.trim(),
-            color: folderColor,
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to update folder');
-        }
-      } else {
-        // Create new folder
-        const res = await fetch('/api/documents/user/folders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: folderName.trim(),
-            color: folderColor,
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || 'Failed to create folder');
-        }
-      }
-
-      setShowFolderModal(false);
-      loadData();
-    } catch (err) {
-      log.error('Folder save error', { error: err instanceof Error ? err : { error: err } });
-      setError(err instanceof Error ? err.message : 'Failed to save folder');
-    } finally {
-      setIsSavingFolder(false);
-    }
-  };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('Delete this folder? Files inside will be moved to root.')) return;
-
-    try {
-      const res = await fetch(`/api/documents/user/folders?id=${folderId}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to delete folder');
-      }
-
-      setContextMenu(null);
-      loadData();
-    } catch (err) {
-      log.error('Folder delete error', { error: err instanceof Error ? err : { error: err } });
-      setError('Failed to delete folder');
-    }
-  };
-
-  const handleMoveFile = async (docId: string, folderId: string | null) => {
-    try {
-      const res = await fetch('/api/documents/user/files', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: docId,
-          folderId: folderId,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to move file');
-      }
-
-      setContextMenu(null);
-      loadData();
-    } catch (err) {
-      log.error('Move error', { error: err instanceof Error ? err : { error: err } });
-      setError('Failed to move file');
-    }
-  };
-
-  const toggleFolder = (folderId: string) => {
-    setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(folderId)) {
-        next.delete(folderId);
-      } else {
-        next.add(folderId);
-      }
-      return next;
-    });
-  };
-
-  const handleContextMenu = (
-    e: React.MouseEvent,
-    type: 'folder' | 'file',
-    item: Folder | Document
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX, y: e.clientY, type, item });
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'pdf':
-        return (
-          <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-      case 'docx':
-      case 'doc':
-        return (
-          <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-      case 'xlsx':
-      case 'xls':
-        return (
-          <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="w-4 h-4 text-text-muted" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
-              clipRule="evenodd"
-            />
-          </svg>
-        );
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'ready':
-        return <span className="text-xs text-green-500">Ready</span>;
-      case 'processing':
-        return <span className="text-xs text-yellow-500 animate-pulse">Processing...</span>;
-      case 'pending':
-        return <span className="text-xs text-gray-500">Pending</span>;
-      case 'error':
-        return <span className="text-xs text-red-500">Error</span>;
-      default:
-        return null;
-    }
-  };
-
-  // Group documents by folder
-  const rootDocs = documents.filter((d) => !d.folder_id);
-  const folderDocs = (folderId: string) => documents.filter((d) => d.folder_id === folderId);
+  const {
+    isExpanded,
+    setIsExpanded,
+    showInfoTooltip,
+    setShowInfoTooltip,
+    folders,
+    documents,
+    stats,
+    isLoading,
+    isUploading,
+    uploadProgress,
+    error,
+    setError,
+    expandedFolders,
+    fileInputRef,
+    showFolderModal,
+    setShowFolderModal,
+    editingFolder,
+    folderName,
+    setFolderName,
+    folderColor,
+    setFolderColor,
+    isSavingFolder,
+    contextMenu,
+    showMoveMenu,
+    setShowMoveMenu,
+    handleFileSelect,
+    handleDeleteFile,
+    handleCreateFolder,
+    handleEditFolder,
+    handleSaveFolder,
+    handleDeleteFolder,
+    handleMoveFile,
+    toggleFolder,
+    handleContextMenu,
+    rootDocs,
+    folderDocs,
+  } = useMyFiles();
 
   return (
     <div className="relative border-b border-theme">
@@ -662,192 +302,21 @@ export default function MyFilesPanel() {
             >
               {/* Folders */}
               {folders.map((folder) => (
-                <div key={folder.id}>
-                  <div
-                    className={`flex items-center gap-2 p-2 rounded-lg hover:bg-opacity-50 transition-colors cursor-pointer group ${expandedFolders.has(folder.id) ? 'bg-glass' : 'bg-transparent'}`}
-                    onClick={() => toggleFolder(folder.id)}
-                    onContextMenu={(e) => handleContextMenu(e, 'folder', folder)}
-                  >
-                    <svg
-                      className={`w-3 h-3 transition-transform flex-shrink-0 text-text-muted ${expandedFolders.has(folder.id) ? 'rotate-90' : ''}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                    <svg
-                      className="w-4 h-4 flex-shrink-0"
-                      style={{ color: folder.color }}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
-                    <span className="text-sm flex-1 truncate text-text-primary">{folder.name}</span>
-                    <span className="text-xs text-text-muted">{folderDocs(folder.id).length}</span>
-                    {/* Folder actions */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditFolder(folder);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
-                    >
-                      <svg
-                        className="w-3 h-3 text-text-muted"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Folder Contents */}
-                  {expandedFolders.has(folder.id) && (
-                    <div
-                      className="ml-5 pl-2 space-y-1"
-                      style={{ borderLeft: `2px solid ${folder.color}` }}
-                    >
-                      {folderDocs(folder.id).length === 0 ? (
-                        <p className="text-xs py-2 px-2 text-text-muted">Empty folder</p>
-                      ) : (
-                        folderDocs(folder.id).map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative bg-glass"
-                            onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
-                          >
-                            {getFileIcon(doc.file_type)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs truncate text-text-primary">{doc.name}</p>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-text-muted">
-                                  {formatFileSize(doc.file_size)}
-                                </span>
-                                {getStatusBadge(doc.status)}
-                              </div>
-                            </div>
-                            {/* Move button */}
-                            <div className="relative">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
-                                title="Move file"
-                              >
-                                <svg
-                                  className="w-3 h-3 text-text-muted"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                                  />
-                                </svg>
-                              </button>
-                              {/* Move dropdown */}
-                              {showMoveMenu === doc.id && (
-                                <div
-                                  className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <div className="px-2 py-1 text-xs text-text-muted">Move to:</div>
-                                  {/* Move to root */}
-                                  <button
-                                    onClick={() => {
-                                      handleMoveFile(doc.id, null);
-                                      setShowMoveMenu(null);
-                                    }}
-                                    className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-                                  >
-                                    <svg
-                                      className="w-3 h-3 text-text-muted"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                                      />
-                                    </svg>
-                                    Unfiled
-                                  </button>
-                                  {/* Other folders */}
-                                  {folders
-                                    .filter((f) => f.id !== folder.id)
-                                    .map((otherFolder) => (
-                                      <button
-                                        key={otherFolder.id}
-                                        onClick={() => {
-                                          handleMoveFile(doc.id, otherFolder.id);
-                                          setShowMoveMenu(null);
-                                        }}
-                                        className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-                                      >
-                                        <svg
-                                          className="w-3 h-3"
-                                          style={{ color: otherFolder.color }}
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                        >
-                                          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                        </svg>
-                                        {otherFolder.name}
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteFile(doc.id);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                              title="Delete file"
-                            >
-                              <svg
-                                className="w-3 h-3 text-red-500"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                <FolderItem
+                  key={folder.id}
+                  folder={folder}
+                  isExpanded={expandedFolders.has(folder.id)}
+                  docs={folderDocs(folder.id)}
+                  allFolders={folders}
+                  showMoveMenu={showMoveMenu}
+                  setShowMoveMenu={setShowMoveMenu}
+                  onToggle={toggleFolder}
+                  onEdit={handleEditFolder}
+                  onContextMenu={handleContextMenu}
+                  onMoveFile={handleMoveFile}
+                  onDeleteFile={handleDeleteFile}
+                  onFileContextMenu={handleContextMenu}
+                />
               ))}
 
               {/* Root Documents (no folder) */}
@@ -857,100 +326,17 @@ export default function MyFilesPanel() {
                 </div>
               )}
               {rootDocs.map((doc) => (
-                <div
+                <FileItem
                   key={doc.id}
-                  className="flex items-center gap-2 p-2 rounded-lg group hover:bg-opacity-50 transition-colors relative bg-glass"
-                  onContextMenu={(e) => handleContextMenu(e, 'file', doc)}
-                >
-                  {getFileIcon(doc.file_type)}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs truncate text-text-primary">{doc.name}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-text-muted">
-                        {formatFileSize(doc.file_size)}
-                      </span>
-                      {getStatusBadge(doc.status)}
-                    </div>
-                  </div>
-                  {/* Move button */}
-                  {folders.length > 0 && (
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowMoveMenu(showMoveMenu === doc.id ? null : doc.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-opacity-50 transition-all bg-glass"
-                        title="Move to folder"
-                      >
-                        <svg
-                          className="w-3 h-3 text-text-muted"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                          />
-                        </svg>
-                      </button>
-                      {/* Move dropdown */}
-                      {showMoveMenu === doc.id && (
-                        <div
-                          className="absolute right-0 top-full mt-1 z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <div className="px-2 py-1 text-xs text-text-muted">Move to folder:</div>
-                          {folders.map((folder) => (
-                            <button
-                              key={folder.id}
-                              onClick={() => {
-                                handleMoveFile(doc.id, folder.id);
-                                setShowMoveMenu(null);
-                              }}
-                              className="w-full px-2 py-1.5 text-left text-xs hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-                            >
-                              <svg
-                                className="w-3 h-3"
-                                style={{ color: folder.color }}
-                                fill="currentColor"
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                              </svg>
-                              {folder.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteFile(doc.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-all"
-                    title="Delete file"
-                  >
-                    <svg
-                      className="w-3 h-3 text-red-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
+                  doc={doc}
+                  folders={folders}
+                  currentFolderId={null}
+                  showMoveMenu={showMoveMenu}
+                  setShowMoveMenu={setShowMoveMenu}
+                  onMove={handleMoveFile}
+                  onDelete={handleDeleteFile}
+                  onContextMenu={handleContextMenu}
+                />
               ))}
             </div>
           )}
@@ -967,164 +353,28 @@ export default function MyFilesPanel() {
 
       {/* Context Menu */}
       {contextMenu && (
-        <div
-          className="fixed z-50 py-1 rounded-lg shadow-lg min-w-32 bg-background border border-theme"
-          style={{
-            left: contextMenu.x,
-            top: contextMenu.y,
-          }}
-        >
-          {contextMenu.type === 'folder' && (
-            <>
-              <button
-                onClick={() => handleEditFolder(contextMenu.item as Folder)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
-                </svg>
-                Rename
-              </button>
-              <button
-                onClick={() => handleDeleteFolder((contextMenu.item as Folder).id)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 text-red-500"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                Delete
-              </button>
-            </>
-          )}
-          {contextMenu.type === 'file' && (
-            <>
-              {/* Move to folder options */}
-              <div className="px-3 py-1 text-xs text-text-muted">Move to:</div>
-              <button
-                onClick={() => handleMoveFile((contextMenu.item as Document).id, null)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-              >
-                <svg
-                  className="w-4 h-4 text-text-muted"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
-                </svg>
-                Root
-              </button>
-              {folders.map((folder) => (
-                <button
-                  key={folder.id}
-                  onClick={() => handleMoveFile((contextMenu.item as Document).id, folder.id)}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-opacity-50 transition-colors flex items-center gap-2 text-text-primary"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    style={{ color: folder.color }}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                  </svg>
-                  {folder.name}
-                </button>
-              ))}
-              <div className="border-t border-theme my-1" />
-              <button
-                onClick={() => handleDeleteFile((contextMenu.item as Document).id)}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-red-500/10 transition-colors flex items-center gap-2 text-red-500"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                Delete
-              </button>
-            </>
-          )}
-        </div>
+        <MyFilesContextMenu
+          contextMenu={contextMenu}
+          folders={folders}
+          onEditFolder={handleEditFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onMoveFile={handleMoveFile}
+          onDeleteFile={handleDeleteFile}
+        />
       )}
 
       {/* Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-80 p-4 rounded-lg shadow-xl bg-background border border-theme">
-            <h3 className="text-sm font-semibold mb-4 text-text-primary">
-              {editingFolder ? 'Edit Folder' : 'New Folder'}
-            </h3>
-
-            <div className="space-y-4">
-              {/* Folder Name */}
-              <div>
-                <label className="block text-xs mb-1 text-text-muted">Folder Name</label>
-                <input
-                  type="text"
-                  value={folderName}
-                  onChange={(e) => setFolderName(e.target.value)}
-                  placeholder="My Documents"
-                  className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 bg-glass border border-theme text-text-primary"
-                  autoFocus
-                />
-              </div>
-
-              {/* Color Picker */}
-              <div>
-                <label className="block text-xs mb-2 text-text-muted">Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {FOLDER_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => setFolderColor(color)}
-                      className={`w-7 h-7 rounded-full transition-transform ${folderColor === color ? 'ring-2 ring-offset-2 scale-110' : ''}`}
-                      style={{
-                        backgroundColor: color,
-                        outlineColor: folderColor === color ? color : undefined,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={() => setShowFolderModal(false)}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors bg-glass text-text-primary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveFolder}
-                  disabled={!folderName.trim() || isSavingFolder}
-                  className="flex-1 px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 bg-primary text-white"
-                >
-                  {isSavingFolder ? 'Saving...' : editingFolder ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FolderModal
+          editingFolder={editingFolder}
+          folderName={folderName}
+          setFolderName={setFolderName}
+          folderColor={folderColor}
+          setFolderColor={setFolderColor}
+          isSavingFolder={isSavingFolder}
+          onSave={handleSaveFolder}
+          onClose={() => setShowFolderModal(false)}
+        />
       )}
     </div>
   );

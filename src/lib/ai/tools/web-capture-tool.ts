@@ -14,6 +14,7 @@
  * Created: 2026-01-31
  */
 
+import { existsSync } from 'fs';
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // Lazy-loaded puppeteer
@@ -377,9 +378,7 @@ function findChrome(): string | null {
   for (const p of paths) {
     if (p) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const fs = require('fs');
-        if (fs.existsSync(p)) {
+        if (existsSync(p)) {
           return p;
         }
       } catch {

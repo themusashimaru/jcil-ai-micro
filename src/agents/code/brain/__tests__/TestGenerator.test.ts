@@ -54,14 +54,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import {
-  TestGenerator,
-  testGenerator,
-  type TestGenerationResult,
-  type TestSuite,
-  type TestCase,
-  type TestFramework,
-} from '../TestGenerator';
+import { TestGenerator, testGenerator } from '../TestGenerator';
 import { agentChat } from '@/lib/ai/providers';
 import type { GeneratedFile, CodeIntent, ProjectPlan } from '../../../core/types';
 

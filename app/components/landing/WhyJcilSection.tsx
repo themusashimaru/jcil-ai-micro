@@ -36,7 +36,7 @@ export default function WhyJcilSection() {
         <FeatureCard
           icon={<BrainIcon className="w-6 h-6" />}
           title="Multi-Model Intelligence"
-          description="Claude Opus, GPT-5.2, Gemini, Grok, and DeepSeek. Choose the best model for your task, all with faith-first values."
+          description="Claude Sonnet 4.6, GPT-5.2, Gemini, Grok, and DeepSeek. Choose the best model for your task, all with faith-first values."
           variant="gradient"
           color="blue"
         />

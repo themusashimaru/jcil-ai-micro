@@ -15,7 +15,7 @@
  * - Response format validation
  */
 
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // ============================================================================

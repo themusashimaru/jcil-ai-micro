@@ -54,7 +54,7 @@ describe('executeSpreadsheet - basic', () => {
     expect(res.content).toContain('test.xlsx');
     expect(res.content).toContain('Sheet1');
     expect(res.content).toContain('data:application/vnd.openxmlformats');
-  });
+  }, 15_000); // ExcelJS dynamic import can exceed default 5s on cold start
 
   it('should sanitize filename', async () => {
     const res = await executeSpreadsheet(

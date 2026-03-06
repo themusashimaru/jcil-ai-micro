@@ -23,12 +23,7 @@ vi.mock('@/lib/ai/providers', () => ({
   }),
 }));
 
-import {
-  SecurityScanner,
-  securityScanner,
-  type SecurityVulnerability,
-  type SecurityScanResult,
-} from '../SecurityScanner';
+import { SecurityScanner, securityScanner } from '../SecurityScanner';
 import { agentChat } from '@/lib/ai/providers';
 import type { GeneratedFile } from '../../../core/types';
 

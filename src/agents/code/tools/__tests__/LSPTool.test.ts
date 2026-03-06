@@ -277,7 +277,7 @@ describe('LSPTool', () => {
     });
 
     it('should fail when rename is missing newName', async () => {
-      const { tool, client, manager } = makeToolWithClient();
+      const { tool, client: _client, manager: _manager } = makeToolWithClient();
       const result = await tool.execute({
         operation: 'rename',
         file: 'src/index.ts',
@@ -877,7 +877,7 @@ describe('LSPTool', () => {
 
   describe('unknown operation', () => {
     it('should return error for unknown operation', async () => {
-      const { tool, client } = makeToolWithClient();
+      const { tool, client: _client } = makeToolWithClient();
       mockReadFile.mockResolvedValue('content');
 
       const result = await tool.execute({

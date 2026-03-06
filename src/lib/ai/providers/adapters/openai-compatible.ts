@@ -333,8 +333,8 @@ export class OpenAICompatibleAdapter extends BaseAIAdapter {
         apiKey: options.userApiKey,
         baseURL: endpoint?.baseURL,
       });
-      // eslint-disable-next-line no-console
       if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
         console.log(`[${this.providerId}] Using BYOK (user's own API key)`);
       }
     } else {

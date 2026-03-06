@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 // Embedded SVG icons for all major brands
 // These are official brand icons embedded directly for 100% reliability
@@ -685,12 +686,15 @@ export default function BrandLogo({
       <div
         className={`${sizeClasses[size]} rounded-lg overflow-hidden flex items-center justify-center bg-white/10 ${className}`}
       >
-        <img
+        <Image
           src={cdnUrl}
           alt={displayName}
+          width={48}
+          height={48}
           className="object-contain w-3/4 h-3/4"
           onError={() => setImgError(true)}
           loading="lazy"
+          unoptimized
         />
       </div>
     );

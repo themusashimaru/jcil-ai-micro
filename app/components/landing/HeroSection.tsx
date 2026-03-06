@@ -42,8 +42,9 @@ export default function HeroSection() {
 
           {/* Subheadline */}
           <p className="mx-auto max-w-2xl text-lg sm:text-xl text-slate-400 leading-relaxed mb-4">
-            The first enterprise-grade AI platform built for Christians. 51 real tools, multi-model
-            intelligence, and E2B sandboxed execution&mdash;grounded in Scripture.
+            The first enterprise-grade AI platform built for Christians. 51 real tools that chain
+            together, AI image generation, a full coding IDE, and sandboxed execution&mdash;grounded
+            in Scripture.
           </p>
 
           {/* Scripture Reference */}
@@ -71,10 +72,10 @@ export default function HeroSection() {
 
           {/* Trust Indicators - Verified claims only */}
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm text-slate-500">
-            <TrustBadge>Powered by Anthropic Claude</TrustBadge>
-            <TrustBadge>51 Real AI Tools</TrustBadge>
-            <TrustBadge>12,100+ Automated Tests</TrustBadge>
-            <TrustBadge>E2B Sandboxed Execution</TrustBadge>
+            <TrustBadge>Powered by Claude Sonnet 4.6</TrustBadge>
+            <TrustBadge>51 Orchestrated AI Tools</TrustBadge>
+            <TrustBadge>FLUX.2 Image Generation</TrustBadge>
+            <TrustBadge>Full-Service Coding IDE</TrustBadge>
           </div>
         </div>
       </div>

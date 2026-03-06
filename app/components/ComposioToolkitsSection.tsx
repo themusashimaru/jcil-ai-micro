@@ -159,6 +159,7 @@ export default function ComposioToolkitsSection() {
       const retryDelays = [1000, 3000, 5000];
       retryDelays.forEach((delay) => {
         setTimeout(() => {
+          // eslint-disable-next-line no-console
           console.log(`[ComposioToolkits] Retry fetch after ${delay}ms`);
           fetchToolkits();
         }, delay);

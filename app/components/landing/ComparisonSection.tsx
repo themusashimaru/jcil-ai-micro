@@ -15,12 +15,13 @@ interface ComparisonRow {
 
 const comparisons: ComparisonRow[] = [
   { feature: 'Scripture-grounded responses', jcil: true, generic: false },
-  { feature: 'Faith-aligned content filtering', jcil: true, generic: false },
+  { feature: 'Tool orchestration (tools chain together)', jcil: true, generic: false },
+  { feature: 'AI image generation (FLUX.2)', jcil: '5 models', generic: 'DALL-E only' },
   { feature: 'Real code execution (E2B sandbox)', jcil: true, generic: 'Limited' },
-  { feature: 'Multi-model support', jcil: '5 models', generic: '1 model' },
+  { feature: 'Full coding IDE with debugging', jcil: true, generic: false },
   { feature: 'Real AI tools (not stubs)', jcil: '51 tools', generic: 'Varies' },
-  { feature: 'Document generation (Word, Excel, PDF)', jcil: true, generic: 'Limited' },
-  { feature: 'Web search with citations', jcil: true, generic: 'Some' },
+  { feature: 'Document generation (Word, Excel, PDF, PPTX)', jcil: true, generic: 'Limited' },
+  { feature: 'Parallel web research agents', jcil: true, generic: false },
   { feature: 'Composio integrations', jcil: '67+ apps', generic: false },
   { feature: 'Data never used for training', jcil: true, generic: 'Varies' },
   { feature: 'Built for churches & ministries', jcil: true, generic: false },

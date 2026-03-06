@@ -219,7 +219,7 @@ describe('DocGenerator', () => {
         includeContributing: false,
         includeChangelog: false,
       };
-      const result = await generator.generate(createNonApiFiles(), createIntent(), plan, config);
+      const _result = await generator.generate(createNonApiFiles(), createIntent(), plan, config);
 
       // The README should be generated using the plan name
       expect(agentChat).toHaveBeenCalled();

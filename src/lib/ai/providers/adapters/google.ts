@@ -299,9 +299,9 @@ export class GoogleGeminiAdapter extends BaseAIAdapter {
     if (options.userApiKey) {
       this.client = new GoogleGenerativeAI(options.userApiKey);
       this.initError = null;
-      // eslint-disable-next-line no-console
       if (process.env.NODE_ENV === 'development') {
-        console.log('[google] Using BYOK (user\'s own API key)');
+        // eslint-disable-next-line no-console
+        console.log("[google] Using BYOK (user's own API key)");
       }
     } else {
       // CRITICAL FIX: Refresh client on EVERY request for proper key rotation

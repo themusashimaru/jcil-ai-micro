@@ -112,33 +112,62 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
     }
 
     // AUTH-002: Check Redis cache first to avoid DB hit every request
+    // Failures here should NOT block auth — fall back to defaults gracefully
     let isAdmin = false;
     let userPlanKey = 'free';
+    let customInstructions = '';
 
-    const cached = await getCachedUserData(user.id);
-    if (cached) {
-      isAdmin = cached.isAdmin;
-      userPlanKey = cached.tier;
-    } else {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('is_admin, subscription_tier')
-        .eq('id', user.id)
-        .single();
-      isAdmin = userData?.is_admin === true;
-      userPlanKey = userData?.subscription_tier || 'free';
-      await setCachedUserData(user.id, isAdmin, userPlanKey);
+    try {
+      const cached = await getCachedUserData(user.id);
+      if (cached) {
+        isAdmin = cached.isAdmin;
+        userPlanKey = cached.tier;
+      } else {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('is_admin, subscription_tier, subscription_status')
+          .eq('id', user.id)
+          .single();
+        isAdmin = userData?.is_admin === true;
+        const rawTier = userData?.subscription_tier || 'free';
+        const subStatus = userData?.subscription_status || 'active';
+
+        // Downgrade to free if subscription is past_due or canceled
+        // Users with failed payments should not keep paid access
+        if (rawTier !== 'free' && (subStatus === 'past_due' || subStatus === 'canceled')) {
+          log.warn('User has non-active subscription, downgrading to free', {
+            userId: user.id,
+            tier: rawTier,
+            status: subStatus,
+          });
+          userPlanKey = 'free';
+        } else {
+          userPlanKey = rawTier;
+        }
+        // Cache set failure is non-fatal
+        await setCachedUserData(user.id, isAdmin, userPlanKey).catch(() => {});
+      }
+    } catch (cacheErr) {
+      // Redis/DB outage should NOT lock users out — continue with defaults
+      log.warn('Failed to load user data, using defaults', {
+        userId: user.id,
+        error: cacheErr instanceof Error ? cacheErr.message : 'Unknown',
+      });
     }
 
     // CHAT-009: Load custom instructions from user settings
-    let customInstructions = '';
-    const { data: userSettings } = await supabase
-      .from('user_settings')
-      .select('custom_instructions')
-      .eq('user_id', user.id)
-      .single();
-    if (userSettings?.custom_instructions) {
-      customInstructions = userSettings.custom_instructions;
+    try {
+      const { data: userSettings } = await supabase
+        .from('user_settings')
+        .select('custom_instructions')
+        .eq('user_id', user.id)
+        .single();
+      if (userSettings?.custom_instructions) {
+        customInstructions = userSettings.custom_instructions;
+      }
+    } catch {
+      // Non-fatal — custom instructions are optional
+      log.warn('Failed to load custom instructions', { userId: user.id });
     }
 
     return {

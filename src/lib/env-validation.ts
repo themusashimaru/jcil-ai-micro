@@ -78,6 +78,7 @@ function anySet(names: string[]): boolean {
 export function validateEnvironment(): void {
   // Allow CI and build environments to skip validation
   if (process.env.SKIP_ENV_VALIDATION === 'true') {
+    // eslint-disable-next-line no-console
     console.log('[ENV] Validation skipped (SKIP_ENV_VALIDATION=true)');
     return;
   }
@@ -137,6 +138,7 @@ export function validateEnvironment(): void {
   }
 
   if (warnings.length > 0) {
+    // eslint-disable-next-line no-console
     console.warn(
       `[ENV] Missing recommended environment variables:\n${warnings.join('\n')}\n` +
         `Some features will be degraded.`
@@ -144,6 +146,7 @@ export function validateEnvironment(): void {
   }
 
   if (missing.length === 0 && warnings.length === 0) {
+    // eslint-disable-next-line no-console
     console.log('[ENV] All required and recommended environment variables are configured.');
   }
 }

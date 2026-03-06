@@ -12,7 +12,7 @@ vi.mock('@/lib/ai/providers', () => ({
 }));
 
 import { ChainOfThought, TreeOfThought, SelfReflector, Reasoner, reasoner } from '../Reasoner';
-import type { ThoughtNode, ReasoningPath, SelfReflection, ReasoningResult } from '../Reasoner';
+// Types imported for documentation purposes only - used implicitly via runtime checks
 
 // ---------------------------------------------------------------------------
 // Helpers
