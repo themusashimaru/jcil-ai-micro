@@ -5,11 +5,12 @@
  * Uses pdfkit for PDFs and docx for Word documents.
  *
  * Features:
- * - PDF generation with styling
- * - Word document (.docx) generation
+ * - PDF generation with styling and logo/image embedding
+ * - Word document (.docx) generation with images
  * - Plain text export
  * - Markdown to document conversion
  * - Tables, lists, and formatting support
+ * - Brand color theming
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -47,6 +48,61 @@ async function initDocx(): Promise<boolean> {
 }
 
 // ============================================================================
+// IMAGE FETCHING
+// ============================================================================
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+/**
+ * Fetch an image from a URL and return it as a Buffer.
+ * Validates content type, enforces size limits, and handles errors gracefully.
+ */
+async function fetchImageBuffer(
+  url: string
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  try {
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      log.warn('Invalid image URL protocol', { url });
+      return null;
+    }
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(15000),
+      headers: { 'User-Agent': 'JCIL-AI-DocumentGenerator/1.0' },
+    });
+
+    if (!response.ok) {
+      log.warn('Failed to fetch image', { url, status: response.status });
+      return null;
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.startsWith('image/')) {
+      log.warn('URL did not return an image', { url, contentType });
+      return null;
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE) {
+      log.warn('Image too large', { url, size: contentLength });
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
+      log.warn('Image too large after download', { url, size: arrayBuffer.byteLength });
+      return null;
+    }
+
+    return { buffer: Buffer.from(arrayBuffer), contentType };
+  } catch (error) {
+    log.warn('Error fetching image', { url, error: (error as Error).message });
+    return null;
+  }
+}
+
+// ============================================================================
 // TOOL DEFINITION
 // ============================================================================
 
@@ -59,10 +115,11 @@ export const documentTool: UnifiedTool = {
 - User says "make me a PDF of..." or "create a document..."
 
 Formats available:
-- pdf: Professional PDF with formatting
-- docx: Microsoft Word document
+- pdf: Professional PDF with formatting and optional logo
+- docx: Microsoft Word document with optional logo
 - txt: Plain text file
 
+Supports optional logo/header image from a URL, and brand color theming.
 The document will be generated and returned as a downloadable base64 file.`,
   parameters: {
     type: 'object',
@@ -91,6 +148,15 @@ The document will be generated and returned as a downloadable base64 file.`,
           'Optional structured sections instead of content. Each section should have: heading (string, optional), body (string, required). Example: [{"heading": "Introduction", "body": "Content here..."}]',
         items: { type: 'object' },
       },
+      logoUrl: {
+        type: 'string',
+        description:
+          'URL of a logo or header image to embed at the top of the document. Must be a direct image URL (PNG, JPEG, etc). The image will be centered at the top of the first page.',
+      },
+      brandColor: {
+        type: 'string',
+        description: 'Hex color code for headings and accents (e.g. "#1a1a2e"). Defaults to black.',
+      },
     },
     required: ['format', 'title', 'content'],
   },
@@ -105,11 +171,24 @@ interface Section {
   body: string;
 }
 
+function parseHexColor(hex: string | undefined): [number, number, number] | null {
+  if (!hex) return null;
+  const clean = hex.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+  return [
+    parseInt(clean.slice(0, 2), 16),
+    parseInt(clean.slice(2, 4), 16),
+    parseInt(clean.slice(4, 6), 16),
+  ];
+}
+
 async function generatePdf(
   title: string,
   content: string,
   author?: string,
-  sections?: Section[]
+  sections?: Section[],
+  logoBuffer?: Buffer | null,
+  brandColor?: string
 ): Promise<{ success: boolean; data?: string; error?: string }> {
   const loaded = await initPdfkit();
   if (!loaded || !pdfkitModule) {
@@ -140,11 +219,76 @@ async function generatePdf(
         resolve({ success: false, error: err.message });
       });
 
+      const headingColor = parseHexColor(brandColor) || [0, 0, 0];
+      const pageWidth = 612 - 72 - 72; // LETTER width minus margins
+      let pageNumber = 1;
+
+      // Page header/footer on every new page (after page 1)
+      doc.on('pageAdded', () => {
+        pageNumber++;
+        // Header: title (left) and page number (right)
+        doc.save();
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor([128, 128, 128])
+          .text(title, 72, 30, { width: pageWidth / 2, align: 'left' })
+          .text(`Page ${pageNumber}`, 72 + pageWidth / 2, 30, {
+            width: pageWidth / 2,
+            align: 'right',
+          });
+        // Thin line under header
+        doc
+          .strokeColor([200, 200, 200])
+          .lineWidth(0.5)
+          .moveTo(72, 50)
+          .lineTo(612 - 72, 50)
+          .stroke();
+        doc.restore();
+        // Reset cursor below header
+        doc.y = 72;
+      });
+
+      // Footer on first page (subsequent pages get footer via 'pageAdded' + end handler)
+      // We'll add footers via a range approach at the end
+
+      // Logo (centered, max 150px tall)
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, {
+            fit: [pageWidth, 150],
+            align: 'center',
+            valign: 'center',
+          });
+          doc.moveDown(1.5);
+        } catch (imgErr) {
+          log.warn('Failed to embed logo in PDF', { error: (imgErr as Error).message });
+        }
+      }
+
+      // Decorative line under logo/before title
+      if (brandColor) {
+        const [r, g, b] = headingColor;
+        doc.save();
+        doc.strokeColor([r, g, b]).lineWidth(2);
+        doc
+          .moveTo(72, doc.y)
+          .lineTo(612 - 72, doc.y)
+          .stroke();
+        doc.restore();
+        doc.moveDown(0.5);
+      }
+
       // Title
-      doc.fontSize(24).font('Helvetica-Bold').text(title, { align: 'center' });
+      doc
+        .fontSize(24)
+        .font('Helvetica-Bold')
+        .fillColor(headingColor)
+        .text(title, { align: 'center' });
       doc.moveDown();
 
       // Author and date
+      doc.fillColor([0, 0, 0]); // reset to black
       if (author) {
         doc.fontSize(12).font('Helvetica').text(`By ${author}`, { align: 'center' });
       }
@@ -155,40 +299,39 @@ async function generatePdf(
       if (sections && sections.length > 0) {
         for (const section of sections) {
           if (section.heading) {
-            doc.fontSize(16).font('Helvetica-Bold').text(section.heading);
+            doc.fontSize(16).font('Helvetica-Bold').fillColor(headingColor).text(section.heading);
             doc.moveDown(0.5);
           }
-          doc.fontSize(12).font('Helvetica').text(section.body, { align: 'justify' });
+          doc
+            .fontSize(12)
+            .font('Helvetica')
+            .fillColor([0, 0, 0])
+            .text(section.body, { align: 'justify' });
           doc.moveDown();
         }
       } else {
-        // Parse basic markdown
-        const lines = content.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('# ')) {
-            doc.fontSize(20).font('Helvetica-Bold').text(line.slice(2));
-            doc.moveDown(0.5);
-          } else if (line.startsWith('## ')) {
-            doc.fontSize(16).font('Helvetica-Bold').text(line.slice(3));
-            doc.moveDown(0.5);
-          } else if (line.startsWith('### ')) {
-            doc.fontSize(14).font('Helvetica-Bold').text(line.slice(4));
-            doc.moveDown(0.5);
-          } else if (line.startsWith('- ') || line.startsWith('* ')) {
-            doc
-              .fontSize(12)
-              .font('Helvetica')
-              .text(`• ${line.slice(2)}`, { indent: 20 });
-          } else if (line.trim() === '') {
-            doc.moveDown(0.5);
-          } else {
-            // Handle bold and italic
-            let text = line;
-            text = text.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove bold markers (simplified)
-            text = text.replace(/\*([^*]+)\*/g, '$1'); // Remove italic markers
-            doc.fontSize(12).font('Helvetica').text(text, { align: 'justify' });
-          }
-        }
+        renderMarkdownToPdf(doc, content, headingColor);
+      }
+
+      // Add footer with page numbers to all pages
+      const totalPages = doc.bufferedPageRange();
+      for (let i = 0; i < totalPages.count; i++) {
+        doc.switchToPage(i);
+        doc.save();
+        // Footer line
+        doc
+          .strokeColor([200, 200, 200])
+          .lineWidth(0.5)
+          .moveTo(72, 756)
+          .lineTo(612 - 72, 756)
+          .stroke();
+        // Footer text
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor([128, 128, 128])
+          .text(`Page ${i + 1}`, 72, 762, { width: pageWidth, align: 'center' });
+        doc.restore();
       }
 
       doc.end();
@@ -196,6 +339,39 @@ async function generatePdf(
       resolve({ success: false, error: (error as Error).message });
     }
   });
+}
+
+/**
+ * Render markdown content into a pdfkit document with heading colors.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function renderMarkdownToPdf(doc: any, content: string, headingColor: [number, number, number]) {
+  const lines = content.split('\n');
+  for (const line of lines) {
+    if (line.startsWith('# ')) {
+      doc.fontSize(20).font('Helvetica-Bold').fillColor(headingColor).text(line.slice(2));
+      doc.moveDown(0.5);
+    } else if (line.startsWith('## ')) {
+      doc.fontSize(16).font('Helvetica-Bold').fillColor(headingColor).text(line.slice(3));
+      doc.moveDown(0.5);
+    } else if (line.startsWith('### ')) {
+      doc.fontSize(14).font('Helvetica-Bold').fillColor(headingColor).text(line.slice(4));
+      doc.moveDown(0.5);
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      doc
+        .fontSize(12)
+        .font('Helvetica')
+        .fillColor([0, 0, 0])
+        .text(`• ${line.slice(2)}`, { indent: 20 });
+    } else if (line.trim() === '') {
+      doc.moveDown(0.5);
+    } else {
+      let text = line;
+      text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+      text = text.replace(/\*([^*]+)\*/g, '$1');
+      doc.fontSize(12).font('Helvetica').fillColor([0, 0, 0]).text(text, { align: 'justify' });
+    }
+  }
 }
 
 // ============================================================================
@@ -206,7 +382,9 @@ async function generateDocx(
   title: string,
   content: string,
   author?: string,
-  sections?: Section[]
+  sections?: Section[],
+  logoBuffer?: Buffer | null,
+  brandColor?: string
 ): Promise<{ success: boolean; data?: string; error?: string }> {
   const loaded = await initDocx();
   if (!loaded || !docxModule) {
@@ -214,14 +392,44 @@ async function generateDocx(
   }
 
   try {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docxModule;
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun } =
+      docxModule;
 
     const children: (typeof Paragraph.prototype)[] = [];
+    const headingColorHex = brandColor || '000000';
+
+    // Logo
+    if (logoBuffer) {
+      try {
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: logoBuffer,
+                transformation: { width: 200, height: 80 },
+                type: 'png',
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          })
+        );
+      } catch (imgErr) {
+        log.warn('Failed to embed logo in DOCX', { error: (imgErr as Error).message });
+      }
+    }
 
     // Title
     children.push(
       new Paragraph({
-        children: [new TextRun({ text: title, bold: true, size: 48 })],
+        children: [
+          new TextRun({
+            text: title,
+            bold: true,
+            size: 48,
+            color: headingColorHex.replace('#', ''),
+          }),
+        ],
         heading: HeadingLevel.TITLE,
         alignment: AlignmentType.CENTER,
       })
@@ -250,7 +458,14 @@ async function generateDocx(
         if (section.heading) {
           children.push(
             new Paragraph({
-              children: [new TextRun({ text: section.heading, bold: true, size: 28 })],
+              children: [
+                new TextRun({
+                  text: section.heading,
+                  bold: true,
+                  size: 28,
+                  color: headingColorHex.replace('#', ''),
+                }),
+              ],
               heading: HeadingLevel.HEADING_1,
             })
           );
@@ -262,20 +477,33 @@ async function generateDocx(
         );
       }
     } else {
-      // Parse content
       const lines = content.split('\n');
       for (const line of lines) {
         if (line.startsWith('# ')) {
           children.push(
             new Paragraph({
-              children: [new TextRun({ text: line.slice(2), bold: true, size: 36 })],
+              children: [
+                new TextRun({
+                  text: line.slice(2),
+                  bold: true,
+                  size: 36,
+                  color: headingColorHex.replace('#', ''),
+                }),
+              ],
               heading: HeadingLevel.HEADING_1,
             })
           );
         } else if (line.startsWith('## ')) {
           children.push(
             new Paragraph({
-              children: [new TextRun({ text: line.slice(3), bold: true, size: 28 })],
+              children: [
+                new TextRun({
+                  text: line.slice(3),
+                  bold: true,
+                  size: 28,
+                  color: headingColorHex.replace('#', ''),
+                }),
+              ],
               heading: HeadingLevel.HEADING_2,
             })
           );
@@ -376,6 +604,8 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
   const content = args.content as string;
   const author = args.author as string | undefined;
   const sections = args.sections as Section[] | undefined;
+  const logoUrl = args.logoUrl as string | undefined;
+  const brandColor = args.brandColor as string | undefined;
 
   if (!format || !['pdf', 'docx', 'txt'].includes(format)) {
     return { toolCallId: id, content: 'Invalid format. Use pdf, docx, or txt.', isError: true };
@@ -387,16 +617,28 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
     return { toolCallId: id, content: 'Document content is required', isError: true };
   }
 
-  log.info('Generating document', { format, title });
+  log.info('Generating document', { format, title, hasLogo: !!logoUrl, brandColor });
+
+  // Fetch logo image if provided
+  let logoBuffer: Buffer | null = null;
+  if (logoUrl) {
+    const imageResult = await fetchImageBuffer(logoUrl);
+    if (imageResult) {
+      logoBuffer = imageResult.buffer;
+      log.info('Logo fetched successfully', { url: logoUrl, size: logoBuffer.length });
+    } else {
+      log.warn('Could not fetch logo, generating document without it', { url: logoUrl });
+    }
+  }
 
   let result: { success: boolean; data?: string; error?: string };
 
   switch (format) {
     case 'pdf':
-      result = await generatePdf(title, content, author, sections);
+      result = await generatePdf(title, content, author, sections, logoBuffer, brandColor);
       break;
     case 'docx':
-      result = await generateDocx(title, content, author, sections);
+      result = await generateDocx(title, content, author, sections, logoBuffer, brandColor);
       break;
     case 'txt':
       result = generateTxt(title, content, author, sections);

@@ -399,10 +399,10 @@ describe('getLastUserContent', () => {
     expect(getLastUserContent(messages)).toBe('');
   });
 
-  it('returns content from the very last message regardless of role', () => {
+  it('returns content from the last user message, skipping assistant messages', () => {
     const messages: CoreMessage[] = [userMsg('user question'), assistantMsg('assistant response')];
-    // The function just looks at messages[messages.length - 1]
-    expect(getLastUserContent(messages)).toBe('assistant response');
+    // The function finds the last message with role 'user'
+    expect(getLastUserContent(messages)).toBe('user question');
   });
 });
 
