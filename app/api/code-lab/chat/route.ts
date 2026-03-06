@@ -10,6 +10,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { CoreMessage } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/user-guard';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
@@ -37,7 +38,13 @@ import { logger } from '@/lib/logger';
 import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
 import { getProviderForModel, getProviderAndModel } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters/factory';
-import type { UnifiedMessage, UnifiedToolCall, ProviderId } from '@/lib/ai/providers/types';
+import type {
+  UnifiedMessage,
+  UnifiedToolCall,
+  UnifiedTool,
+  ProviderId,
+} from '@/lib/ai/providers/types';
+import { routeChatWithTools, type ToolExecutor } from '@/lib/ai/chat-router';
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
@@ -658,9 +665,10 @@ Keep it professional and focused on development.`,
 
             try {
               const anthropic = getAnthropicClient();
+              const fallbackModelInfo = getProviderAndModel(selectedModel);
               const fallbackResponse = await anthropic.messages.create({
                 model: selectedModel,
-                max_tokens: 4096,
+                max_tokens: fallbackModelInfo?.model.maxOutputTokens || 16384,
                 system: `You are Claude in Code Lab. The user asked a search question but web search failed.
 Provide the best answer you can from your training knowledge.
 Be honest about knowledge cutoff limitations when relevant.`,
@@ -800,10 +808,22 @@ Be honest about knowledge cutoff limitations when relevant.`,
       }
     }
 
+    // Deduplicate tools by name — Anthropic rejects duplicate tool names
+    const seenToolNames = new Set<string>();
+    chatTools = chatTools.filter((t) => {
+      if (seenToolNames.has(t.name)) {
+        log.warn('Skipped duplicate tool name in Code Lab', { tool: t.name });
+        return false;
+      }
+      seenToolNames.add(t.name);
+      return true;
+    });
+
     const encoder = new TextEncoder();
 
     // ========================================
     // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+    // For BYOK users, pass tools so they get full capability parity.
     // ========================================
     if (providerId && providerId !== 'claude') {
       return handleNonClaudeProvider(
@@ -817,7 +837,8 @@ Be honest about knowledge cutoff limitations when relevant.`,
         imageAttachments,
         systemPrompt,
         sessionId,
-        encoder
+        encoder,
+        chatTools
       );
     }
 
@@ -928,21 +949,118 @@ async function handleNonClaudeProvider(
   imageAttachments: Array<{ name: string; type: string; data: string }>,
   systemPrompt: string,
   sessionId: string,
-  encoder: TextEncoder
+  encoder: TextEncoder,
+  chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = []
 ): Promise<Response> {
   log.info('Using non-Claude provider', { providerId, model: selectedModel });
 
+  // Check for BYOK early — if present, route through the full chat router with tools
+  const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
+  const userApiKey = byokConfig?.apiKey || null;
+  const effectiveModel = byokConfig?.model || selectedModel;
+
+  // BYOK users get routed through routeChatWithTools for full tool support
+  if (userApiKey && chatTools.length > 0) {
+    log.info('BYOK detected — routing through full chat router with tools', {
+      providerId,
+      model: effectiveModel,
+      toolCount: chatTools.length,
+    });
+
+    // Build CoreMessage array from history + current message
+    const coreMessages: CoreMessage[] = (history || []).map(
+      (m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.content,
+      })
+    );
+    if (enhancedContent) {
+      coreMessages.push({ role: 'user', content: enhancedContent });
+    }
+
+    // Convert tools to unified format
+    const unifiedTools: UnifiedTool[] = chatTools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters || { type: 'object' as const, properties: {} },
+    }));
+
+    // Create tool executor (single tool call → single result)
+    const toolExec: ToolExecutor = async (toolCall) => {
+      try {
+        const result = await executeChatTool(toolCall);
+        return {
+          toolCallId: toolCall.id,
+          content:
+            typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
+          isError: result.isError || false,
+        };
+      } catch (err) {
+        return {
+          toolCallId: toolCall.id,
+          content: `Tool error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          isError: true,
+        };
+      }
+    };
+
+    const routeResult = await routeChatWithTools(
+      coreMessages,
+      {
+        providerId: providerId as ProviderId,
+        model: effectiveModel,
+        systemPrompt,
+        maxTokens: providerInfo?.model.maxOutputTokens || 8192,
+        temperature: 0.7,
+        tools: unifiedTools,
+        userApiKey,
+        onUsage: (usage) => {
+          trackTokenUsage({
+            userId: user.id,
+            modelName: effectiveModel,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            source: 'code-lab',
+            conversationId: sessionId,
+          }).catch((err: unknown) =>
+            log.error('Token tracking failed', err instanceof Error ? err : undefined)
+          );
+        },
+      },
+      toolExec
+    );
+
+    // Wrap the stream to capture content for DB save
+    const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, ctrl) {
+        ctrl.enqueue(chunk);
+      },
+      flush() {
+        // Content is saved via usage callback; no extra action needed
+      },
+    });
+
+    const finalStream = routeResult.stream.pipeThrough(wrappedStream);
+    return new Response(finalStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Model-Used': routeResult.model,
+        'X-Provider': routeResult.providerId,
+        'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
+        'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
+      },
+    });
+  }
+
+  // Server-keyed non-Claude providers — simple adapter path (no tools)
   const stream = new ReadableStream({
     async start(controller) {
       const keepalive = createKeepalive(controller, encoder);
       let fullContent = '';
 
       try {
-        const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
-        const userApiKey = byokConfig?.apiKey || null;
-        const effectiveModel = byokConfig?.model || selectedModel;
-
-        // Validate API key availability
+        // Validate API key availability (no BYOK at this point)
         if (!userApiKey) {
           const apiKeyEnvMap: Record<string, string[]> = {
             openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
@@ -1009,7 +1127,6 @@ async function handleNonClaudeProvider(
           maxTokens: providerInfo?.model.maxOutputTokens || 8192,
           temperature: 0.7,
           systemPrompt,
-          ...(userApiKey ? { userApiKey } : {}),
         });
 
         for await (const chunk of chatStream) {
@@ -1147,11 +1264,13 @@ async function handleClaudeProvider(
           log.info('Using default Opus 4.6 for Code Lab', { model: effectiveModel });
         }
 
-        // Build API parameters
+        // Build API parameters — use the model's actual output limit
+        const modelInfo = getProviderAndModel(effectiveModel);
+        const modelMaxTokens = modelInfo?.model.maxOutputTokens || 16384;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const apiParams: any = {
           model: effectiveModel,
-          max_tokens: 8192,
+          max_tokens: modelMaxTokens,
           system: systemPrompt,
           messages,
           stream: true,
@@ -1172,7 +1291,7 @@ async function handleClaudeProvider(
           (effectiveModel.includes('sonnet') || effectiveModel.includes('opus'))
         ) {
           apiParams.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
-          apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
+          apiParams.max_tokens = Math.max(modelMaxTokens, thinkingBudget + modelMaxTokens);
           log.info('Extended thinking enabled', {
             budget: thinkingBudget,
             model: effectiveModel,
@@ -1389,7 +1508,7 @@ async function handleClaudeProvider(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const continueParams: any = {
               model: effectiveModel,
-              max_tokens: 8192,
+              max_tokens: modelMaxTokens,
               system: systemPrompt,
               messages: currentMessages,
               stream: true,

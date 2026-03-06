@@ -358,9 +358,24 @@ export async function loadAllTools(
     }
   }
 
-  log.debug('Available chat tools', { toolCount: tools.length, tools: tools.map((t) => t.name) });
+  // Deduplicate tools by name — Anthropic rejects requests with duplicate tool names
+  const seenNames = new Set<string>();
+  const uniqueTools: UnifiedTool[] = [];
+  for (const tool of tools) {
+    if (!seenNames.has(tool.name)) {
+      seenNames.add(tool.name);
+      uniqueTools.push(tool);
+    } else {
+      log.warn('Skipped duplicate tool name', { tool: tool.name });
+    }
+  }
 
-  return { tools, mcpToolNames, composioToolContext };
+  log.debug('Available chat tools', {
+    toolCount: uniqueTools.length,
+    deduped: tools.length - uniqueTools.length,
+  });
+
+  return { tools: uniqueTools, mcpToolNames, composioToolContext };
 }
 
 /**
