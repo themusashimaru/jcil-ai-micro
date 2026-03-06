@@ -51,6 +51,8 @@ interface ChatThreadProps {
   onFollowupSelect?: (suggestion: string) => void;
   /** Whether messages are being loaded */
   isLoading?: boolean;
+  /** Callback to retry the last failed message */
+  onRetry?: () => void;
 }
 
 /**
@@ -79,6 +81,7 @@ export function ChatThread({
   onActionCancel,
   onFollowupSelect,
   isLoading,
+  onRetry,
 }: ChatThreadProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -261,6 +264,7 @@ export function ChatThread({
                   onActionSend={onActionSend}
                   onActionEdit={onActionEdit}
                   onActionCancel={onActionCancel}
+                  onRetry={onRetry}
                 />
                 {/* Suggested follow-ups: only on the last assistant message, not while streaming */}
                 {index === messages.length - 1 &&

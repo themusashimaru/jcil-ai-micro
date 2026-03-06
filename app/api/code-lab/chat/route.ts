@@ -48,13 +48,9 @@ import { routeChatWithTools, type ToolExecutor } from '@/lib/ai/chat-router';
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
-import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
-import {
-  getComposioToolsForUser,
-  executeComposioTool,
-  isComposioTool,
-  isComposioConfigured,
-} from '@/lib/composio';
+import { executeChatTool } from '@/lib/ai/tools';
+import { loadAllTools } from '@/app/api/chat/chat-tools';
+import { executeComposioTool, isComposioTool } from '@/lib/composio';
 import { trackTokenUsage } from '@/lib/usage/track';
 import {
   canMakeRequest,
@@ -770,54 +766,18 @@ Be honest about knowledge cutoff limitations when relevant.`,
     // Follow-up suggestions
     systemPrompt += `\n\nFOLLOW-UP SUGGESTIONS:\nAt the end of substantive responses (NOT greetings, NOT simple yes/no answers), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:\n<suggested-followups>\n["Question 1?", "Question 2?", "Question 3?"]\n</suggested-followups>\nRules:\n- Questions should feel natural and insightful, like what a smart developer would ask next\n- They should deepen the conversation, not repeat what was already covered\n- Keep each question under 60 characters\n- Do NOT include follow-ups for greetings or one-word answers\n- The follow-ups tag must be the VERY LAST thing in your response`;
 
-    // Load tools
-    let chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = [];
+    // Load tools — unified loading with dedup, MCP, and Composio
+    let chatTools: UnifiedTool[] = [];
     try {
-      chatTools = await getAvailableChatTools();
+      const loaded = await loadAllTools(user.id, content);
+      chatTools = loaded.tools;
+      if (loaded.composioToolContext?.systemPromptAddition) {
+        systemPrompt += loaded.composioToolContext.systemPromptAddition;
+      }
       log.info('Loaded chat tools for Code Lab', { count: chatTools.length });
     } catch (toolErr) {
       log.warn('Failed to load chat tools', { error: toolErr });
     }
-
-    // Composio / Connectors
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let composioToolContext: any = null;
-    if (isComposioConfigured()) {
-      try {
-        composioToolContext = await getComposioToolsForUser(user.id);
-        if (composioToolContext?.tools?.length > 0) {
-          for (const composioTool of composioToolContext.tools) {
-            chatTools.push({
-              name: composioTool.name,
-              description: composioTool.description,
-              parameters: composioTool.input_schema,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-          }
-          log.info('Loaded Composio tools for Code Lab', {
-            count: composioToolContext.tools.length,
-            hasGitHub: composioToolContext.hasGitHub,
-          });
-
-          if (composioToolContext.systemPromptAddition) {
-            systemPrompt += composioToolContext.systemPromptAddition;
-          }
-        }
-      } catch (composioErr) {
-        log.warn('Failed to load Composio tools', { error: composioErr });
-      }
-    }
-
-    // Deduplicate tools by name — Anthropic rejects duplicate tool names
-    const seenToolNames = new Set<string>();
-    chatTools = chatTools.filter((t) => {
-      if (seenToolNames.has(t.name)) {
-        log.warn('Skipped duplicate tool name in Code Lab', { tool: t.name });
-        return false;
-      }
-      seenToolNames.add(t.name);
-      return true;
-    });
 
     const encoder = new TextEncoder();
 
@@ -950,7 +910,7 @@ async function handleNonClaudeProvider(
   systemPrompt: string,
   sessionId: string,
   encoder: TextEncoder,
-  chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = []
+  chatTools: UnifiedTool[] = []
 ): Promise<Response> {
   log.info('Using non-Claude provider', { providerId, model: selectedModel });
 
@@ -1197,7 +1157,7 @@ async function handleClaudeProvider(
   enhancedContent: string,
   imageAttachments: Array<{ name: string; type: string; data: string }>,
   systemPrompt: string,
-  chatTools: Awaited<ReturnType<typeof getAvailableChatTools>>,
+  chatTools: UnifiedTool[],
   selectedModel: string,
   modelId: string | undefined,
   thinkingEnabled: boolean,

@@ -542,6 +542,46 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'WCAG accessibility checking via axe-core',
     dependencies: ['axe-core'],
   },
+
+  // =========================================================================
+  // DOCUMENT — Presentation, email, templates, mail merge
+  // =========================================================================
+  {
+    name: 'create_presentation',
+    file: 'presentation-tool.ts',
+    status: 'active',
+    category: 'document',
+    tier: 'extended',
+    description: 'PowerPoint presentation generation via pptxgenjs',
+    dependencies: ['pptxgenjs'],
+  },
+  {
+    name: 'create_email_template',
+    file: 'email-template-tool.ts',
+    status: 'active',
+    category: 'document',
+    tier: 'extended',
+    description: 'Responsive HTML email template generation',
+    dependencies: [],
+  },
+  {
+    name: 'document_template',
+    file: 'document-templates-tool.ts',
+    status: 'active',
+    category: 'document',
+    tier: 'extended',
+    description: 'Business document templates (invoice, contract, proposal, etc.)',
+    dependencies: [],
+  },
+  {
+    name: 'mail_merge',
+    file: 'mail-merge-tool.ts',
+    status: 'active',
+    category: 'document',
+    tier: 'extended',
+    description: 'Batch document generation with template variable substitution',
+    dependencies: [],
+  },
 ];
 
 // =========================================================================
