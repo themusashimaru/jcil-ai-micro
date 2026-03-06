@@ -76,7 +76,7 @@ async function fetchImageForPdf(url: string): Promise<{ buffer: Buffer; isPng: b
 
 export const pdfTool: UnifiedTool = {
   name: 'pdf_manipulate',
-  description: `Advanced PDF manipulation tool. Create, modify, fill forms, and embed images in PDFs.
+  description: `Advanced PDF manipulation tool. Create, modify, fill forms, embed images, and draw shapes in PDFs.
 
 Operations:
 - create: Create a new PDF from text content
@@ -87,11 +87,13 @@ Operations:
 - add_image: Embed a PNG/JPEG image at precise x,y coordinates on any page
 - fill_form: Fill PDF form fields (AcroForm) by field name
 - overlay_fields: Add multiple text fields at precise positions in one call (batch form filling)
+- draw_shapes: Draw lines, rectangles, circles, and checkboxes on any page
 - get_info: Get PDF metadata, page count, page dimensions, and form field names/types
 
 Use add_text or overlay_fields for PDFs that look like forms but don't have fillable fields.
 Use fill_form for PDFs with actual AcroForm fields.
 Use add_image to insert logos, photos, signatures, or any image into a PDF.
+Use draw_shapes to add lines, boxes, checkboxes, or circles for form structure.
 
 Coordinate system: origin (0,0) is bottom-left of the page. Y increases upward.
 Typical letter page: 612 x 792 points (8.5 x 11 inches, 72 points per inch).
@@ -112,6 +114,7 @@ Returns: Base64 encoded PDF or metadata`,
           'fill_form',
           'overlay_fields',
           'get_info',
+          'draw_shapes',
         ],
         description: 'The PDF operation to perform',
       },
@@ -197,6 +200,17 @@ Returns: Base64 encoded PDF or metadata`,
         description: `For overlay_fields: array of text placements. Each item: { text, x, y, page_number?, font_size?, color? }. Example: [{"text": "John Doe", "x": 150, "y": 680, "font_size": 11}, {"text": "03/06/2026", "x": 400, "y": 680}]`,
         items: { type: 'object' },
       },
+      shapes: {
+        type: 'array',
+        description: `For draw_shapes: array of shape definitions. Each shape has a "type" field.
+Types:
+- line: { type: "line", x1, y1, x2, y2, color?, line_width?, page_number? }
+- rectangle: { type: "rectangle", x, y, width, height, color?, fill_color?, line_width?, page_number? }
+- circle: { type: "circle", cx, cy, radius, color?, fill_color?, line_width?, page_number? }
+- checkbox: { type: "checkbox", x, y, size?, checked?, color?, page_number? }
+Example: [{"type": "checkbox", "x": 72, "y": 700, "checked": true}, {"type": "line", "x1": 72, "y1": 650, "x2": 300, "y2": 650}]`,
+        items: { type: 'object' },
+      },
     },
     required: ['operation'],
   },
@@ -234,6 +248,29 @@ interface OverlayField {
   color?: string;
 }
 
+interface ShapeDefinition {
+  type: 'line' | 'rectangle' | 'circle' | 'checkbox';
+  // Line: x1,y1 to x2,y2
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  // Rectangle/Circle/Checkbox: position and size
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  cx?: number;
+  cy?: number;
+  radius?: number;
+  size?: number;
+  checked?: boolean;
+  color?: string;
+  fill_color?: string;
+  line_width?: number;
+  page_number?: number;
+}
+
 // ============================================================================
 // EXECUTOR
 // ============================================================================
@@ -260,6 +297,7 @@ export async function executePDF(toolCall: UnifiedToolCall): Promise<UnifiedTool
     image_type?: string;
     form_fields?: Record<string, string>;
     fields?: OverlayField[];
+    shapes?: ShapeDefinition[];
   };
 
   if (!args.operation) {
@@ -722,6 +760,140 @@ export async function executePDF(toolCall: UnifiedToolCall): Promise<UnifiedTool
           operation: 'overlay_fields',
           fields_placed: placedCount,
           fields_requested: args.fields.length,
+          pdf_base64: base64,
+          size_bytes: modifiedBytes.length,
+        };
+        break;
+      }
+
+      // ────────────────────────────────────────────────────────────────
+      // DRAW SHAPES (lines, rectangles, circles, checkboxes)
+      // ────────────────────────────────────────────────────────────────
+      case 'draw_shapes': {
+        if (!args.pdf_data) {
+          return {
+            toolCallId: toolCall.id,
+            content: JSON.stringify({ error: 'PDF data required for draw_shapes' }),
+            isError: true,
+          };
+        }
+        if (!args.shapes || args.shapes.length === 0) {
+          return {
+            toolCallId: toolCall.id,
+            content: JSON.stringify({ error: 'shapes array required for draw_shapes' }),
+            isError: true,
+          };
+        }
+
+        const pdfBytes = Buffer.from(args.pdf_data, 'base64');
+        const doc = await PDFDocument.load(pdfBytes);
+        let drawnCount = 0;
+
+        for (const shape of args.shapes) {
+          if (!shape.type) continue;
+
+          const pageIdx = (shape.page_number || 1) - 1;
+          if (pageIdx < 0 || pageIdx >= doc.getPageCount()) continue;
+
+          const page = doc.getPage(pageIdx);
+          const [sr, sg, sb] = parseHexToRgb(shape.color);
+          const strokeColor = rgb(sr, sg, sb);
+          const lineWidth = shape.line_width || 1;
+
+          switch (shape.type) {
+            case 'line': {
+              if (shape.x1 == null || shape.y1 == null || shape.x2 == null || shape.y2 == null)
+                continue;
+              page.drawLine({
+                start: { x: shape.x1, y: shape.y1 },
+                end: { x: shape.x2, y: shape.y2 },
+                thickness: lineWidth,
+                color: strokeColor,
+              });
+              drawnCount++;
+              break;
+            }
+
+            case 'rectangle': {
+              if (shape.x == null || shape.y == null || !shape.width || !shape.height) continue;
+              const rectOpts: Record<string, unknown> = {
+                x: shape.x,
+                y: shape.y,
+                width: shape.width,
+                height: shape.height,
+                borderWidth: lineWidth,
+                borderColor: strokeColor,
+              };
+              if (shape.fill_color) {
+                const [fr, fg, fb] = parseHexToRgb(shape.fill_color);
+                rectOpts.color = rgb(fr, fg, fb);
+              }
+              page.drawRectangle(rectOpts);
+              drawnCount++;
+              break;
+            }
+
+            case 'circle': {
+              if (shape.cx == null || shape.cy == null || !shape.radius) continue;
+              const circleOpts: Record<string, unknown> = {
+                x: shape.cx,
+                y: shape.cy,
+                size: shape.radius,
+                borderWidth: lineWidth,
+                borderColor: strokeColor,
+              };
+              if (shape.fill_color) {
+                const [fr, fg, fb] = parseHexToRgb(shape.fill_color);
+                circleOpts.color = rgb(fr, fg, fb);
+              }
+              page.drawCircle(circleOpts);
+              drawnCount++;
+              break;
+            }
+
+            case 'checkbox': {
+              const cbSize = shape.size || 12;
+              const cbX = shape.x || 0;
+              const cbY = shape.y || 0;
+              // Draw box
+              page.drawRectangle({
+                x: cbX,
+                y: cbY,
+                width: cbSize,
+                height: cbSize,
+                borderWidth: lineWidth,
+                borderColor: strokeColor,
+              });
+              // Draw check mark if checked
+              if (shape.checked) {
+                page.drawLine({
+                  start: { x: cbX + 2, y: cbY + cbSize * 0.4 },
+                  end: { x: cbX + cbSize * 0.4, y: cbY + 2 },
+                  thickness: lineWidth + 0.5,
+                  color: strokeColor,
+                });
+                page.drawLine({
+                  start: { x: cbX + cbSize * 0.4, y: cbY + 2 },
+                  end: { x: cbX + cbSize - 2, y: cbY + cbSize - 2 },
+                  thickness: lineWidth + 0.5,
+                  color: strokeColor,
+                });
+              }
+              drawnCount++;
+              break;
+            }
+          }
+        }
+
+        const modifiedBytes = await doc.save();
+        const base64 = Buffer.from(modifiedBytes).toString('base64');
+
+        log.info('PDF shapes drawn', { requested: args.shapes.length, drawn: drawnCount });
+
+        result = {
+          operation: 'draw_shapes',
+          shapes_drawn: drawnCount,
+          shapes_requested: args.shapes.length,
           pdf_base64: base64,
           size_bytes: modifiedBytes.length,
         };

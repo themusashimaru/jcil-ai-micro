@@ -305,6 +305,60 @@ describe('executePDF - overlay_fields', () => {
 });
 
 // -------------------------------------------------------------------
+// draw_shapes operation
+// -------------------------------------------------------------------
+describe('executePDF - draw_shapes', () => {
+  it('should draw lines, rectangles, circles, and checkboxes', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'draw_shapes',
+      pdf_data: pdfData,
+      shapes: [
+        { type: 'line', x1: 72, y1: 700, x2: 300, y2: 700 },
+        { type: 'rectangle', x: 72, y: 600, width: 100, height: 30 },
+        { type: 'circle', cx: 400, cy: 600, radius: 20 },
+        { type: 'checkbox', x: 72, y: 550, checked: true },
+        { type: 'checkbox', x: 72, y: 520, checked: false },
+      ],
+    });
+    expect(result.operation).toBe('draw_shapes');
+    expect(result.shapes_drawn).toBe(5);
+    expect(result.shapes_requested).toBe(5);
+    expect(result.pdf_base64).toBeDefined();
+  });
+
+  it('should skip invalid shapes', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'draw_shapes',
+      pdf_data: pdfData,
+      shapes: [
+        { type: 'line', x1: 0, y1: 0 }, // missing x2,y2
+        { type: 'rectangle', x: 10, y: 10 }, // missing width/height
+        { type: 'checkbox', x: 72, y: 500, checked: true }, // valid
+      ],
+    });
+    expect(result.shapes_drawn).toBe(1);
+  });
+
+  it('should error without pdf_data', async () => {
+    const res = await executePDF(
+      makeCall({
+        operation: 'draw_shapes',
+        shapes: [{ type: 'line', x1: 0, y1: 0, x2: 100, y2: 100 }],
+      })
+    );
+    expect(res.isError).toBe(true);
+  });
+
+  it('should error without shapes', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(makeCall({ operation: 'draw_shapes', pdf_data: pdf }));
+    expect(res.isError).toBe(true);
+  });
+});
+
+// -------------------------------------------------------------------
 // get_info with page_sizes
 // -------------------------------------------------------------------
 describe('executePDF - get_info enhanced', () => {
