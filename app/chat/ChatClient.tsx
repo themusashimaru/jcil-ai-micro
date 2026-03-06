@@ -392,8 +392,10 @@ function ChatClientInner() {
     folderId: string | null,
     folderData?: { id: string; name: string; color: string | null }
   ) => {
-    setChats(
-      chats.map((chat) =>
+    // Save previous state for rollback using functional update
+    const previousChats = chats;
+    setChats((prev) =>
+      prev.map((chat) =>
         chat.id === chatId
           ? {
               ...chat,
@@ -410,11 +412,11 @@ function ChatClientInner() {
         body: JSON.stringify({ folder_id: folderId }),
       });
       if (!response.ok) {
-        setChats(chats);
+        setChats(previousChats);
         toast.error('Move Failed', 'Could not move the conversation.');
       }
     } catch {
-      setChats(chats);
+      setChats(previousChats);
       toast.error('Move Failed', 'Could not move the conversation.');
     }
   };
@@ -620,8 +622,11 @@ function ChatClientInner() {
         ? (await response.json()).content || 'Previous conversation summary not available.'
         : `Continuing from: ${messages[0]?.content?.slice(0, 200) || 'general discussion'}`;
       const contextMessage = `## Continuing from Previous Chat\n\n${summaryContent}\n\n---`;
+      // Create conversation in DB first, then use the server-generated ID
+      const dbId = await createConversationInDatabase('Continuation', 'general');
+      const chatId = dbId || crypto.randomUUID();
       const newChat: Chat = {
-        id: crypto.randomUUID(),
+        id: chatId,
         title: 'Continuation',
         isPinned: false,
         lastMessage: 'Continued from previous chat',
@@ -629,7 +634,8 @@ function ChatClientInner() {
         updatedAt: new Date(),
       };
       setChats((prev) => [newChat, ...prev]);
-      setCurrentChatId(newChat.id);
+      setCurrentChatId(chatId);
+      currentChatIdRef.current = chatId;
       setMessages([
         {
           id: crypto.randomUUID(),
@@ -639,7 +645,6 @@ function ChatClientInner() {
         },
       ]);
       setContinuationDismissed(false);
-      await createConversationInDatabase('Continuation', 'general');
     } catch (error) {
       log.error('Error creating continuation:', error as Error);
     } finally {
@@ -855,7 +860,7 @@ function ChatClientInner() {
         undefined,
         attachmentUrls.length > 0 ? attachmentUrls : undefined
       );
-      setMessages([...messages, userMessage]);
+      setMessages((prev) => [...prev, userMessage]);
       const detectedDocType = detectDocumentTypeFromMessage(content);
       setPendingDocumentType(detectedDocType);
     } catch {
@@ -1339,8 +1344,8 @@ function ChatClientInner() {
         return;
       }
 
-      // User-friendly error messages
-      let errorContent = 'Something went wrong. Please try again.';
+      // User-friendly error messages — NEVER show generic "Something went wrong"
+      let errorContent: string;
       if (errorMsg.includes('rate limit') || errorMsg.includes('429'))
         errorContent = "You're sending messages too quickly. Please wait a moment.";
       else if (
@@ -1360,6 +1365,19 @@ function ChatClientInner() {
         errorContent = 'The request took too long. Please try again.';
       else if (errorMsg.includes('unauthorized') || errorMsg.includes('401'))
         errorContent = 'Your session may have expired. Please refresh.';
+      else if (
+        errorMsg.includes('overloaded') ||
+        errorMsg.includes('capacity') ||
+        errorMsg.includes('529')
+      )
+        errorContent = 'The AI service is temporarily at capacity. Please try again in a moment.';
+      else if (errorMsg.includes('500') || errorMsg.includes('internal'))
+        errorContent =
+          'An internal error occurred. Please try again. If this persists, try refreshing the page.';
+      else if (rawErrorMsg && rawErrorMsg !== 'undefined' && rawErrorMsg.length > 5)
+        // Show the actual server error message instead of generic "Something went wrong"
+        errorContent = rawErrorMsg;
+      else errorContent = 'An unexpected error occurred. Please try again.';
 
       setMessages((prev) => [
         ...prev,
