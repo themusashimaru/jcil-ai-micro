@@ -29,6 +29,8 @@ export const SuggestedFollowups = memo(function SuggestedFollowups({
 
   return (
     <div
+      role="group"
+      aria-label="Suggested follow-up questions"
       style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -43,6 +45,8 @@ export const SuggestedFollowups = memo(function SuggestedFollowups({
           key={i}
           onClick={() => handleClick(suggestion)}
           disabled={disabled || !!selected}
+          aria-label={`Follow-up: ${suggestion}`}
+          aria-pressed={selected === suggestion}
           style={{
             padding: '6px 14px',
             fontSize: '13px',

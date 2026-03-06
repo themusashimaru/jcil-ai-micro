@@ -309,6 +309,8 @@ export const ChatComposer = memo(function ChatComposer({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={isDragging ? 'Drop files here...' : ''}
+              aria-label="Type your message"
+              aria-describedby={fileError ? 'file-upload-error' : undefined}
               className="w-full resize-none bg-transparent px-4 py-3 text-base focus:outline-none min-h-[48px] text-text-primary"
               rows={1}
               disabled={isStreaming || disabled}
@@ -355,7 +357,15 @@ export const ChatComposer = memo(function ChatComposer({
           />
         </div>
 
-        {fileError && <p className="mt-0 text-xs text-red-400">⚠️ {fileError}</p>}
+        {fileError && (
+          <p
+            id="file-upload-error"
+            role="alert"
+            className="mt-1 px-3 py-2 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg"
+          >
+            {fileError}
+          </p>
+        )}
       </div>
 
       {isMounted && (
