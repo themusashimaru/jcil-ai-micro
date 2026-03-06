@@ -1,0 +1,738 @@
+/**
+ * STRATEGY HANDLERS TESTS
+ *
+ * Tests for strategy-handlers.ts:
+ * - handleStart: session creation, SSE streaming, error paths
+ * - handleInput: validation, session lookup, session restoration, intake processing
+ * - handleContext: validation, phase checks, context addition
+ * - handleExecute: validation, session restoration, execution streaming
+ */
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// ============================================================================
+// MOCKS — Must be defined before imports
+// ============================================================================
+
+const mockAgent = {
+  startIntake: vi.fn().mockResolvedValue('What problem are you trying to solve?'),
+  processIntakeInput: vi.fn().mockResolvedValue({ response: 'Tell me more', isComplete: false }),
+  getIntakeMessages: vi.fn().mockReturnValue([]),
+  restoreIntakeMessages: vi.fn(),
+  getProblem: vi.fn().mockReturnValue(undefined),
+  restoreProblem: vi.fn(),
+  setStreamCallback: vi.fn(),
+  executeStrategy: vi.fn().mockResolvedValue({
+    id: 'result-1',
+    metadata: {
+      executionTime: 5000,
+      totalAgents: 3,
+      totalSearches: 10,
+      totalCost: 0.5,
+      confidenceScore: 80,
+      completedAt: Date.now(),
+      modelUsage: {
+        opus: { calls: 1, tokens: 500 },
+        sonnet: { calls: 5, tokens: 2000 },
+        haiku: { calls: 0, tokens: 0 },
+      },
+      qualityScore: 85,
+    },
+  }),
+  addContext: vi.fn().mockResolvedValue({ steeringApplied: false }),
+  getArtifacts: vi.fn().mockReturnValue([]),
+};
+
+vi.mock('@/agents/strategy', () => ({
+  createStrategyAgent: vi.fn(() => mockAgent),
+}));
+
+vi.mock('@/lib/supabase/client', () => ({
+  createServerClient: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase/workspace-client', () => ({
+  untypedFrom: vi.fn(() => ({
+    update: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        then: vi.fn().mockReturnValue({ catch: vi.fn() }),
+      }),
+    }),
+  })),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: vi.fn(() => ({
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  })),
+}));
+
+vi.mock('@/lib/limits', () => ({
+  incrementTokenUsage: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('./strategy-db', () => ({
+  createSessionInDB: vi.fn().mockResolvedValue('db-uuid-123'),
+  updateSessionPhase: vi.fn().mockResolvedValue(undefined),
+  storeProblemData: vi.fn().mockResolvedValue(undefined),
+  getProblemData: vi.fn().mockResolvedValue(null),
+  storeIntakeMessages: vi.fn().mockResolvedValue(undefined),
+  getIntakeMessages: vi.fn().mockResolvedValue(null),
+  storeFinding: vi.fn().mockResolvedValue(undefined),
+  storeResultAndUsage: vi.fn().mockResolvedValue(undefined),
+  addUserContext: vi.fn().mockResolvedValue(undefined),
+  storeEvent: vi.fn().mockResolvedValue(undefined),
+  getSessionFromDB: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('crypto', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('crypto')>();
+  return {
+    ...actual,
+    default: actual,
+    randomUUID: vi.fn(() => 'mock-uuid-1234'),
+  };
+});
+
+import { handleStart, handleInput, handleContext, handleExecute } from './strategy-handlers';
+import { activeSessions, type ActiveSession } from './strategy-types';
+import {
+  createSessionInDB,
+  getSessionFromDB,
+  storeIntakeMessages,
+  storeProblemData,
+  updateSessionPhase,
+  getIntakeMessages,
+  getProblemData,
+  addUserContext,
+} from './strategy-db';
+import { createStrategyAgent } from '@/agents/strategy';
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function createMockSupabase() {
+  return {} as ReturnType<typeof import('@/lib/supabase/client').createServerClient>;
+}
+
+async function readResponseJson(response: Response): Promise<unknown> {
+  return response.json();
+}
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
+describe('strategy-handlers', () => {
+  let supabase: ReturnType<typeof createMockSupabase>;
+  const originalEnv = process.env.ANTHROPIC_API_KEY;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    activeSessions.clear();
+    supabase = createMockSupabase();
+    process.env.ANTHROPIC_API_KEY = 'test-api-key';
+  });
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.ANTHROPIC_API_KEY = originalEnv;
+    } else {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // handleStart
+  // --------------------------------------------------------------------------
+  describe('handleStart', () => {
+    it('should return SSE response with correct headers', async () => {
+      const response = await handleStart(supabase, 'user-1', false);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(response.headers.get('Connection')).toBe('keep-alive');
+      expect(response.headers.get('X-Session-Id')).toBe('mock-uuid-1234');
+    });
+
+    it('should create session in database', async () => {
+      await handleStart(supabase, 'user-1', false);
+      expect(createSessionInDB).toHaveBeenCalledWith(
+        supabase,
+        'user-1',
+        'mock-uuid-1234',
+        undefined,
+        undefined
+      );
+    });
+
+    it('should pass attachments and mode to createSessionInDB', async () => {
+      const attachments = [
+        { id: 'a1', name: 'file.pdf', type: 'application/pdf', size: 1024, content: 'data' },
+      ];
+      await handleStart(supabase, 'user-1', true, attachments, 'research');
+
+      expect(createSessionInDB).toHaveBeenCalledWith(
+        supabase,
+        'user-1',
+        'mock-uuid-1234',
+        attachments,
+        'research'
+      );
+    });
+
+    it('should create a strategy agent with correct config', async () => {
+      await handleStart(supabase, 'user-1', true, undefined, 'deep-writer');
+
+      expect(createStrategyAgent).toHaveBeenCalledWith(
+        'test-api-key',
+        expect.objectContaining({
+          userId: 'user-1',
+          sessionId: 'mock-uuid-1234',
+          isAdmin: true,
+          mode: 'deep-writer',
+        }),
+        expect.any(Function)
+      );
+    });
+
+    it('should store session in activeSessions', async () => {
+      await handleStart(supabase, 'user-1', false);
+
+      const session = activeSessions.get('mock-uuid-1234');
+      expect(session).toBeDefined();
+      expect(session!.dbId).toBe('db-uuid-123');
+      expect(session!.phase).toBe('intake');
+    });
+
+    it('should return 500 when database creation fails', async () => {
+      vi.mocked(createSessionInDB).mockRejectedValueOnce(new Error('DB error'));
+
+      const response = await handleStart(supabase, 'user-1', false);
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Failed to create session' });
+    });
+
+    it('should return 500 when API key is not configured', async () => {
+      delete process.env.ANTHROPIC_API_KEY;
+
+      const response = await handleStart(supabase, 'user-1', false);
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Anthropic API key not configured' });
+    });
+
+    it('should default mode to strategy when not provided', async () => {
+      await handleStart(supabase, 'user-1', false);
+
+      expect(createStrategyAgent).toHaveBeenCalledWith(
+        'test-api-key',
+        expect.objectContaining({ mode: 'strategy' }),
+        expect.any(Function)
+      );
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // handleInput
+  // --------------------------------------------------------------------------
+  describe('handleInput', () => {
+    it('should return 400 when sessionId is missing', async () => {
+      const response = await handleInput(supabase, undefined, 'input', 'user-1', false);
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Session ID required' });
+    });
+
+    it('should return 400 when input is missing', async () => {
+      const response = await handleInput(supabase, 'sess-1', undefined, 'user-1', false);
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Input required' });
+    });
+
+    it('should process input for active session in intake phase', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      mockAgent.processIntakeInput.mockResolvedValueOnce({
+        response: 'Tell me more about your situation',
+        isComplete: false,
+      });
+
+      const response = await handleInput(
+        supabase,
+        'sess-1',
+        'I need help with housing',
+        'user-1',
+        false
+      );
+      expect(response.status).toBe(200);
+
+      const body = (await readResponseJson(response)) as {
+        response: string;
+        isComplete: boolean;
+        sessionId: string;
+      };
+      expect(body.response).toBe('Tell me more about your situation');
+      expect(body.isComplete).toBe(false);
+      expect(body.sessionId).toBe('sess-1');
+    });
+
+    it('should store intake messages after processing', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      mockAgent.getIntakeMessages.mockReturnValueOnce([
+        { role: 'user', content: 'help' },
+        { role: 'assistant', content: 'sure' },
+      ]);
+
+      await handleInput(supabase, 'sess-1', 'help', 'user-1', false);
+      expect(storeIntakeMessages).toHaveBeenCalledWith(supabase, 'sess-1', [
+        { role: 'user', content: 'help' },
+        { role: 'assistant', content: 'sure' },
+      ]);
+    });
+
+    it('should store problem data when intake is complete', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      mockAgent.processIntakeInput.mockResolvedValueOnce({
+        response: 'Got it, ready to execute',
+        isComplete: true,
+      });
+      mockAgent.getProblem.mockReturnValueOnce({
+        synthesizedProblem: { summary: 'Housing in Jersey City' },
+      });
+
+      await handleInput(supabase, 'sess-1', 'final answer', 'user-1', false);
+
+      expect(storeProblemData).toHaveBeenCalledWith(supabase, 'sess-1', 'Housing in Jersey City', {
+        synthesizedProblem: { summary: 'Housing in Jersey City' },
+      });
+    });
+
+    it('should return 400 when session is not in intake phase', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'executing',
+      });
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Cannot process input during executing phase' });
+    });
+
+    it('should return 404 when session not found anywhere', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce(null);
+
+      const response = await handleInput(supabase, 'non-existent', 'input', 'user-1', false);
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 403 when user does not own the session', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'other-user',
+        phase: 'intake',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+      expect(response.status).toBe(403);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Unauthorized' });
+    });
+
+    it('should restore session from DB when not in memory', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'intake',
+        mode: 'research',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+      vi.mocked(getIntakeMessages).mockResolvedValueOnce([
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi' },
+      ]);
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+
+      expect(createStrategyAgent).toHaveBeenCalledWith(
+        'test-api-key',
+        expect.objectContaining({ mode: 'research', sessionId: 'sess-1' }),
+        undefined
+      );
+      expect(mockAgent.restoreIntakeMessages).toHaveBeenCalledWith([
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi' },
+      ]);
+      expect(response.status).toBe(200);
+    });
+
+    it('should return 400 when DB session is not in intake phase', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'executing',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 500 when API key is missing during restoration', async () => {
+      delete process.env.ANTHROPIC_API_KEY;
+
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'intake',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Anthropic API key not configured' });
+    });
+
+    it('should return 500 when processIntakeInput throws', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      mockAgent.processIntakeInput.mockRejectedValueOnce(new Error('API error'));
+
+      const response = await handleInput(supabase, 'sess-1', 'input', 'user-1', false);
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Failed to process input' });
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // handleContext
+  // --------------------------------------------------------------------------
+  describe('handleContext', () => {
+    it('should return 400 when sessionId is missing', async () => {
+      const response = await handleContext(supabase, undefined, 'message');
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Session ID required' });
+    });
+
+    it('should return 400 when message is missing', async () => {
+      const response = await handleContext(supabase, 'sess-1', undefined);
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Message required' });
+    });
+
+    it('should return 404 when session not found', async () => {
+      const response = await handleContext(supabase, 'non-existent', 'message');
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 400 when session is not in executing phase', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      const response = await handleContext(supabase, 'sess-1', 'message');
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Cannot add context during intake phase' });
+    });
+
+    it('should add context successfully during executing phase', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'executing',
+      });
+
+      mockAgent.addContext.mockResolvedValueOnce({ steeringApplied: false });
+
+      const response = await handleContext(supabase, 'sess-1', 'Focus on housing');
+      expect(response.status).toBe(200);
+
+      const body = (await readResponseJson(response)) as { success: boolean; message: string };
+      expect(body.success).toBe(true);
+      expect(body.message).toBe('Context added successfully');
+
+      expect(addUserContext).toHaveBeenCalledWith(supabase, 'sess-1', 'Focus on housing');
+    });
+
+    it('should return steering response when steering is applied', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'executing',
+      });
+
+      mockAgent.addContext.mockResolvedValueOnce({
+        steeringApplied: true,
+        steeringResponse: 'Redirecting focus to housing market',
+        command: { action: 'focus_domain' },
+      });
+
+      const response = await handleContext(supabase, 'sess-1', 'Focus on housing');
+      expect(response.status).toBe(200);
+
+      const body = (await readResponseJson(response)) as {
+        steeringApplied: boolean;
+        message: string;
+        steeringAction: string;
+      };
+      expect(body.steeringApplied).toBe(true);
+      expect(body.message).toBe('Redirecting focus to housing market');
+      expect(body.steeringAction).toBe('focus_domain');
+    });
+
+    it('should return 500 when addContext throws', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'executing',
+      });
+
+      mockAgent.addContext.mockRejectedValueOnce(new Error('Steering failed'));
+
+      const response = await handleContext(supabase, 'sess-1', 'message');
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Failed to add context' });
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // handleExecute
+  // --------------------------------------------------------------------------
+  describe('handleExecute', () => {
+    it('should return 400 when sessionId is missing', async () => {
+      const response = await handleExecute(supabase, 'user-1', undefined);
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Session ID required' });
+    });
+
+    it('should return 404 when session not found', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce(null);
+
+      const response = await handleExecute(supabase, 'user-1', 'non-existent');
+      expect(response.status).toBe(404);
+    });
+
+    it('should return 403 when user does not own the session in DB', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'other-user',
+        phase: 'intake',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 400 when session is not in intake phase (active)', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'executing',
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(400);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Cannot execute during executing phase' });
+    });
+
+    it('should return 400 when DB session is not in intake phase', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'complete',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(400);
+    });
+
+    it('should return SSE response for active session in intake phase', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('text/event-stream');
+      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+    });
+
+    it('should update session phase to executing', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      await handleExecute(supabase, 'user-1', 'sess-1');
+
+      expect(updateSessionPhase).toHaveBeenCalledWith(supabase, 'sess-1', 'executing');
+      expect(activeSessions.get('sess-1')?.phase).toBe('executing');
+    });
+
+    it('should set stream callback on agent', async () => {
+      activeSessions.set('sess-1', {
+        agent: mockAgent as unknown as ActiveSession['agent'],
+        dbId: 'db-1',
+        started: Date.now(),
+        phase: 'intake',
+      });
+
+      await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(mockAgent.setStreamCallback).toHaveBeenCalledWith(expect.any(Function));
+    });
+
+    it('should restore session from DB when not in memory', async () => {
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'intake',
+        mode: 'research',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+      vi.mocked(getIntakeMessages).mockResolvedValueOnce([{ role: 'user', content: 'help' }]);
+      vi.mocked(getProblemData).mockResolvedValueOnce({
+        rawInput: 'test',
+        clarifyingResponses: [],
+        synthesizedProblem: { summary: 'test' },
+        intakeTimestamp: 1000,
+        intakeComplete: true,
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(200);
+
+      expect(createStrategyAgent).toHaveBeenCalledWith(
+        'test-api-key',
+        expect.objectContaining({ mode: 'research' }),
+        undefined
+      );
+      expect(mockAgent.restoreIntakeMessages).toHaveBeenCalled();
+      expect(mockAgent.restoreProblem).toHaveBeenCalled();
+    });
+
+    it('should return 500 when API key is missing during restoration', async () => {
+      delete process.env.ANTHROPIC_API_KEY;
+
+      vi.mocked(getSessionFromDB).mockResolvedValueOnce({
+        id: 'db-1',
+        session_id: 'sess-1',
+        user_id: 'user-1',
+        phase: 'intake',
+        mode: 'strategy',
+        started_at: '2026-03-01T00:00:00Z',
+        result: null,
+        total_agents: 0,
+        completed_agents: 0,
+        total_searches: 0,
+        total_cost: 0,
+      });
+
+      const response = await handleExecute(supabase, 'user-1', 'sess-1');
+      expect(response.status).toBe(500);
+      const body = await readResponseJson(response);
+      expect(body).toEqual({ error: 'Anthropic API key not configured' });
+    });
+  });
+});
