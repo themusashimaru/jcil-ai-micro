@@ -1,23 +1,25 @@
 /**
  * ACCESSIBILITY TOOL
  *
- * WCAG accessibility checking using axe-core.
+ * WCAG accessibility checking via static HTML analysis and contrast calculation.
  * Runs entirely locally - no external API costs.
  *
+ * Uses regex-based HTML pattern matching and WCAG 2.1 relative luminance
+ * formulas for contrast ratio calculation. Not a full DOM-based audit
+ * (no axe-core) — best suited for quick checks and educational use.
+ *
  * Capabilities:
- * - Check HTML for WCAG violations
- * - Analyze color contrast
- * - Validate ARIA attributes
+ * - Check HTML for common WCAG violations (static analysis)
+ * - Analyze color contrast ratios (WCAG 2.1 luminance formula)
+ * - Validate ARIA attributes (pattern matching)
  * - Check heading hierarchy
  * - Identify missing alt text
  *
  * Created: 2026-01-31
+ * Updated: 2026-03-06 (honest description)
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
-
-// Note: axe-core typically runs in a browser environment
-// For server-side, we'll provide static analysis
 
 // ============================================================================
 // TOOL DEFINITION

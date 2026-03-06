@@ -2,11 +2,13 @@
  * MINI-AGENT ORCHESTRATOR TOOL
  *
  * Lightweight parallel agent execution for main chat.
- * Spawns 5-10 agents max for complex research tasks.
+ * Spawns 2-10 agents that each perform REAL web searches via
+ * Anthropic's native web_search_20260209 server tool, then synthesizes results.
+ *
  * STRICT cost controls - never exceeds $2 per execution.
  *
  * Features:
- * - Parallel research across multiple angles
+ * - Parallel research with REAL web search per agent
  * - Automatic synthesis of results
  * - Cost-controlled (max $2, max 10 agents)
  * - Quality verification built-in
@@ -26,7 +28,7 @@ const MAX_AGENTS = 10; // Never more than 10
 const MIN_AGENTS = 2; // At least 2 for parallel benefit
 const MAX_COST_PER_RUN = 2.0; // $2.00 hard cap
 const COST_PER_AGENT = 0.05; // ~$0.05 per agent (Sonnet + search)
-const AGENT_TIMEOUT_MS = 30000; // 30 seconds per agent
+const AGENT_TIMEOUT_MS = 45000; // 45 seconds per agent (web search needs more time)
 const TOOL_COST = 0.1; // Base cost for orchestration
 
 // Anthropic lazy load
@@ -38,14 +40,18 @@ let AnthropicClient: typeof import('@anthropic-ai/sdk').default | null = null;
 
 export const miniAgentTool: UnifiedTool = {
   name: 'parallel_research',
-  description: `Run parallel research agents for complex questions. Use this when:
+  description: `Run parallel research agents that perform REAL web searches for complex questions.
+Each agent uses Anthropic's native web search to find current, real-time information.
+
+Use this when:
 - User asks a question that benefits from multiple perspectives
 - You need to research several related topics at once
 - Comparing options requires gathering data from multiple angles
 - User explicitly asks for comprehensive/thorough research
+- Current/real-time information is needed from the web
 
-This spawns 5-10 lightweight agents that research in parallel and synthesize results.
-Each agent focuses on a specific aspect of the question.
+This spawns 2-10 lightweight agents that each perform real web searches in parallel,
+then synthesizes all findings into a comprehensive answer with sources.
 
 IMPORTANT: Only use for genuinely complex questions. Simple questions don't need this.
 Cost: ~$0.50-2.00 per use depending on complexity.`,
@@ -179,7 +185,7 @@ Rules:
 }
 
 // ============================================================================
-// AGENT EXECUTION
+// AGENT EXECUTION (WITH REAL WEB SEARCH)
 // ============================================================================
 
 interface AgentResult {
@@ -190,6 +196,22 @@ interface AgentResult {
   sources: string[];
   success: boolean;
   error?: string;
+}
+
+/**
+ * Extract cited URLs from agent response content blocks.
+ * Native web search returns citation blocks with source URLs.
+ */
+function extractSourcesFromResponse(
+  contentBlocks: Array<{ type: string; text?: string; url?: string; title?: string }>
+): string[] {
+  const sources: string[] = [];
+  for (const block of contentBlocks) {
+    if (block.url) {
+      sources.push(block.title ? `[${block.title}](${block.url})` : block.url);
+    }
+  }
+  return sources;
 }
 
 async function executeAgent(plan: AgentPlan, depth: string): Promise<AgentResult> {
@@ -209,50 +231,64 @@ async function executeAgent(plan: AgentPlan, depth: string): Promise<AgentResult
     const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     // Determine search intensity based on depth
-    const numSearches = depth === 'quick' ? 1 : depth === 'thorough' ? 3 : 2;
+    const maxSearches = depth === 'quick' ? 2 : depth === 'thorough' ? 5 : 3;
 
-    // Execute searches (simulated - in production would use Brave)
-    // For now, the agent will use its knowledge + indicate what it would search
-    const searchContext = plan.searchQueries.slice(0, numSearches).join('\n- ');
+    const agentPrompt = `You are a research agent focused on: "${plan.focus}"
 
-    const agentPrompt = `You are a research agent with a specific focus.
-
-YOUR FOCUS: ${plan.focus}
-
-MAIN QUESTION: Research this aspect thoroughly.
-
-SEARCH QUERIES YOU WOULD USE:
-- ${searchContext}
+Search the web to find current, accurate information about this topic.
+Use your web search capability to research these queries:
+${plan.searchQueries.map((q) => `- ${q}`).join('\n')}
 
 INSTRUCTIONS:
-1. Provide your best findings on this specific aspect
-2. Be specific with facts, numbers, and details
-3. Note your confidence level (high/medium/low)
-4. Cite what sources you would reference
+1. Search the web for each query to find real, current information
+2. Cite specific sources with URLs
+3. Provide concrete facts, numbers, and details — not general knowledge
+4. Note your confidence level based on source quality
+5. Focus ONLY on your assigned aspect: "${plan.focus}"
 
-Return your findings in a clear, structured format.
-Be concise but thorough. Focus ONLY on your assigned aspect.`;
+Be concise but thorough. Prioritize recent, authoritative sources.`;
 
+    // Each agent gets its own web search capability via the native server tool
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 1500,
+      tools: [
+        {
+          type: 'web_search_20260209' as 'web_search_20250305',
+          name: 'web_search',
+          max_uses: maxSearches,
+        },
+      ],
       messages: [{ role: 'user', content: agentPrompt }],
     });
 
+    // Extract text findings
     const findings = response.content
       .filter((b) => b.type === 'text')
       .map((b) => (b as { type: 'text'; text: string }).text)
       .join('\n');
 
+    // Extract real source URLs from the response
+    const sources = extractSourcesFromResponse(
+      response.content as Array<{ type: string; text?: string; url?: string; title?: string }>
+    );
+
+    // Determine confidence based on whether web search was actually used
+    const usedSearch = response.content.some(
+      (b) => b.type === 'web_search_tool_result' || (b.type as string) === 'server_tool_use'
+    );
+    const confidence = usedSearch ? 'high' : 'medium';
+
     return {
       id: plan.id,
       focus: plan.focus,
       findings,
-      confidence: 'medium',
-      sources: plan.searchQueries,
+      confidence,
+      sources: sources.length > 0 ? sources : plan.searchQueries,
       success: true,
     };
   } catch (error) {
+    log.error('Agent execution failed', { agentId: plan.id, error: (error as Error).message });
     return {
       id: plan.id,
       focus: plan.focus,
@@ -272,7 +308,7 @@ Be concise but thorough. Focus ONLY on your assigned aspect.`;
 async function synthesizeResults(
   question: string,
   results: AgentResult[]
-): Promise<{ success: boolean; synthesis?: string; error?: string }> {
+): Promise<{ success: boolean; synthesis?: string; sources?: string[]; error?: string }> {
   if (!AnthropicClient) {
     return { success: false, error: 'Client not available' };
   }
@@ -284,17 +320,21 @@ async function synthesizeResults(
     return { success: false, error: 'No agents returned results' };
   }
 
+  // Collect all sources across agents
+  const allSources = successfulResults.flatMap((r) => r.sources);
+  const uniqueSources = [...new Set(allSources)];
+
   const findingsText = successfulResults
     .map(
       (r) => `
-### ${r.focus}
+### ${r.focus} (Confidence: ${r.confidence})
 ${r.findings}
-(Confidence: ${r.confidence})
+${r.sources.length > 0 ? `Sources: ${r.sources.join(', ')}` : ''}
 `
     )
     .join('\n');
 
-  const synthesisPrompt = `You are synthesizing research from ${successfulResults.length} parallel agents.
+  const synthesisPrompt = `You are synthesizing research from ${successfulResults.length} parallel agents that performed real web searches.
 
 ORIGINAL QUESTION: ${question}
 
@@ -304,15 +344,16 @@ ${findingsText}
 INSTRUCTIONS:
 1. Synthesize all findings into a coherent, comprehensive answer
 2. Highlight key insights from each perspective
-3. Note any conflicts or uncertainties
+3. Note any conflicts or uncertainties between sources
 4. Provide a clear, actionable conclusion
 5. Keep it organized with headers if needed
+6. Reference specific sources where possible
 
 Write a well-structured synthesis that directly answers the original question.`;
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6', // Sonnet for synthesis (quality matters)
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [{ role: 'user', content: synthesisPrompt }],
     });
@@ -322,7 +363,7 @@ Write a well-structured synthesis that directly answers the original question.`;
       .map((b) => (b as { type: 'text'; text: string }).text)
       .join('\n');
 
-    return { success: true, synthesis };
+    return { success: true, synthesis, sources: uniqueSources };
   } catch (error) {
     return { success: false, error: (error as Error).message };
   }
@@ -362,7 +403,7 @@ export async function executeMiniAgent(toolCall: UnifiedToolCall): Promise<Unifi
   let numAgents = requestedAgents || (depth === 'quick' ? 3 : depth === 'thorough' ? 8 : 5);
   numAgents = Math.max(MIN_AGENTS, Math.min(MAX_AGENTS, numAgents));
 
-  // Cost estimation
+  // Cost estimation (increased slightly for real web search)
   const estimatedCost = TOOL_COST + numAgents * COST_PER_AGENT;
   if (estimatedCost > MAX_COST_PER_RUN) {
     numAgents = Math.floor((MAX_COST_PER_RUN - TOOL_COST) / COST_PER_AGENT);
@@ -385,13 +426,17 @@ export async function executeMiniAgent(toolCall: UnifiedToolCall): Promise<Unifi
     numAgents = CHAT_COST_LIMITS.maxMiniAgents;
   }
 
-  log.info('Starting parallel research', { question: question.slice(0, 50), numAgents, depth });
+  log.info('Starting parallel research with real web search', {
+    question: question.slice(0, 50),
+    numAgents,
+    depth,
+  });
 
   try {
     // Phase 1: Plan agents
     const plans = await planAgents(question, aspects, numAgents);
 
-    // Phase 2: Execute agents in parallel
+    // Phase 2: Execute agents in parallel (each with real web search)
     const agentPromises = plans.map((plan) =>
       Promise.race([
         executeAgent(plan, depth),
@@ -440,17 +485,24 @@ export async function executeMiniAgent(toolCall: UnifiedToolCall): Promise<Unifi
       };
     }
 
+    // Build source list for attribution
+    const sourceList =
+      synthesis.sources && synthesis.sources.length > 0
+        ? `\n\n**Sources:**\n${synthesis.sources.map((s) => `- ${s}`).join('\n')}`
+        : '';
+
     log.info('Parallel research complete', { successCount, totalAgents: numAgents });
 
     return {
       toolCallId: id,
       content:
-        `**Parallel Research Complete** (${successCount}/${numAgents} agents succeeded)\n\n` +
+        `**Parallel Research Complete** (${successCount}/${numAgents} agents, real web search)\n\n` +
         `---\n\n${synthesis.synthesis}\n\n---\n\n` +
         `*Research conducted across ${successCount} perspectives: ${results
           .filter((r) => r.success)
           .map((r) => r.focus)
-          .join(', ')}*`,
+          .join(', ')}*` +
+        sourceList,
       isError: false,
     };
   } catch (error) {

@@ -1,7 +1,9 @@
 /**
- * ERROR FIXER TOOL
+ * ERROR FIXER TOOL (AI-Powered)
  *
- * Analyzes and fixes code errors.
+ * Uses Claude to analyze and fix code errors.
+ * Sends the error context to Claude with a structured prompt for
+ * root cause analysis and corrected code output.
  * Handles syntax errors, type errors, runtime errors, and build failures.
  */
 
@@ -98,26 +100,23 @@ export async function executeErrorFixer(toolCall: UnifiedToolCall): Promise<Unif
     // Build code section
     let codeSection = '';
     if (code && code.trim().length > 0) {
-      const truncatedCode = code.length > 20000 ? code.substring(0, 20000) + '\n... (truncated)' : code;
+      const truncatedCode =
+        code.length > 20000 ? code.substring(0, 20000) + '\n... (truncated)' : code;
       codeSection = `CODE (${language}):\n\`\`\`${language}\n${truncatedCode}\n\`\`\``;
     }
 
     // Build context section
     const contextSection = context ? `CONTEXT: ${context}` : '';
 
-    const prompt = ERROR_FIX_PROMPT
-      .replace('{{codeSection}}', codeSection)
+    const prompt = ERROR_FIX_PROMPT.replace('{{codeSection}}', codeSection)
       .replace('{{error}}', error)
       .replace('{{contextSection}}', contextSection);
 
-    const response = await agentChat(
-      [{ role: 'user', content: prompt }],
-      {
-        provider: 'claude',
-        maxTokens: 4096,
-        temperature: 0.1, // Low temperature for precise fixes
-      }
-    );
+    const response = await agentChat([{ role: 'user', content: prompt }], {
+      provider: 'claude',
+      maxTokens: 4096,
+      temperature: 0.1, // Low temperature for precise fixes
+    });
 
     // Extract JSON from response
     let result;

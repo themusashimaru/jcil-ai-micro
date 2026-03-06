@@ -1,11 +1,12 @@
 /**
- * TABLE EXTRACTION TOOL
+ * TABLE EXTRACTION TOOL (AI Vision-Powered)
  *
- * Extracts table data from images using Vision AI.
- * Converts visual tables into structured data.
+ * Uses Claude Vision to interpret table data from images.
+ * Sends the image to Claude's vision model which reads and structures
+ * the table content — not a deterministic OCR-based extractor.
  *
  * Features:
- * - Extract tables from screenshots
+ * - Interpret tables from screenshots via Claude Vision
  * - Convert to markdown or JSON format
  * - Handle pricing tables, comparison charts
  * - Multi-table extraction

@@ -1,7 +1,8 @@
 /**
- * REFACTOR TOOL
+ * REFACTOR TOOL (AI-Powered)
  *
- * Refactors code to improve quality, performance, and maintainability.
+ * Uses Claude to refactor code for improved quality, performance, and maintainability.
+ * Sends code to Claude with a structured prompt requesting specific refactoring patterns.
  * Preserves functionality while improving structure.
  */
 
@@ -33,11 +34,13 @@ Preserves functionality while improving code quality.`,
       goals: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Refactoring goals (e.g., "improve readability", "reduce complexity", "add types")',
+        description:
+          'Refactoring goals (e.g., "improve readability", "reduce complexity", "add types")',
       },
       constraints: {
         type: 'string',
-        description: 'Any constraints (e.g., "maintain API compatibility", "keep same file structure")',
+        description:
+          'Any constraints (e.g., "maintain API compatibility", "keep same file structure")',
       },
       language: {
         type: 'string',
@@ -97,29 +100,31 @@ export async function executeRefactor(toolCall: UnifiedToolCall): Promise<Unifie
   const { id, arguments: rawArgs } = toolCall;
   try {
     const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
-    const { code, goals = ['improve readability', 'reduce complexity'], constraints, language = 'typescript' } = args;
+    const {
+      code,
+      goals = ['improve readability', 'reduce complexity'],
+      constraints,
+      language = 'typescript',
+    } = args;
 
     if (!code || code.trim().length === 0) {
       return { toolCallId: id, content: 'Code is required for refactoring', isError: true };
     }
 
     // Truncate very long code
-    const truncatedCode = code.length > 30000 ? code.substring(0, 30000) + '\n... (truncated)' : code;
+    const truncatedCode =
+      code.length > 30000 ? code.substring(0, 30000) + '\n... (truncated)' : code;
 
-    const prompt = REFACTOR_PROMPT
-      .replace(/\{\{language\}\}/g, language)
+    const prompt = REFACTOR_PROMPT.replace(/\{\{language\}\}/g, language)
       .replace('{{code}}', truncatedCode)
       .replace('{{goals}}', Array.isArray(goals) ? goals.join(', ') : goals)
       .replace('{{constraints}}', constraints ? `CONSTRAINTS: ${constraints}` : '');
 
-    const response = await agentChat(
-      [{ role: 'user', content: prompt }],
-      {
-        provider: 'claude',
-        maxTokens: 8192,
-        temperature: 0.2,
-      }
-    );
+    const response = await agentChat([{ role: 'user', content: prompt }], {
+      provider: 'claude',
+      maxTokens: 8192,
+      temperature: 0.2,
+    });
 
     // Extract JSON from response
     let result;
