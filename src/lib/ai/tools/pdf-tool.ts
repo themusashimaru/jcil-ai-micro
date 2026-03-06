@@ -99,6 +99,7 @@ Operations:
 - extract_text: Extract all text content from a PDF (useful for reading uploaded PDFs)
 - rotate_pages: Rotate specific pages by 90, 180, or 270 degrees
 - encrypt: Password-protect a PDF with user/owner passwords and permission controls
+- render_to_image: Convert PDF pages to PNG images (for visual inspection, coordinate detection, or thumbnails)
 - get_info: Get PDF metadata, page count, page dimensions, and form field names/types
 
 Use add_text or overlay_fields for PDFs that look like forms but don't have fillable fields.
@@ -106,11 +107,12 @@ Use fill_form for PDFs with actual AcroForm fields.
 Use add_image to insert logos, photos, signatures, or any image into a PDF.
 Use draw_shapes to add lines, boxes, checkboxes, or circles for form structure.
 Use extract_text to read the contents of a PDF the user has uploaded.
+Use render_to_image to convert a PDF page to an image so you can visually inspect it and determine exact coordinates.
 
 Coordinate system: origin (0,0) is bottom-left of the page. Y increases upward.
 Typical letter page: 612 x 792 points (8.5 x 11 inches, 72 points per inch).
 
-Returns: Base64 encoded PDF, extracted text, or metadata`,
+Returns: Base64 encoded PDF, extracted text, images, or metadata`,
   parameters: {
     type: 'object',
     properties: {
@@ -130,6 +132,7 @@ Returns: Base64 encoded PDF, extracted text, or metadata`,
           'extract_text',
           'rotate_pages',
           'encrypt',
+          'render_to_image',
         ],
         description: 'The PDF operation to perform',
       },
@@ -243,6 +246,16 @@ Example: [{"type": "checkbox", "x": 72, "y": 700, "checked": true}, {"type": "li
         type: 'object',
         description:
           'For encrypt: permission flags. Example: {"printing": true, "copying": false, "modifying": false}',
+      },
+      scale: {
+        type: 'number',
+        description:
+          'For render_to_image: scale factor for rendering (1.0 = 72 DPI, 2.0 = 144 DPI, 3.0 = 216 DPI). Default: 2.0',
+      },
+      render_page: {
+        type: 'number',
+        description:
+          'For render_to_image: which page to render (1-indexed). Default: 1. Use 0 for all pages.',
       },
     },
     required: ['operation'],
@@ -1129,6 +1142,78 @@ export async function executePDF(toolCall: UnifiedToolCall): Promise<UnifiedTool
           pdf_base64: base64,
           size_bytes: encryptedBytes.length,
         };
+        break;
+      }
+
+      // ────────────────────────────────────────────────────────────────
+      // RENDER TO IMAGE (PDF page → PNG for visual inspection)
+      // ────────────────────────────────────────────────────────────────
+      case 'render_to_image': {
+        if (!args.pdf_data) {
+          return {
+            toolCallId: toolCall.id,
+            content: JSON.stringify({ error: 'PDF data required for render_to_image' }),
+            isError: true,
+          };
+        }
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pdfToImg = (await import('pdf-to-img')) as any;
+          const convert = pdfToImg.convert || pdfToImg.default?.convert || pdfToImg.default;
+
+          const pdfBuffer = Buffer.from(args.pdf_data, 'base64');
+          const scale = (args as { scale?: number }).scale || 2.0;
+          const targetPage = (args as { render_page?: number }).render_page || 1;
+
+          const pages: { page: number; data: string; width?: number; height?: number }[] = [];
+
+          const document = await convert(pdfBuffer, { scale });
+          let pageIdx = 0;
+
+          for await (const image of document) {
+            pageIdx++;
+            if (targetPage !== 0 && pageIdx !== targetPage) continue;
+
+            const imageBuffer = Buffer.from(image);
+            const base64 = imageBuffer.toString('base64');
+            pages.push({
+              page: pageIdx,
+              data: base64,
+            });
+
+            if (targetPage !== 0) break;
+          }
+
+          if (pages.length === 0) {
+            return {
+              toolCallId: toolCall.id,
+              content: JSON.stringify({ error: `Page ${targetPage} not found in PDF` }),
+              isError: true,
+            };
+          }
+
+          log.info('PDF rendered to image', { pageCount: pages.length, scale });
+
+          result = {
+            operation: 'render_to_image',
+            pages: pages.map((p) => ({
+              page: p.page,
+              image_data: p.data,
+              mime_type: 'image/png',
+            })),
+            scale,
+            hint: 'Each page is rendered as a PNG image. Use the image data with vision_analyze to inspect content and determine coordinates for add_text or overlay_fields.',
+          };
+        } catch (renderErr) {
+          const msg = renderErr instanceof Error ? renderErr.message : String(renderErr);
+          log.error('PDF render to image failed', { error: msg });
+          return {
+            toolCallId: toolCall.id,
+            content: JSON.stringify({ error: `Render to image failed: ${msg}` }),
+            isError: true,
+          };
+        }
         break;
       }
 

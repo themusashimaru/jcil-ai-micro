@@ -140,6 +140,30 @@ export { ocrTool, executeOCR, isOCRAvailable } from './ocr-tool';
 // PDF Manipulation (pdf-lib)
 export { pdfTool, executePDF, isPDFAvailable } from './pdf-tool';
 
+// Presentation / PowerPoint (pptxgenjs)
+export {
+  presentationTool,
+  executePresentation,
+  isPresentationAvailable,
+} from './presentation-tool';
+
+// Mail Merge / Batch Documents
+export { mailMergeTool, executeMailMerge, isMailMergeAvailable } from './mail-merge-tool';
+
+// Business Document Templates
+export {
+  documentTemplatesTool,
+  executeDocumentTemplate,
+  isDocumentTemplateAvailable,
+} from './document-templates-tool';
+
+// HTML Email Templates
+export {
+  emailTemplateTool,
+  executeEmailTemplate,
+  isEmailTemplateAvailable,
+} from './email-template-tool';
+
 // Media Processing (FFmpeg.js)
 export { mediaTool, executeMedia, isMediaAvailable } from './media-tool';
 
@@ -368,6 +392,25 @@ async function initializeTools() {
   // GitHub
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
 
+  // Presentation / PowerPoint
+  const { presentationTool, executePresentation, isPresentationAvailable } = await import(
+    './presentation-tool'
+  );
+
+  // Mail Merge / Batch Documents
+  const { mailMergeTool, executeMailMerge, isMailMergeAvailable } = await import(
+    './mail-merge-tool'
+  );
+
+  // Business Document Templates
+  const { documentTemplatesTool, executeDocumentTemplate, isDocumentTemplateAvailable } =
+    await import('./document-templates-tool');
+
+  // HTML Email Templates
+  const { emailTemplateTool, executeEmailTemplate, isEmailTemplateAvailable } = await import(
+    './email-template-tool'
+  );
+
   // Register all tools
   CHAT_TOOLS.push(
     // Core API tools
@@ -504,7 +547,25 @@ async function initializeTools() {
     { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
 
     // GitHub
-    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable }
+    { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
+
+    // Document ecosystem
+    {
+      tool: presentationTool,
+      executor: executePresentation,
+      checkAvailability: isPresentationAvailable,
+    },
+    { tool: mailMergeTool, executor: executeMailMerge, checkAvailability: isMailMergeAvailable },
+    {
+      tool: documentTemplatesTool,
+      executor: executeDocumentTemplate,
+      checkAvailability: isDocumentTemplateAvailable,
+    },
+    {
+      tool: emailTemplateTool,
+      executor: executeEmailTemplate,
+      checkAvailability: isEmailTemplateAvailable,
+    }
   );
 
   toolsInitialized = true;

@@ -899,8 +899,8 @@ function renderInlineFormatting(text: string): string {
  * Render a line of text with clickable hyperlinks in pdfkit.
  * Supports markdown [text](url) links and bare https:// URLs.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function renderTextWithLinks(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   doc: any,
   line: string,
   fonts: ReturnType<typeof getFonts>,
