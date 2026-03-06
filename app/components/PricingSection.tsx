@@ -8,16 +8,17 @@
 
 import { useState, useEffect } from 'react';
 
-type PricingTier = 'plus' | 'pro' | 'executive';
+type PricingTier = 'free' | 'plus' | 'pro' | 'executive';
 
 interface PricingCardProps {
   tier: PricingTier;
   title: string;
   description: string;
   price: number;
-  firstMonthPrice: number;
+  firstMonthPrice?: number;
   features: string[];
   popular?: boolean;
+  isFree?: boolean;
   onSubscribe: (tier: PricingTier) => void;
   loading: boolean;
 }
@@ -30,6 +31,7 @@ function PricingCard({
   firstMonthPrice,
   features,
   popular = false,
+  isFree = false,
   onSubscribe,
   loading,
 }: PricingCardProps) {
@@ -38,7 +40,9 @@ function PricingCard({
       className={`rounded-2xl p-6 sm:p-8 relative flex flex-col transition-all duration-300 hover:-translate-y-1 ${
         popular
           ? 'bg-gradient-to-br from-purple-900/80 to-blue-900/80 border-2 border-purple-500/50 shadow-xl shadow-purple-500/20'
-          : 'bg-slate-800/80 border border-slate-700/50 hover:border-slate-600/50'
+          : isFree
+            ? 'bg-slate-800/80 border border-slate-600/50 hover:border-slate-500/50'
+            : 'bg-slate-800/80 border border-slate-700/50 hover:border-slate-600/50'
       }`}
     >
       {/* Popular Badge */}
@@ -48,22 +52,41 @@ function PricingCard({
         </div>
       )}
 
-      {/* 50% Off First Month Badge */}
-      <div className="mb-4 -mt-2">
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
-          50% OFF FIRST MONTH
-        </span>
-      </div>
+      {/* 50% Off First Month Badge (paid plans only) */}
+      {!isFree && (
+        <div className="mb-4 -mt-2">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm">
+            50% OFF FIRST MONTH
+          </span>
+        </div>
+      )}
+
+      {/* Free badge */}
+      {isFree && (
+        <div className="mb-4 -mt-2">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+            NO CREDIT CARD REQUIRED
+          </span>
+        </div>
+      )}
 
       <h3 className="mb-2 text-xl sm:text-2xl font-bold text-white">{title}</h3>
       <p className="mb-4 text-sm sm:text-base text-slate-400">{description}</p>
       <div className="mb-2">
-        <span className="text-4xl sm:text-5xl font-bold text-white">${firstMonthPrice}</span>
-        <span className="text-slate-400"> first month</span>
+        <span className="text-4xl sm:text-5xl font-bold text-white">
+          {isFree ? 'Free' : `$${firstMonthPrice}`}
+        </span>
+        {!isFree && <span className="text-slate-400"> first month</span>}
       </div>
       <div className="mb-6">
-        <span className="text-sm line-through text-slate-500">${price}/mo</span>
-        <span className="text-sm ml-2 text-slate-400">then ${price}/mo</span>
+        {isFree ? (
+          <span className="text-sm text-slate-400">No strings attached</span>
+        ) : (
+          <>
+            <span className="text-sm line-through text-slate-500">${price}/mo</span>
+            <span className="text-sm ml-2 text-slate-400">then ${price}/mo</span>
+          </>
+        )}
       </div>
       <ul className="mb-8 space-y-3 text-sm flex-1">
         {features.map((feature, index) => (
@@ -79,10 +102,12 @@ function PricingCard({
         className={`block w-full rounded-xl py-3 text-center font-semibold text-white transition-all duration-300 ${
           popular
             ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:shadow-lg hover:shadow-purple-500/25'
-            : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500'
+            : isFree
+              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-lg hover:shadow-blue-500/25'
+              : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500'
         } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
       >
-        {loading ? 'Processing...' : 'Get Started'}
+        {loading ? 'Processing...' : isFree ? 'Start Free' : 'Get Started'}
       </button>
     </div>
   );
@@ -121,6 +146,12 @@ export default function PricingSection() {
       setLoading(true);
       setError(null);
 
+      // Free tier — just sign up, no Stripe
+      if (tier === 'free') {
+        window.location.href = '/signup';
+        return;
+      }
+
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,16 +180,29 @@ export default function PricingSection() {
 
   const pricingTiers = [
     {
+      tier: 'free' as PricingTier,
+      title: 'Free',
+      description: 'Try the platform — no credit card needed',
+      price: 0,
+      isFree: true,
+      features: [
+        'AI chat powered by Claude Haiku',
+        '10,000 token trial allowance',
+        'Basic web search & tools',
+        'Perfect for exploring the platform',
+      ],
+    },
+    {
       tier: 'plus' as PricingTier,
       title: 'Plus',
       description: 'Essential AI tools for everyday development',
       price: 18,
       firstMonthPrice: 9,
       features: [
-        'Intelligent AI chat assistant',
+        'Powered by Claude Sonnet 4.6',
+        '1M tokens/month',
         'Real-time web search with citations',
         'Code execution & debugging',
-        'GitHub repository integration',
         'Writing tools & documentation',
         'Persistent memory across sessions',
       ],
@@ -210,9 +254,7 @@ export default function PricingSection() {
         <h2 className="mb-4 text-center text-3xl sm:text-4xl font-bold text-white">
           Simple, Transparent Pricing
         </h2>
-        <p className="mb-2 text-center text-slate-400">
-          Choose the plan that fits your workflow
-        </p>
+        <p className="mb-2 text-center text-slate-400">Choose the plan that fits your workflow</p>
         <p className="mb-10 sm:mb-14 text-center text-sm text-slate-500">
           Cancel anytime. No hidden fees. Start building today.
         </p>
@@ -223,7 +265,7 @@ export default function PricingSection() {
           </div>
         )}
 
-        <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-7xl mx-auto">
           {pricingTiers.map((tierData) => (
             <PricingCard
               key={tierData.tier}
@@ -237,7 +279,8 @@ export default function PricingSection() {
         {/* Trust Note */}
         <div className="mt-12 text-center">
           <p className="text-sm text-slate-500">
-            Secure payment powered by Stripe. Your payment information is never stored on our servers.
+            Secure payment powered by Stripe. Your payment information is never stored on our
+            servers.
           </p>
         </div>
       </div>

@@ -50,6 +50,15 @@ const CLAUDE_CONFIG: ProviderConfig = {
       tier: 'standard',
       isDefault: true,
     },
+    {
+      id: 'claude-haiku-4-5',
+      name: 'Claude Haiku 4.5',
+      contextWindow: 200000,
+      maxOutputTokens: 64000,
+      inputPricePer1M: 1,
+      outputPricePer1M: 5,
+      tier: 'budget',
+    },
   ],
 };
 
@@ -371,6 +380,13 @@ export function getDefaultModel(providerId: ProviderId): ModelConfig | undefined
  */
 export function getDefaultChatModelId(): string {
   return getDefaultModel('claude')?.id ?? 'claude-sonnet-4-6';
+}
+
+/**
+ * Get the model ID for free-tier users (Haiku 4.5 — cost-effective)
+ */
+export function getFreeTierModelId(): string {
+  return 'claude-haiku-4-5';
 }
 
 /**

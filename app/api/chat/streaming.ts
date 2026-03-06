@@ -11,6 +11,7 @@ import { routeChatWithTools, type ChatRouteOptions, type ToolExecutor } from '@/
 import {
   getDefaultModel,
   getDefaultChatModelId,
+  getFreeTierModelId,
   isProviderAvailable,
   getProviderAndModel,
   getAvailableProviderIds,
@@ -55,15 +56,20 @@ export interface StreamConfig {
 }
 
 /**
- * Resolve the model and provider based on user selection.
- * All messages use Sonnet 4.6 by default (full search + tool support).
+ * Resolve the model and provider based on user selection and subscription tier.
+ * Free users get Haiku 4.5 (cost-effective). Paid users get Sonnet 4.6.
  */
-export function resolveProvider(provider: string | undefined): {
+export function resolveProvider(
+  provider: string | undefined,
+  userPlanKey?: string
+): {
   selectedModel: string;
   selectedProviderId: string;
   error?: Response;
 } {
-  let selectedModel = getDefaultChatModelId();
+  // Free users get Haiku 4.5, paid users get Sonnet 4.6
+  const isFreeUser = !userPlanKey || userPlanKey === 'free';
+  let selectedModel = isFreeUser ? getFreeTierModelId() : getDefaultChatModelId();
   let selectedProviderId = 'claude';
 
   if (provider && isProviderAvailable(provider as ProviderId)) {

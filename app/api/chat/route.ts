@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
       selectedModel: resolvedModel,
       selectedProviderId,
       error: providerError,
-    } = resolveProvider(provider);
+    } = resolveProvider(provider, userPlanKey);
     if (providerError) return providerError;
 
     // BYOK: Check if user has their own API key for the selected provider

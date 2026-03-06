@@ -20,6 +20,7 @@ const mockGetAvailableProviderIds = vi.fn().mockReturnValue(['claude', 'openai']
 vi.mock('@/lib/ai/providers/registry', () => ({
   getDefaultModel: (...args: unknown[]) => mockGetDefaultModel(...args),
   getDefaultChatModelId: () => mockGetDefaultChatModelId(),
+  getFreeTierModelId: () => 'claude-haiku-4-5',
   isProviderAvailable: (...args: unknown[]) => mockIsProviderAvailable(...args),
   getProviderAndModel: (...args: unknown[]) => mockGetProviderAndModel(...args),
   getAvailableProviderIds: () => mockGetAvailableProviderIds(),
@@ -74,23 +75,31 @@ describe('streaming', () => {
   });
 
   describe('resolveProvider', () => {
-    it('should default to Claude when no provider specified', () => {
+    it('should default to Haiku for free users (no planKey)', () => {
       const result = resolveProvider(undefined);
+      expect(result.selectedProviderId).toBe('claude');
+      expect(result.selectedModel).toBe('claude-haiku-4-5');
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should default to Haiku for explicit free tier', () => {
+      const result = resolveProvider(undefined, 'free');
+      expect(result.selectedProviderId).toBe('claude');
+      expect(result.selectedModel).toBe('claude-haiku-4-5');
+    });
+
+    it('should use Sonnet for paid users', () => {
+      const result = resolveProvider(undefined, 'plus');
       expect(result.selectedProviderId).toBe('claude');
       expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
       expect(result.error).toBeUndefined();
     });
 
-    it('should use Claude when provider is undefined', () => {
-      const result = resolveProvider(undefined);
-      expect(result.selectedProviderId).toBe('claude');
-    });
-
-    it('should select available provider', () => {
+    it('should select available provider (overrides tier-based model)', () => {
       mockIsProviderAvailable.mockReturnValue(true);
       mockGetDefaultModel.mockReturnValue({ id: 'gpt-4' });
 
-      const result = resolveProvider('openai');
+      const result = resolveProvider('openai', 'pro');
       expect(result.selectedProviderId).toBe('openai');
       expect(result.selectedModel).toBe('gpt-4');
       expect(result.error).toBeUndefined();
@@ -99,15 +108,15 @@ describe('streaming', () => {
     it('should return error for unavailable provider', () => {
       mockIsProviderAvailable.mockReturnValue(false);
 
-      const result = resolveProvider('nonexistent');
+      const result = resolveProvider('nonexistent', 'pro');
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(Response);
     });
 
-    it('should fall back to Claude defaults when provider is unavailable', () => {
+    it('should fall back to tier-based Claude when provider is unavailable', () => {
       mockIsProviderAvailable.mockReturnValue(false);
 
-      const result = resolveProvider('nonexistent');
+      const result = resolveProvider('nonexistent', 'pro');
       expect(result.selectedProviderId).toBe('claude');
       expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
     });
@@ -116,7 +125,7 @@ describe('streaming', () => {
       mockIsProviderAvailable.mockReturnValue(true);
       mockGetDefaultModel.mockReturnValue(null);
 
-      const result = resolveProvider('openai');
+      const result = resolveProvider('openai', 'plus');
       // Should still use default Claude model since getDefaultModel returned null
       expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
     });
