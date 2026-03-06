@@ -430,14 +430,19 @@ export async function POST(request: NextRequest) {
       userApiKey,
     };
 
-    // Non-Claude providers use adapter directly
-    if (selectedProviderId !== 'claude') {
+    // All providers (Claude + BYOK non-Claude) go through the full chat router
+    // with tool support. The chat router already handles multi-provider adapters.
+    // Only fall back to the lightweight handleNonClaudeProvider for server-keyed
+    // non-Claude providers that don't need tool support.
+    const useFullRouter = selectedProviderId === 'claude' || !!userApiKey;
+
+    if (!useFullRouter) {
       isStreamingResponse = true;
       slotAcquired = false;
       return handleNonClaudeProvider(streamConfig);
     }
 
-    // Claude provider with full tool support
+    // Full tool support for Claude and BYOK providers
     isStreamingResponse = true;
     slotAcquired = false;
     return await handleClaudeProvider({ ...streamConfig, pendingRequestId });
