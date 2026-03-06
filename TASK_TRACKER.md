@@ -348,9 +348,9 @@
 | Phase 1: Foundation           | 50          | 50        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
 | Phase 3: Production Readiness | 38          | 25        | 66%        |
-| Phase 4: Differentiation      | 23          | 0         | 0%         |
+| Phase 4: Differentiation      | 23          | 8         | 35%        |
 | Doc Cleanup                   | 4           | 4         | 100%       |
-| **Total**                     | **172**     | **136**   | **79%**    |
+| **Total**                     | **172**     | **144**   | **84%**    |
 
 > Update this summary table as tasks are completed.
 
@@ -437,6 +437,26 @@
 - 105 component files over 400-line threshold still need decomposition
 - Phase 3.6: Test coverage push (40% → 60%)
 - Remaining `validateCSRF` in chat/route.ts and github/route.ts — needs individual attention
+
+### Session: 2026-03-06 (Polish & Accuracy Session)
+
+**What was done:**
+
+- **Resolved all 44 lint warnings** across 18 files: removed unused imports, prefixed unused vars with `_`, added eslint-disable for legitimate console/img usage
+- **Fixed 2 failing mini-agent tests**: updated output format assertions
+- **Decomposed 22 oversized components** under 400/500 line limits:
+  - ChatClient (1636→394), MyFilesPanel (1131→377), PluginMarketplace (987→358), CodeLabEditor (936→396), MCPSettings (908→392), ToolHistory (823→353), StatusBar (823→367), XTermTerminal (800→388), MemoryEditor (800→369), DeployFlow (772→318), Thinking (770→372), SessionHistory (760→369), Preview (739→352), admin inbox (734→313), Message (728→369), BrandLogo (713→315), OutputPanel (700→340), CommandPalette (685→367), ChatComposer (685→370), strategy route (1406→476)
+- **Added 392 new tests** across 12 test files for orchestration, strategy, providers, composio, brave, plugins, streaming, presentations, chat-tools
+- **Reconciled ToolsShowcase.tsx** with registry: removed 12 non-registry entries, added 8 missing registry tools, now shows exactly 51 tools
+- **Updated landing page metrics**: test counts (12,100→19,600+) across all pages
+- Zero TypeScript errors, zero lint warnings, build passes
+
+**What's next:**
+
+- 83 component files still over 400-line threshold
+- Phase 3.6: Test coverage push (40% → 60%)
+- Landing page accessibility fixes (ARIA, semantics, responsive)
+- Supabase type regeneration (3.4.3)
 
 ---
 

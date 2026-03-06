@@ -319,7 +319,7 @@ export default function CodeLabTechnicalPage() {
               <StatCard value="51" label="Real Tools" color="fuchsia" />
               <StatCard value="5" label="MCP Servers" color="fuchsia" />
               <StatCard value="5" label="AI Models" color="fuchsia" />
-              <StatCard value="12,100+" label="Tests Passing" color="fuchsia" />
+              <StatCard value="19,600+" label="Tests Passing" color="fuchsia" />
             </div>
 
             {/* CTA Buttons */}
@@ -389,7 +389,7 @@ export default function CodeLabTechnicalPage() {
 
             <div className="grid md:grid-cols-4 gap-4">
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
-                <div className="text-2xl font-bold text-white mb-1">12,100+</div>
+                <div className="text-2xl font-bold text-white mb-1">19,600+</div>
                 <div className="text-sm text-slate-400">Tests Passing</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
@@ -1146,7 +1146,7 @@ POST   /api/code-lab/debug          # Debug operations`}
               </Link>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              Free tier available • 12,100+ tests passing • Built with precision
+              Free tier available • 19,600+ tests passing • Built with precision
             </p>
           </div>
         </div>

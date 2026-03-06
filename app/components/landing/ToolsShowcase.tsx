@@ -60,6 +60,7 @@ const toolCategories: ToolCategory[] = [
       { name: 'Diff Compare', description: 'Side-by-side comparison of code or text changes' },
       { name: 'SQL Query', description: 'Build, explain, and optimize SQL queries' },
       { name: 'HTTP Request', description: 'Make API calls and inspect responses' },
+      { name: 'Dynamic Tool', description: 'Create and run custom tools on the fly' },
     ],
   },
   {
@@ -68,22 +69,19 @@ const toolCategories: ToolCategory[] = [
     icon: 'document',
     tools: [
       {
-        name: 'Word Generator',
-        description: 'Create professional .docx files with formatting and styles',
+        name: 'Document Generator',
+        description: 'Create Word, PDF, and PowerPoint files with professional formatting',
       },
       {
-        name: 'Excel Builder',
+        name: 'Spreadsheet Builder',
         description: 'Generate spreadsheets with formulas, charts, and data validation',
       },
       {
-        name: 'PDF Creator',
-        description: 'Build polished PDF reports, invoices, and certificates',
-      },
-      {
-        name: 'PowerPoint Builder',
-        description: 'Create slide decks with layouts, themes, and speaker notes',
+        name: 'Excel Advanced',
+        description: 'Pivot tables, conditional formatting, and complex workbooks',
       },
       { name: 'PDF Extractor', description: 'Pull text and data from uploaded PDF documents' },
+      { name: 'PDF Tools', description: 'Rotate, encrypt, merge, add watermarks and form fields' },
       {
         name: 'Table Extractor',
         description: 'Extract structured data from images and screenshots',
@@ -92,15 +90,10 @@ const toolCategories: ToolCategory[] = [
     ],
   },
   {
-    name: 'Media & Vision',
+    name: 'Media & Creative',
     color: 'purple',
     icon: 'media',
     tools: [
-      {
-        name: 'AI Image Generation',
-        description:
-          'Create images with FLUX.2 by Black Forest Labs — 5 models with prompt enhancement',
-      },
       {
         name: 'Image Analysis',
         description: 'AI vision to understand photos, charts, and screenshots',
@@ -113,7 +106,12 @@ const toolCategories: ToolCategory[] = [
       },
       { name: 'Audio Transcribe', description: 'Convert speech to text from audio files' },
       { name: 'Media Process', description: 'Manipulate audio and video files' },
-      { name: 'QR & Barcode', description: 'Generate and read QR codes and barcodes' },
+      { name: 'QR Generator', description: 'Create QR codes for URLs, text, and data' },
+      { name: 'Barcode Generator', description: 'Generate barcodes in multiple standard formats' },
+      { name: 'Image Metadata', description: 'Read and edit EXIF data from photos' },
+      { name: '3D Graphics', description: 'Generate and render 3D scenes and objects' },
+      { name: 'Hough Vision', description: 'Detect lines, circles, and shapes in images' },
+      { name: 'Ray Tracing', description: 'Photorealistic rendering with light simulation' },
     ],
   },
   {
@@ -121,31 +119,38 @@ const toolCategories: ToolCategory[] = [
     color: 'amber',
     icon: 'data',
     tools: [
-      { name: 'Math Compute', description: 'Solve equations, calculus, linear algebra, and more' },
-      { name: 'Statistics', description: 'Run statistical analysis on datasets' },
-      { name: 'Unit Converter', description: 'Convert between any measurement units' },
       {
         name: 'NLP Analysis',
         description: 'Sentiment analysis, entity extraction, and text processing',
       },
       { name: 'Data Validator', description: 'Validate JSON, XML, email, and custom schemas' },
       { name: 'Link Shortener', description: 'Create short URLs for sharing' },
+      { name: 'Fake Data Generator', description: 'Generate realistic test data for development' },
+      { name: 'Geospatial', description: 'Distance calculations, geocoding, and map analysis' },
+      { name: 'Search Index', description: 'Full-text search indexing and querying' },
+      { name: 'Zip Files', description: 'Compress and extract file archives' },
+      { name: 'Signal Processing', description: 'FFT, filtering, and waveform analysis' },
+      {
+        name: 'Sequence Analysis',
+        description: 'Analyze patterns in sequential and time-series data',
+      },
     ],
   },
   {
-    name: 'Security & Specialized',
+    name: 'Security & Science',
     color: 'cyan',
     icon: 'security',
     tools: [
       { name: 'Crypto Toolkit', description: 'Encrypt, decrypt, hash, and generate JWT tokens' },
-      { name: 'Password Analyzer', description: 'Check password strength and security' },
       { name: 'Phone Validator', description: 'Validate and format international phone numbers' },
       { name: 'Accessibility Check', description: 'Audit content for WCAG compliance' },
       {
-        name: 'Color Tools',
-        description: 'Convert color spaces, generate palettes, check contrast',
+        name: 'Constraint Solver',
+        description: 'Solve optimization and constraint satisfaction problems',
       },
-      { name: 'Cron Explain', description: 'Parse and explain cron schedule expressions' },
+      { name: 'Grammar Parser', description: 'Parse structured text with custom grammar rules' },
+      { name: 'DNA Sequencer', description: 'Analyze and compare biological sequences' },
+      { name: 'Medical Calculator', description: 'Clinical calculations and health metric tools' },
     ],
   },
 ];
@@ -198,7 +203,7 @@ export default function ToolsShowcase() {
         badge={`${totalTools}+ Orchestrated Tools`}
         badgeColor="fuchsia"
         title="Every tool works. They work together."
-        description="51 real tools that chain into each other automatically. Research feeds into charts, charts embed into presentations, images flow into documents. Not stubs — production implementations with artifact tracking."
+        description="Every tool listed below has a real implementation in the registry. Research feeds into charts, charts embed into presentations, images flow into documents. Not stubs — production code with artifact tracking."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
@@ -230,7 +235,7 @@ export default function ToolsShowcase() {
 
       <div className="mt-8 text-center space-y-2">
         <p className="text-sm text-slate-500">
-          Plus 67+ additional integrations via Composio and FLUX.2 AI image generation by Black
+          Plus 67+ additional integrations via Composio — and FLUX.2 AI image generation by Black
           Forest Labs
         </p>
         <p className="text-xs text-slate-600">
