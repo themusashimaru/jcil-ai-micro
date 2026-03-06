@@ -205,7 +205,7 @@ export function CodeLabEditor({
       <EditorBreadcrumbs activeFile={activeFile} />
       <DiffActionsBar
         activeFileChanges={activeFileChanges}
-        activeFileId={activeFile!.id}
+        activeFileId={activeFile?.id ?? ''}
         onAcceptAllChanges={onAcceptAllChanges}
         onRejectAllChanges={onRejectAllChanges}
       />
