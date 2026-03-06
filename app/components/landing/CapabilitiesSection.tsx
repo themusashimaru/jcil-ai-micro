@@ -1,7 +1,7 @@
 /**
  * CAPABILITIES SECTION
  *
- * Enterprise-grade feature highlights
+ * Platform capabilities — orchestration, IDE, image gen, integrations
  */
 
 import Section, { SectionHeader } from './Section';
@@ -14,29 +14,29 @@ export default function CapabilitiesSection() {
       <SectionHeader
         badge="Capabilities"
         badgeColor="blue"
-        title="Enterprise-grade features"
-        description="Built for serious work. Whether you're preparing a sermon or shipping production code, JCIL has the tools you need."
+        title="Not a wrapper. A platform."
+        description="Tools that chain together. Research flows into charts, charts flow into presentations, images flow into documents. One request, complete deliverables."
       />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <FeatureCard
           icon={<AgentIcon className="w-6 h-6" />}
-          title="Agentic AI"
-          description="Autonomous task execution with plan-execute-observe loops. The AI doesn't just respond, it acts."
+          title="Tool Orchestration"
+          description="Tools chain together automatically. Say 'create a deck about AI trends' and watch research, charts, images, and slides generate in sequence."
           variant="outlined"
           color="purple"
         />
         <FeatureCard
           icon={<PlugIcon className="w-6 h-6" />}
           title="67+ Integrations"
-          description="Connect to GitHub, Slack, Notion, Google Drive, and 60+ more apps through Composio."
+          description="Connect to GitHub, Slack, Notion, Google Drive, and 60+ more apps through Composio. Plus FLUX.2 AI image generation."
           variant="outlined"
           color="blue"
         />
         <FeatureCard
           icon={<RefreshIcon className="w-6 h-6" />}
-          title="Self-Correcting"
-          description="Automatic error detection and retry with intelligent analysis. Broken builds get fixed automatically."
+          title="Full-Service IDE"
+          description="Code Lab with real E2B sandboxed execution, pair programming, debugging, Git integration, and deployment — not a toy."
           variant="outlined"
           color="pink"
         />

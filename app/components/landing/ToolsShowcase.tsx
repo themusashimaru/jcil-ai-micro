@@ -38,7 +38,8 @@ const toolCategories: ToolCategory[] = [
       { name: 'Web Capture', description: 'Advanced page capture with metadata extraction' },
       {
         name: 'Parallel Research',
-        description: 'Launch multiple AI agents to research complex topics simultaneously',
+        description:
+          'Launch multiple agents with real web search to research complex topics simultaneously',
       },
       {
         name: 'YouTube Transcript',
@@ -95,6 +96,11 @@ const toolCategories: ToolCategory[] = [
     color: 'purple',
     icon: 'media',
     tools: [
+      {
+        name: 'AI Image Generation',
+        description:
+          'Create images with FLUX.2 by Black Forest Labs — 5 models with prompt enhancement',
+      },
       {
         name: 'Image Analysis',
         description: 'AI vision to understand photos, charts, and screenshots',
@@ -189,10 +195,10 @@ export default function ToolsShowcase() {
   return (
     <Section id="tools" padding="lg">
       <SectionHeader
-        badge={`${totalTools}+ Real Tools`}
+        badge={`${totalTools}+ Orchestrated Tools`}
         badgeColor="fuchsia"
-        title="Every tool works. No stubs."
-        description="Unlike platforms with hundreds of placeholder tools, every JCIL tool is fully implemented, tested, and production-ready. Here's what your AI can actually do."
+        title="Every tool works. They work together."
+        description="51 real tools that chain into each other automatically. Research feeds into charts, charts embed into presentations, images flow into documents. Not stubs — production implementations with artifact tracking."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
@@ -224,11 +230,12 @@ export default function ToolsShowcase() {
 
       <div className="mt-8 text-center space-y-2">
         <p className="text-sm text-slate-500">
-          Plus 67+ additional integrations via Composio (GitHub, Slack, Notion, Google Drive, and
-          more)
+          Plus 67+ additional integrations via Composio and FLUX.2 AI image generation by Black
+          Forest Labs
         </p>
         <p className="text-xs text-slate-600">
-          All tools are powered by Claude Sonnet 4.6 with secure sandboxed execution
+          All tools chain together via artifact tracking. Powered by Claude Sonnet 4.6 with parallel
+          execution.
         </p>
       </div>
     </Section>
