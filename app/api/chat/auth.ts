@@ -125,11 +125,25 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
       } else {
         const { data: userData } = await supabase
           .from('users')
-          .select('is_admin, subscription_tier')
+          .select('is_admin, subscription_tier, subscription_status')
           .eq('id', user.id)
           .single();
         isAdmin = userData?.is_admin === true;
-        userPlanKey = userData?.subscription_tier || 'free';
+        const rawTier = userData?.subscription_tier || 'free';
+        const subStatus = userData?.subscription_status || 'active';
+
+        // Downgrade to free if subscription is past_due or canceled
+        // Users with failed payments should not keep paid access
+        if (rawTier !== 'free' && (subStatus === 'past_due' || subStatus === 'canceled')) {
+          log.warn('User has non-active subscription, downgrading to free', {
+            userId: user.id,
+            tier: rawTier,
+            status: subStatus,
+          });
+          userPlanKey = 'free';
+        } else {
+          userPlanKey = rawTier;
+        }
         // Cache set failure is non-fatal
         await setCachedUserData(user.id, isAdmin, userPlanKey).catch(() => {});
       }

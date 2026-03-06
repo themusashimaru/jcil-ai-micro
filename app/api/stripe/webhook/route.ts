@@ -354,8 +354,28 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * Handle successful payment
  */
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  log.info('Payment succeeded', { invoiceId: invoice.id });
-  // Payment tracking could be added here if needed
+  const customerId = invoice.customer as string;
+  log.info('Payment succeeded', {
+    invoiceId: invoice.id,
+    customerId: customerId ? '[set]' : '[missing]',
+  });
+
+  if (!customerId) return;
+
+  // Reset subscription_status back to 'active' if it was 'past_due'
+  // This ensures users regain access after a successful retry payment
+  const { error: updateError } = await getSupabaseAdmin()
+    .from('users')
+    .update({
+      subscription_status: 'active',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_customer_id', customerId)
+    .eq('subscription_status', 'past_due');
+
+  if (updateError) {
+    log.error('Error resetting past_due status', { error: updateError.message });
+  }
 }
 
 /**
