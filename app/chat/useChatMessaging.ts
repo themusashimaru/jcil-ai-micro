@@ -15,6 +15,18 @@ import type { ChatState } from './useChatState';
 
 const log = logger('ChatClient');
 
+// ── Chat messaging constants ──
+/** Max messages before triggering continuation prompt */
+const HARD_CONTEXT_LIMIT = 45;
+/** Max chars to show from a quoted reply */
+const REPLY_QUOTE_MAX_CHARS = 200;
+/** Timeout before aborting a chat request (ms) */
+const CHAT_TIMEOUT_MS = 180_000;
+/** Delay before showing "slow response" warning (ms) */
+const SLOW_RESPONSE_WARNING_MS = 30_000;
+/** Delay before retrying after continuation (ms) */
+const CONTINUATION_RETRY_DELAY_MS = 500;
+
 interface UseChatMessagingArgs {
   state: ChatState;
   handleChatContinuation: () => Promise<void>;
@@ -60,12 +72,14 @@ export function useChatMessaging({
     if (!content.trim() && attachments.length === 0) return;
     if (isStreaming) return;
 
-    const HARD_CONTEXT_LIMIT = 45;
     if (messages.length >= HARD_CONTEXT_LIMIT && !continuationDismissed) {
       try {
         await handleChatContinuation();
         setContinuationDismissed(true);
-        setTimeout(() => handleSendMessage(content, attachments, searchMode, selectedRepo), 500);
+        setTimeout(
+          () => handleSendMessage(content, attachments, searchMode, selectedRepo),
+          CONTINUATION_RETRY_DELAY_MS
+        );
       } catch {
         setContinuationDismissed(true);
       }
@@ -194,8 +208,8 @@ export function useChatMessaging({
     let finalContent = content;
     if (replyingTo) {
       const quoted =
-        replyingTo.content.length > 200
-          ? replyingTo.content.slice(0, 200) + '...'
+        replyingTo.content.length > REPLY_QUOTE_MAX_CHARS
+          ? replyingTo.content.slice(0, REPLY_QUOTE_MAX_CHARS) + '...'
           : replyingTo.content;
       finalContent = `[Replying to: "${quoted}"]\n\n${content}`;
       setReplyingTo(null);
@@ -265,9 +279,7 @@ export function useChatMessaging({
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
 
-      // Timeout: 3 minutes. Show a warning at 30s so the user knows we're still working.
-      const CHAT_TIMEOUT_MS = 180_000;
-      const SLOW_RESPONSE_WARNING_MS = 30_000;
+      // Timeout: show a warning at 30s, abort at 3 minutes
       const slowWarningId = setTimeout(() => {
         setMessages((prev) => prev.map((msg) => (msg.id === userMessageId ? msg : msg)));
         // Show a transient status — doesn't replace content, just logs
