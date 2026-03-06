@@ -264,9 +264,33 @@ export function useChatMessaging({
 
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
+
+      // Timeout: 3 minutes. Show a warning at 30s so the user knows we're still working.
+      const CHAT_TIMEOUT_MS = 180_000;
+      const SLOW_RESPONSE_WARNING_MS = 30_000;
+      const slowWarningId = setTimeout(() => {
+        setMessages((prev) => prev.map((msg) => (msg.id === userMessageId ? msg : msg)));
+        // Show a transient status — doesn't replace content, just logs
+        log.info('Response taking longer than expected', { chatId: newChatId });
+      }, SLOW_RESPONSE_WARNING_MS);
+
       const chatTimeoutId = setTimeout(() => {
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-      }, 180_000);
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          // Show explicit timeout message to user
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content:
+                'The request timed out after 3 minutes. This can happen with complex queries. Please try again, or try breaking your request into smaller parts.',
+              timestamp: new Date(),
+            },
+          ]);
+          setIsStreaming(false);
+        }
+      }, CHAT_TIMEOUT_MS);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -283,6 +307,7 @@ export function useChatMessaging({
       });
 
       clearTimeout(chatTimeoutId);
+      clearTimeout(slowWarningId);
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -508,7 +533,18 @@ export function useChatMessaging({
             }
           } catch (readerError) {
             if (accumulatedContent.length > 0) {
+              // Stream was interrupted but we have partial content — show it
+              // with truncation notice so user knows it was cut off
               streamFinalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
+              streamFinalContent +=
+                '\n\n---\n*Response was interrupted. You can ask me to continue.*';
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: streamFinalContent, isStreaming: false }
+                    : msg
+                )
+              );
             } else throw readerError;
           } finally {
             reader.releaseLock();
@@ -743,6 +779,7 @@ export function useChatMessaging({
           id: crypto.randomUUID(),
           role: 'assistant',
           content: errorContent,
+          isError: true,
           timestamp: new Date(),
         },
       ]);
