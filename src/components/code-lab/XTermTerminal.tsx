@@ -16,105 +16,19 @@
  * @version 1.0.0
  */
 
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
-} from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import type { XTermTerminalRef, XTermTerminalProps } from './xterm-types';
+import { DEFAULT_THEME } from './xterm-types';
+import { XTermLoadingState, XTermErrorState, XTermGlobalStyles } from './xterm-styles';
+
+export type { XTermTheme, XTermTerminalProps, XTermTerminalRef } from './xterm-types';
+export { useXTermTerminal } from './xterm-hooks';
 
 // Dynamic imports for xterm to avoid SSR issues
 let Terminal: typeof import('@xterm/xterm').Terminal | undefined;
 let FitAddon: typeof import('@xterm/addon-fit').FitAddon | undefined;
 let WebLinksAddon: typeof import('@xterm/addon-web-links').WebLinksAddon | undefined;
 let SearchAddon: typeof import('@xterm/addon-search').SearchAddon | undefined;
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface XTermTheme {
-  background: string;
-  foreground: string;
-  cursor: string;
-  cursorAccent: string;
-  selection: string;
-  black: string;
-  red: string;
-  green: string;
-  yellow: string;
-  blue: string;
-  magenta: string;
-  cyan: string;
-  white: string;
-  brightBlack: string;
-  brightRed: string;
-  brightGreen: string;
-  brightYellow: string;
-  brightBlue: string;
-  brightMagenta: string;
-  brightCyan: string;
-  brightWhite: string;
-}
-
-export interface XTermTerminalProps {
-  sessionId: string;
-  sandboxId?: string;
-  onData?: (data: string) => void;
-  onResize?: (cols: number, rows: number) => void;
-  onTitle?: (title: string) => void;
-  theme?: Partial<XTermTheme>;
-  fontSize?: number;
-  fontFamily?: string;
-  className?: string;
-  readOnly?: boolean;
-}
-
-export interface XTermTerminalRef {
-  write: (data: string) => void;
-  writeln: (data: string) => void;
-  clear: () => void;
-  reset: () => void;
-  focus: () => void;
-  blur: () => void;
-  fit: () => void;
-  search: (query: string) => boolean;
-  searchNext: () => boolean;
-  searchPrevious: () => boolean;
-  scrollToBottom: () => void;
-  getSelection: () => string;
-  dispose: () => void;
-}
-
-// ============================================================================
-// DEFAULT THEME (matches Claude Code dark theme)
-// ============================================================================
-
-const DEFAULT_THEME: XTermTheme = {
-  background: '#0d1117',
-  foreground: '#c9d1d9',
-  cursor: '#58a6ff',
-  cursorAccent: '#0d1117',
-  selection: 'rgba(56, 139, 253, 0.3)',
-  black: '#484f58',
-  red: '#ff7b72',
-  green: '#3fb950',
-  yellow: '#d29922',
-  blue: '#58a6ff',
-  magenta: '#bc8cff',
-  cyan: '#39c5cf',
-  white: '#b1bac4',
-  brightBlack: '#6e7681',
-  brightRed: '#ffa198',
-  brightGreen: '#56d364',
-  brightYellow: '#e3b341',
-  brightBlue: '#79c0ff',
-  brightMagenta: '#d2a8ff',
-  brightCyan: '#56d4dd',
-  brightWhite: '#f0f6fc',
-};
 
 // ============================================================================
 // MAIN COMPONENT
@@ -282,14 +196,11 @@ export const XTermTerminal = forwardRef<XTermTerminalRef, XTermTerminalProps>(
       if (!isReady || !sessionId) return;
 
       const connectWebSocket = () => {
-        // Check if WebSocket endpoint exists
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = sandboxId
           ? `${protocol}//${window.location.host}/api/code-lab/pty?sessionId=${sessionId}&sandboxId=${sandboxId}`
           : null;
 
-        // For now, we'll use HTTP-based execution as fallback
-        // Real PTY requires WebSocket server support
         if (!wsUrl) {
           terminalRef.current?.writeln(
             '\x1b[33m[PTY Mode: Commands execute via sandbox API]\x1b[0m'
@@ -320,7 +231,6 @@ export const XTermTerminal = forwardRef<XTermTerminalRef, XTermTerminalProps>(
 
           ws.onclose = () => {
             wsRef.current = null;
-            // Attempt reconnect after 3 seconds
             reconnectTimeoutRef.current = setTimeout(() => {
               if (terminalRef.current) {
                 connectWebSocket();
@@ -328,7 +238,6 @@ export const XTermTerminal = forwardRef<XTermTerminalRef, XTermTerminalProps>(
             }, 3000);
           };
         } catch {
-          // WebSocket not available, use API mode
           terminalRef.current?.writeln('\x1b[33m[Using API execution mode]\x1b[0m');
           terminalRef.current?.write('\x1b[32m$ \x1b[0m');
         }
@@ -385,416 +294,20 @@ export const XTermTerminal = forwardRef<XTermTerminalRef, XTermTerminalProps>(
     );
 
     if (isLoading) {
-      return (
-        <div className={`xterm-container loading ${className}`}>
-          <div className="loading-spinner">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="32">
-                <animate
-                  attributeName="stroke-dashoffset"
-                  dur="1s"
-                  repeatCount="indefinite"
-                  values="32;0"
-                />
-              </circle>
-            </svg>
-            <span>Loading terminal...</span>
-          </div>
-          <style jsx>{`
-            .xterm-container.loading {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #0d1117;
-              min-height: 200px;
-              border-radius: 8px;
-            }
-            .loading-spinner {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              color: #58a6ff;
-            }
-            .loading-spinner svg {
-              width: 24px;
-              height: 24px;
-              animation: spin 1s linear infinite;
-            }
-            @keyframes spin {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
-        </div>
-      );
+      return <XTermLoadingState className={className} />;
     }
 
     if (error) {
-      return (
-        <div className={`xterm-container error ${className}`}>
-          <div className="error-message">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
-            <span>{error}</span>
-          </div>
-          <style jsx>{`
-            .xterm-container.error {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: #0d1117;
-              min-height: 200px;
-              border-radius: 8px;
-            }
-            .error-message {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              color: #f85149;
-            }
-            .error-message svg {
-              width: 24px;
-              height: 24px;
-            }
-          `}</style>
-        </div>
-      );
+      return <XTermErrorState className={className} error={error} />;
     }
 
     return (
       <>
         <div ref={containerRef} className={`xterm-container ${className}`} />
-        <style jsx global>{`
-          .xterm-container {
-            width: 100%;
-            height: 100%;
-            min-height: 200px;
-            background: #0d1117;
-            border-radius: 8px;
-            overflow: hidden;
-          }
-
-          .xterm-container .xterm {
-            padding: 12px;
-            height: 100%;
-          }
-
-          .xterm-container .xterm-viewport {
-            background-color: transparent !important;
-          }
-
-          .xterm-container .xterm-screen {
-            padding: 0;
-          }
-
-          /* xterm.js core styles */
-          .xterm {
-            cursor: text;
-            position: relative;
-            user-select: none;
-            -ms-user-select: none;
-            -webkit-user-select: none;
-          }
-
-          .xterm.focus,
-          .xterm:focus {
-            outline: none;
-          }
-
-          .xterm .xterm-helpers {
-            position: absolute;
-            top: 0;
-            z-index: 5;
-          }
-
-          .xterm .xterm-helper-textarea {
-            padding: 0;
-            border: 0;
-            margin: 0;
-            position: absolute;
-            opacity: 0;
-            left: -9999em;
-            top: 0;
-            width: 0;
-            height: 0;
-            z-index: -5;
-            white-space: nowrap;
-            overflow: hidden;
-            resize: none;
-          }
-
-          .xterm .composition-view {
-            background: #000;
-            color: #fff;
-            display: none;
-            position: absolute;
-            white-space: nowrap;
-            z-index: 1;
-          }
-
-          .xterm .composition-view.active {
-            display: block;
-          }
-
-          .xterm .xterm-viewport {
-            background-color: #000;
-            overflow-y: scroll;
-            cursor: default;
-            position: absolute;
-            right: 0;
-            left: 0;
-            top: 0;
-            bottom: 0;
-          }
-
-          .xterm .xterm-screen {
-            position: relative;
-          }
-
-          .xterm .xterm-screen canvas {
-            position: absolute;
-            left: 0;
-            top: 0;
-          }
-
-          .xterm .xterm-scroll-area {
-            visibility: hidden;
-          }
-
-          .xterm-char-measure-element {
-            display: inline-block;
-            visibility: hidden;
-            position: absolute;
-            top: 0;
-            left: -9999em;
-            line-height: normal;
-          }
-
-          .xterm.enable-mouse-events {
-            cursor: default;
-          }
-
-          .xterm .xterm-cursor-pointer {
-            cursor: pointer;
-          }
-
-          .xterm.column-select.focus {
-            cursor: crosshair;
-          }
-
-          .xterm .xterm-accessibility,
-          .xterm .xterm-message {
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            right: 0;
-            z-index: 10;
-            color: transparent;
-            pointer-events: none;
-          }
-
-          .xterm .xterm-accessibility-tree:not(.debug) {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 0;
-            height: 0;
-            z-index: -5;
-            clip: rect(0, 0, 0, 0);
-            clip-path: inset(50%);
-            white-space: nowrap;
-          }
-
-          .xterm .live-region {
-            position: absolute;
-            left: -9999px;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-          }
-
-          .xterm-dim {
-            opacity: 0.5;
-          }
-
-          .xterm-underline-1 {
-            text-decoration: underline;
-          }
-          .xterm-underline-2 {
-            text-decoration: double underline;
-          }
-          .xterm-underline-3 {
-            text-decoration: wavy underline;
-          }
-          .xterm-underline-4 {
-            text-decoration: dotted underline;
-          }
-          .xterm-underline-5 {
-            text-decoration: dashed underline;
-          }
-
-          .xterm-overline {
-            text-decoration: overline;
-          }
-
-          .xterm-overline.xterm-underline-1 {
-            text-decoration: overline underline;
-          }
-          .xterm-overline.xterm-underline-2 {
-            text-decoration: overline double underline;
-          }
-          .xterm-overline.xterm-underline-3 {
-            text-decoration: overline wavy underline;
-          }
-          .xterm-overline.xterm-underline-4 {
-            text-decoration: overline dotted underline;
-          }
-          .xterm-overline.xterm-underline-5 {
-            text-decoration: overline dashed underline;
-          }
-
-          .xterm-strikethrough {
-            text-decoration: line-through;
-          }
-
-          .xterm-screen .xterm-decoration-container .xterm-decoration {
-            z-index: 6;
-            position: absolute;
-          }
-
-          .xterm-screen .xterm-decoration-container .xterm-decoration.xterm-decoration-top-layer {
-            z-index: 7;
-          }
-
-          .xterm-decoration-overview-ruler {
-            z-index: 8;
-            position: absolute;
-            top: 0;
-            right: 0;
-            pointer-events: none;
-          }
-
-          .xterm-decoration-top {
-            z-index: 2;
-            position: relative;
-          }
-        `}</style>
+        <XTermGlobalStyles />
       </>
     );
   }
 );
-
-// ============================================================================
-// HELPER HOOKS
-// ============================================================================
-
-/**
- * Hook to manage xterm terminal state
- */
-export function useXTermTerminal(sessionId: string, sandboxId?: string) {
-  const terminalRef = useRef<XTermTerminalRef>(null);
-  const [commandBuffer, setCommandBuffer] = useState('');
-
-  // Execute command via API
-  const executeCommand = useCallback(
-    async (command: string) => {
-      if (!command.trim()) return;
-
-      // Echo command
-      terminalRef.current?.writeln(`\x1b[32m$ \x1b[0m${command}`);
-
-      try {
-        const response = await fetch('/api/code-lab/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId,
-            sandboxId,
-            command,
-          }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          terminalRef.current?.writeln(
-            `\x1b[31mError: ${error.message || 'Command failed'}\x1b[0m`
-          );
-        } else {
-          const result = await response.json();
-          if (result.stdout) {
-            terminalRef.current?.write(result.stdout);
-          }
-          if (result.stderr) {
-            terminalRef.current?.write(`\x1b[31m${result.stderr}\x1b[0m`);
-          }
-        }
-      } catch (err) {
-        terminalRef.current?.writeln(
-          `\x1b[31mError: ${err instanceof Error ? err.message : 'Unknown error'}\x1b[0m`
-        );
-      }
-
-      // Show new prompt
-      terminalRef.current?.write('\x1b[32m$ \x1b[0m');
-    },
-    [sessionId, sandboxId]
-  );
-
-  // Handle data input
-  const handleData = useCallback(
-    (data: string) => {
-      // Handle Enter key
-      if (data === '\r') {
-        executeCommand(commandBuffer);
-        setCommandBuffer('');
-        return;
-      }
-
-      // Handle backspace
-      if (data === '\x7f') {
-        if (commandBuffer.length > 0) {
-          setCommandBuffer((prev) => prev.slice(0, -1));
-          terminalRef.current?.write('\b \b');
-        }
-        return;
-      }
-
-      // Handle Ctrl+C
-      if (data === '\x03') {
-        setCommandBuffer('');
-        terminalRef.current?.writeln('^C');
-        terminalRef.current?.write('\x1b[32m$ \x1b[0m');
-        return;
-      }
-
-      // Handle Ctrl+L (clear)
-      if (data === '\x0c') {
-        terminalRef.current?.clear();
-        terminalRef.current?.write('\x1b[32m$ \x1b[0m');
-        return;
-      }
-
-      // Echo printable characters
-      if (data >= ' ' || data === '\t') {
-        setCommandBuffer((prev) => prev + data);
-        terminalRef.current?.write(data);
-      }
-    },
-    [commandBuffer, executeCommand]
-  );
-
-  return {
-    terminalRef,
-    handleData,
-    executeCommand,
-  };
-}
 
 export default XTermTerminal;
