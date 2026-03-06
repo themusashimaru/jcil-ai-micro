@@ -8,6 +8,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { getOrchestrationPrompt } from '@/lib/ai/tools/orchestration';
 
 const log = logger('ChatSystemPrompt');
 
@@ -347,6 +348,13 @@ export function buildFullSystemPrompt(contexts: ContextSources): string {
   // Composio connected apps context
   if (contexts.composioAddition) {
     fullSystemPrompt += contexts.composioAddition;
+  }
+
+  // Tool orchestration instructions (teach Claude to chain tools)
+  const orchestrationPrompt = getOrchestrationPrompt();
+  if (estimateTokens(orchestrationPrompt) <= remainingBudget) {
+    fullSystemPrompt += `\n\n${orchestrationPrompt}`;
+    remainingBudget -= estimateTokens(orchestrationPrompt);
   }
 
   return fullSystemPrompt;

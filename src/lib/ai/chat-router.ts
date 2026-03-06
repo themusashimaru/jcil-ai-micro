@@ -33,6 +33,7 @@ import type {
   UnifiedToolResult,
 } from './providers/types';
 import { logger } from '@/lib/logger';
+import { ArtifactStore, extractArtifacts, partitionParallelCalls } from './tools/orchestration';
 
 const log = logger('ChatRouter');
 
@@ -551,10 +552,13 @@ export async function routeChatWithTools(
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
+  // Artifact store tracks outputs from tools for chaining
+  const artifactStore = new ArtifactStore();
+
   // Create a stream that handles tool loops
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const MAX_TOOL_ITERATIONS = 5; // Prevent infinite loops
+      const MAX_TOOL_ITERATIONS = 10; // Support complex orchestration chains
       let iteration = 0;
 
       try {
@@ -714,42 +718,67 @@ export async function routeChatWithTools(
           }, KEEPALIVE_INTERVAL_MS);
 
           try {
-            for (const toolCall of pendingToolCalls) {
-              log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
-              toolsUsed.push(toolCall.name);
+            // Partition tool calls for parallel execution where safe
+            const batches = partitionParallelCalls(pendingToolCalls);
 
-              // Get timeout for this specific tool
-              const toolTimeout = TOOL_TIMEOUTS[toolCall.name] || DEFAULT_TIMEOUT_MS;
+            for (const batch of batches) {
+              // Execute tools in this batch in parallel
+              const batchPromises = batch.map(async (toolCall) => {
+                log.info('Executing tool', { name: toolCall.name, id: toolCall.id });
+                toolsUsed.push(toolCall.name);
 
-              try {
-                // Wrap tool execution with timeout to prevent infinite hangs
-                const result = await Promise.race([
-                  toolExecutor(toolCall),
-                  new Promise<UnifiedToolResult>((_, reject) =>
-                    setTimeout(
-                      () => reject(new Error(`Tool execution timeout (${toolTimeout / 1000}s)`)),
-                      toolTimeout
-                    )
-                  ),
-                ]);
-                toolResults.push(result);
-                log.debug('Tool execution complete', {
-                  name: toolCall.name,
-                  resultLength: result.content.length,
-                  isError: result.isError,
-                });
-              } catch (execErr) {
-                log.error('Tool execution failed', {
-                  name: toolCall.name,
-                  error: (execErr as Error).message,
-                  timeout: toolTimeout,
-                });
-                toolResults.push({
-                  toolCallId: toolCall.id,
-                  content: `Error executing tool: ${(execErr as Error).message}`,
-                  isError: true,
-                });
-              }
+                const toolTimeout = TOOL_TIMEOUTS[toolCall.name] || DEFAULT_TIMEOUT_MS;
+
+                try {
+                  const result = await Promise.race([
+                    toolExecutor(toolCall),
+                    new Promise<UnifiedToolResult>((_, reject) =>
+                      setTimeout(
+                        () => reject(new Error(`Tool execution timeout (${toolTimeout / 1000}s)`)),
+                        toolTimeout
+                      )
+                    ),
+                  ]);
+
+                  // Extract and store artifacts from tool output
+                  const artifacts = extractArtifacts(
+                    toolCall.name,
+                    result.content,
+                    result.isError || false
+                  );
+                  for (const artifact of artifacts) {
+                    artifactStore.add(
+                      toolCall.name,
+                      artifact.type,
+                      artifact.content,
+                      artifact.label,
+                      artifact.metadata
+                    );
+                  }
+
+                  log.debug('Tool execution complete', {
+                    name: toolCall.name,
+                    resultLength: result.content.length,
+                    isError: result.isError,
+                    artifactsExtracted: artifacts.length,
+                  });
+                  return result;
+                } catch (execErr) {
+                  log.error('Tool execution failed', {
+                    name: toolCall.name,
+                    error: (execErr as Error).message,
+                    timeout: toolTimeout,
+                  });
+                  return {
+                    toolCallId: toolCall.id,
+                    content: `Error executing tool: ${(execErr as Error).message}`,
+                    isError: true,
+                  } as UnifiedToolResult;
+                }
+              });
+
+              const batchResults = await Promise.all(batchPromises);
+              toolResults.push(...batchResults);
             }
           } finally {
             // Always clear keepalive interval
@@ -781,6 +810,17 @@ export async function routeChatWithTools(
             content: tr.content,
             isError: tr.isError,
           }));
+
+          // Inject artifact context so Claude knows about outputs from previous tools
+          // This enables intelligent tool chaining (e.g., chart URL → presentation slide)
+          if (artifactStore.hasArtifacts()) {
+            const artifactContext = artifactStore.buildContextString();
+            toolResultContent.push({
+              type: 'text' as const,
+              text: artifactContext,
+            } as UnifiedContentBlock);
+          }
+
           currentMessages.push({
             role: 'user', // Tool results go in user role for Anthropic
             content: toolResultContent,
