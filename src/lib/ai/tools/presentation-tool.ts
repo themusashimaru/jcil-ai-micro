@@ -181,7 +181,7 @@ const TRANSITION_MAP: Record<string, string> = {
   zoom: 'zoom',
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function addTitleSlide(
   pptx: any,
   slide: any,
@@ -189,6 +189,7 @@ function addTitleSlide(
   subtitle: string | undefined,
   theme: ThemeConfig
 ) {
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   // Background accent bar
   slide.addShape(pptx.ShapeType.rect, {
     x: 0,
