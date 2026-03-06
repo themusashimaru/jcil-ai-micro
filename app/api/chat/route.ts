@@ -38,6 +38,7 @@ import { searchUserDocuments } from '@/lib/documents/userSearch';
 // Local modules
 import { authenticateRequest } from './auth';
 import { getUserBYOKConfig } from '@/lib/ai/byok';
+import { getProviderAndModel } from '@/lib/ai/providers/registry';
 import { checkChatRateLimit } from './rate-limiting';
 import { getLastUserContent, truncateMessages, clampMaxTokens } from './helpers';
 import { buildFullSystemPrompt } from './system-prompt';
@@ -360,7 +361,6 @@ export async function POST(request: NextRequest) {
 
     // ── ROUTE 4: Claude Chat (main conversational flow) ──
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
-    const clampedMaxTokens = clampMaxTokens(max_tokens);
 
     // Build system prompt with all context (smart tiered tool loading)
     const { tools, composioToolContext } = await loadAllTools(userId, lastUserContent);
@@ -393,6 +393,10 @@ export async function POST(request: NextRequest) {
         selectedModel = byokConfig.model;
       }
     }
+
+    // Clamp max tokens using the model's actual output limit from the registry
+    const modelInfo = getProviderAndModel(selectedModel);
+    const clampedMaxTokens = clampMaxTokens(max_tokens, modelInfo?.model.maxOutputTokens);
 
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
     const toolExecutor = createToolExecutor(userId, sessionId);

@@ -7,10 +7,11 @@
 
 import { CoreMessage } from 'ai';
 
-// Token limits
-export const MAX_RESPONSE_TOKENS = 4096;
-export const DEFAULT_RESPONSE_TOKENS = 2048;
+// Token limits — defaults when no model-specific limit is available
+export const MAX_RESPONSE_TOKENS = 64000;
+export const DEFAULT_RESPONSE_TOKENS = 16384;
 export const MAX_CONTEXT_MESSAGES = 60;
+export const MIN_RESPONSE_TOKENS = 256;
 
 /**
  * Extract key points from older messages for summarization
@@ -84,9 +85,15 @@ export function truncateMessages(
   return [keepFirst, ...keepLast];
 }
 
-export function clampMaxTokens(requestedTokens?: number): number {
-  if (!requestedTokens) return DEFAULT_RESPONSE_TOKENS;
-  return Math.min(Math.max(requestedTokens, 256), MAX_RESPONSE_TOKENS);
+/**
+ * Clamp requested output tokens within safe bounds.
+ * When a modelMaxOutputTokens is provided (from the registry), we use that
+ * as the ceiling so each model gets its full capability.
+ */
+export function clampMaxTokens(requestedTokens?: number, modelMaxOutputTokens?: number): number {
+  const ceiling = modelMaxOutputTokens || MAX_RESPONSE_TOKENS;
+  if (!requestedTokens) return Math.min(DEFAULT_RESPONSE_TOKENS, ceiling);
+  return Math.min(Math.max(requestedTokens, MIN_RESPONSE_TOKENS), ceiling);
 }
 
 export function getLastUserContent(messages: CoreMessage[]): string {
