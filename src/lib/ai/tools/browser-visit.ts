@@ -153,11 +153,13 @@ async function getBrowserSandbox(): Promise<
       timeoutMs: SANDBOX_TIMEOUT_MS,
     });
 
-    // Install Puppeteer (fire and forget with long timeout)
-    browserSandbox.commands
-      .run('npm install puppeteer', { timeoutMs: 120000 })
-      .then(() => log.info('Puppeteer installed in sandbox'))
-      .catch((err) => log.warn('Puppeteer installation issue', { error: (err as Error).message }));
+    // Install Puppeteer and wait for it before using the sandbox
+    try {
+      await browserSandbox.commands.run('npm install puppeteer', { timeoutMs: 120000 });
+      log.info('Puppeteer installed in sandbox');
+    } catch (err) {
+      log.warn('Puppeteer installation issue', { error: (err as Error).message });
+    }
   }
 
   sandboxLastUsed = now;

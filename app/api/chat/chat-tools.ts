@@ -226,34 +226,26 @@ export interface LoadedTools {
   composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null;
 }
 
-// Keyword patterns that trigger extended-tier tools
-const EXTENDED_PATTERNS =
-  /\b(code|program|debug|error|fix|refactor|format|diff|sql|query|document|pdf|excel|spreadsheet|word|docx|table|chart|graph|visualize|image|photo|resize|compress|video|audio|transcribe|ocr|screenshot|browser|scrape|webpage|github|repo|http|api|url|link|convert|youtube|media)\b/i;
-
-// Keyword patterns that trigger specialist-tier tools
+// Keyword patterns that trigger specialist-tier tools (niche scientific/technical domains)
 const SPECIALIST_PATTERNS =
   /\b(dna|protein|genome|sequence|signal|fft|filter|geospatial|geo|coordinate|latitude|longitude|medical|bmi|dosage|clinical|constraint|grammar|parse|barcode|qr\s*code|zip|archive|compress|search\s*index|nlp|sentiment|tokenize|encrypt|decrypt|hash|cipher|jwt|jwe|phone\s*number|validate\s*phone|accessibility|wcag|a11y|3d|ray\s*trac|hough|vision|exif|metadata|fake\s*data|faker|mock\s*data)\b/i;
 
 /**
  * Determine which tool tiers to load based on the user's message content.
- * - Core: always loaded (web_search, fetch_url, run_code, analyze_image, etc.)
- * - Extended: loaded when the message mentions code, documents, media, web browsing, etc.
- * - Specialist: loaded when the message mentions niche domains (science, crypto, etc.)
+ *
+ * Core + Extended are ALWAYS loaded. Users shouldn't need to use specific
+ * keywords to get web browsing, document tools, or code tools. We use
+ * Sonnet 4.6 — the extra tool schemas (~2-3K tokens) are negligible
+ * compared to the cost of a broken user experience.
+ *
+ * Only specialist tools (DNA, seismology, cryptography, etc.) are gated
+ * behind keyword detection since they're rarely needed.
  */
 export function selectToolTiers(messageContent: string): ToolTier[] {
-  const tiers: ToolTier[] = ['core'];
-
-  if (EXTENDED_PATTERNS.test(messageContent)) {
-    tiers.push('extended');
-  }
+  const tiers: ToolTier[] = ['core', 'extended'];
 
   if (SPECIALIST_PATTERNS.test(messageContent)) {
     tiers.push('specialist');
-  }
-
-  // If message is long (likely complex), include extended by default
-  if (messageContent.length > 200 && !tiers.includes('extended')) {
-    tiers.push('extended');
   }
 
   return tiers;
@@ -261,7 +253,7 @@ export function selectToolTiers(messageContent: string): ToolTier[] {
 
 /**
  * Load all available tools: built-in (lazy), MCP, and Composio.
- * Uses smart tiered loading to send only relevant tools per request.
+ * Core + extended tools are always loaded. Specialist tools load on demand.
  *
  * @param userId - The authenticated user ID
  * @param messageContext - The last user message for tier selection (optional; loads all tiers if omitted)

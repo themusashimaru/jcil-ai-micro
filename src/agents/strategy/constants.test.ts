@@ -49,13 +49,12 @@ describe('MODEL_CONFIGS', () => {
     }
   });
 
-  it('should have opus as the most expensive', () => {
+  it('should have opus as the most expensive and haiku same as sonnet (legacy)', () => {
     expect(MODEL_CONFIGS.opus.costPerMillionInput).toBeGreaterThan(
       MODEL_CONFIGS.sonnet.costPerMillionInput
     );
-    expect(MODEL_CONFIGS.sonnet.costPerMillionInput).toBeGreaterThan(
-      MODEL_CONFIGS.haiku.costPerMillionInput
-    );
+    // Haiku tier now uses Sonnet 4.6, so pricing matches
+    expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBe(MODEL_CONFIGS.sonnet.costPerMillionInput);
   });
 
   it('should have positive maxTokens', () => {

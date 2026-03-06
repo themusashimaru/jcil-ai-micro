@@ -919,11 +919,14 @@ function ChatClientInner() {
       clearTimeout(chatTimeoutId);
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
-        throw new Error(
-          (errorData as { details?: string })?.details ||
-            errorData?.error?.message ||
-            `HTTP ${response.status}`
-        );
+        // Extract error message: server returns { error: string, message?: string, code?: string }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parsed = errorData as any;
+        const serverMessage =
+          parsed?.message ||
+          (typeof parsed?.error === 'string' ? parsed.error : parsed?.error?.message) ||
+          `HTTP ${response.status}`;
+        throw new Error(serverMessage);
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -1340,7 +1343,17 @@ function ChatClientInner() {
       let errorContent = 'Something went wrong. Please try again.';
       if (errorMsg.includes('rate limit') || errorMsg.includes('429'))
         errorContent = "You're sending messages too quickly. Please wait a moment.";
-      else if (errorMsg.includes('token limit')) errorContent = "You've reached your usage limit.";
+      else if (
+        errorMsg.includes('server busy') ||
+        errorMsg.includes('503') ||
+        errorMsg.includes('service_unavailable')
+      )
+        errorContent =
+          "I'm still processing your previous request. Please wait a moment and try again.";
+      else if (errorMsg.includes('token limit') || errorMsg.includes('quota exceeded'))
+        errorContent = "You've reached your usage limit.";
+      else if (errorMsg.includes('duplicate request'))
+        errorContent = 'Please wait a moment before sending the same message again.';
       else if (errorMsg.includes('moderation') || errorMsg.includes('content policy'))
         errorContent = "Your message couldn't be processed due to content guidelines.";
       else if (errorMsg.includes('timeout'))
