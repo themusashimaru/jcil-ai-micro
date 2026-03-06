@@ -127,7 +127,7 @@ export default function ProductsSection() {
 
             <div className="space-y-2 mb-6">
               {[
-                'Claude Opus 4.6, GPT-5.2, Gemini, Grok, DeepSeek',
+                'Claude Sonnet 4.6, GPT-5.2, Gemini, Grok, DeepSeek',
                 'E2B sandboxed code execution',
                 'GitHub integration & project scaffolding',
                 'Web search, scraping & research tools',

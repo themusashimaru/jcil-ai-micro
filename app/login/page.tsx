@@ -31,7 +31,15 @@ function LoginForm() {
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
-      setError(errorParam);
+      // Sanitize: only allow known error codes, not arbitrary text
+      const KNOWN_ERRORS: Record<string, string> = {
+        auth: 'Authentication failed. Please try again.',
+        session_expired: 'Your session has expired. Please sign in again.',
+        access_denied: 'Access denied. Please check your credentials.',
+        callback: 'Sign-in callback failed. Please try again.',
+        default: 'An error occurred. Please try again.',
+      };
+      setError(KNOWN_ERRORS[errorParam] || KNOWN_ERRORS.default);
     }
 
     // Fetch logo from design settings
