@@ -207,6 +207,122 @@ describe('executePDF - add_text', () => {
 });
 
 // -------------------------------------------------------------------
+// add_image operation
+// -------------------------------------------------------------------
+describe('executePDF - add_image', () => {
+  it('should error without pdf_data', async () => {
+    const res = await executePDF(makeCall({ operation: 'add_image', image_data: 'abc' }));
+    expect(res.isError).toBe(true);
+  });
+
+  it('should error without image source', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(makeCall({ operation: 'add_image', pdf_data: pdf }));
+    expect(res.isError).toBe(true);
+    expect(res.content).toContain('image_url or image_data');
+  });
+});
+
+// -------------------------------------------------------------------
+// fill_form operation
+// -------------------------------------------------------------------
+describe('executePDF - fill_form', () => {
+  it('should error without pdf_data', async () => {
+    const res = await executePDF(
+      makeCall({ operation: 'fill_form', form_fields: { name: 'test' } })
+    );
+    expect(res.isError).toBe(true);
+  });
+
+  it('should error without form_fields', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(makeCall({ operation: 'fill_form', pdf_data: pdf }));
+    expect(res.isError).toBe(true);
+  });
+
+  it('should handle PDF without form fields gracefully', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(
+      makeCall({ operation: 'fill_form', pdf_data: pdf, form_fields: { name: 'test' } })
+    );
+    // Should either fill successfully (with failed_fields) or return error about no form
+    const parsed = JSON.parse(res.content);
+    if (res.isError) {
+      expect(parsed.error).toContain('overlay_fields');
+    } else {
+      expect(parsed.failed_fields).toBeDefined();
+    }
+  });
+});
+
+// -------------------------------------------------------------------
+// overlay_fields operation
+// -------------------------------------------------------------------
+describe('executePDF - overlay_fields', () => {
+  it('should place multiple text fields on a PDF', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'overlay_fields',
+      pdf_data: pdfData,
+      fields: [
+        { text: 'John Doe', x: 150, y: 700, font_size: 11 },
+        { text: '03/06/2026', x: 400, y: 700, font_size: 10 },
+        { text: '123 Main St', x: 150, y: 650 },
+      ],
+    });
+    expect(result.operation).toBe('overlay_fields');
+    expect(result.fields_placed).toBe(3);
+    expect(result.fields_requested).toBe(3);
+    expect(result.pdf_base64).toBeDefined();
+  });
+
+  it('should skip fields with missing required properties', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'overlay_fields',
+      pdf_data: pdfData,
+      fields: [
+        { text: 'Valid', x: 100, y: 100 },
+        { text: 'Missing Y', x: 100 }, // no y
+        { x: 100, y: 100 }, // no text
+      ],
+    });
+    expect(result.fields_placed).toBe(1);
+  });
+
+  it('should error without pdf_data', async () => {
+    const res = await executePDF(
+      makeCall({ operation: 'overlay_fields', fields: [{ text: 'a', x: 1, y: 1 }] })
+    );
+    expect(res.isError).toBe(true);
+  });
+
+  it('should error without fields', async () => {
+    const pdf = await createSimplePdf();
+    const res = await executePDF(makeCall({ operation: 'overlay_fields', pdf_data: pdf }));
+    expect(res.isError).toBe(true);
+  });
+});
+
+// -------------------------------------------------------------------
+// get_info with page_sizes
+// -------------------------------------------------------------------
+describe('executePDF - get_info enhanced', () => {
+  it('should return page sizes and form field hints', async () => {
+    const pdfData = await createSimplePdf();
+    const result = await getResult({
+      operation: 'get_info',
+      pdf_data: pdfData,
+    });
+    expect(result.page_sizes).toBeDefined();
+    expect(result.page_sizes[0].width).toBe(612);
+    expect(result.page_sizes[0].height).toBe(792);
+    expect(result.has_form).toBe(false);
+    expect(result.hint).toContain('overlay_fields');
+  });
+});
+
+// -------------------------------------------------------------------
 // Error handling
 // -------------------------------------------------------------------
 describe('executePDF - errors', () => {
