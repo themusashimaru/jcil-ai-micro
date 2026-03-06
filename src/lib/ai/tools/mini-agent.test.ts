@@ -135,7 +135,7 @@ describe('executeMiniAgent - with aspects', () => {
 
     expect(res.isError).toBe(false);
     expect(res.content).toContain('Parallel Research Complete');
-    expect(res.content).toContain('2/2 agents succeeded');
+    expect(res.content).toContain('2/2 agents, real web search');
     expect(res.content).toContain('healthcare');
   });
 });
@@ -219,7 +219,7 @@ describe('executeMiniAgent - agent failures', () => {
     );
 
     expect(res.isError).toBe(false);
-    expect(res.content).toContain('1/2 agents succeeded');
+    expect(res.content).toContain('1/2 agents, real web search');
   });
 });
 

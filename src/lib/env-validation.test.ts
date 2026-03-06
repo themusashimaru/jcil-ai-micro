@@ -20,6 +20,7 @@ describe('validateEnvironment', () => {
   it('should skip validation when SKIP_ENV_VALIDATION=true', () => {
     process.env.SKIP_ENV_VALIDATION = 'true';
     validateEnvironment();
+    // eslint-disable-next-line no-console
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Validation skipped'));
   });
 
@@ -35,6 +36,7 @@ describe('validateEnvironment', () => {
 
     validateEnvironment();
     // Should NOT see "Validation skipped"
+    // eslint-disable-next-line no-console
     expect(console.log).not.toHaveBeenCalledWith(expect.stringContaining('Validation skipped'));
   });
 
@@ -153,6 +155,7 @@ describe('validateEnvironment', () => {
     (process.env as Record<string, string>).NODE_ENV = 'development';
 
     validateEnvironment();
+    // eslint-disable-next-line no-console
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('All required and recommended')
     );

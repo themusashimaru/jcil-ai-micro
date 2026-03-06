@@ -32,11 +32,11 @@ vi.mock('@/lib/security/rate-limit', () => ({
 
 // Mock Supabase - we need a chainable mock
 const mockGetUser = vi.fn();
-const mockSessionSingle = vi.fn();
-const mockMessagesOrder = vi.fn();
-const mockMessagesIlike = vi.fn();
-const mockMessagesLimit = vi.fn();
-const mockMessagesEqRole = vi.fn();
+const _mockSessionSingle = vi.fn();
+const _mockMessagesOrder = vi.fn();
+const _mockMessagesIlike = vi.fn();
+const _mockMessagesLimit = vi.fn();
+const _mockMessagesEqRole = vi.fn();
 
 // Build chainable from() mock
 const mockFrom = vi.fn();

@@ -1,7 +1,7 @@
 // @ts-nocheck - Test file with extensive mocking
 /** @vitest-environment node */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ============================================================================
 // MOCKS
@@ -43,7 +43,7 @@ import {
   getDefaultProviders,
 } from './chat-router';
 import type { CoreMessage } from 'ai';
-import type { UnifiedStreamChunk, UnifiedToolCall, UnifiedToolResult } from './providers/types';
+import type { UnifiedStreamChunk } from './providers/types';
 import type { ProviderChatResult } from './providers/service';
 
 // ============================================================================
@@ -630,7 +630,7 @@ describe('createStreamFromChunks', () => {
     ]);
     const stream = createStreamFromChunks(gen, undefined, onUsage);
     // Should not throw
-    const text = await readStream(stream);
+    const _text = await readStream(stream);
     expect(onUsage).toHaveBeenCalled();
   });
 

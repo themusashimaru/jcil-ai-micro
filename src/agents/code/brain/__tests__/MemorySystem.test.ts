@@ -3,14 +3,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemorySystem, memorySystem } from '../MemorySystem';
-import type {
-  UserProfile,
-  CodingPreferences,
-  ProjectHistory,
-  LearnedPattern,
-  UserFeedback,
-  ContextMemory,
-} from '../MemorySystem';
+import type { UserProfile, LearnedPattern } from '../MemorySystem';
 import type { CodeIntent, ProjectPlan, GeneratedFile } from '../../../core/types';
 
 // ---------------------------------------------------------------------------

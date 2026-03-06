@@ -30,6 +30,7 @@ import {
   Bot,
   Network,
 } from 'lucide-react';
+import Image from 'next/image';
 
 export interface StrategyAttachment {
   id: string;
@@ -294,9 +295,11 @@ export function DeepStrategyModal({ isOpen, onClose, onStart }: DeepStrategyModa
                         className="flex items-center gap-3 p-2 bg-gray-800/50 rounded-lg"
                       >
                         {attachment.preview ? (
-                          <img
+                          <Image
                             src={attachment.preview}
                             alt={attachment.name}
+                            width={40}
+                            height={40}
                             className="w-10 h-10 rounded object-cover"
                           />
                         ) : (

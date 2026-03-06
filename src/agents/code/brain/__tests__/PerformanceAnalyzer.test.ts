@@ -26,13 +26,7 @@ vi.mock('@/lib/ai/providers', () => ({
   }),
 }));
 
-import {
-  PerformanceAnalyzer,
-  performanceAnalyzer,
-  type PerformanceIssue,
-  type PerformanceReport,
-  type OptimizationSuggestion,
-} from '../PerformanceAnalyzer';
+import { PerformanceAnalyzer, performanceAnalyzer } from '../PerformanceAnalyzer';
 import { agentChat } from '@/lib/ai/providers';
 import type { GeneratedFile } from '../../../core/types';
 
@@ -526,13 +520,13 @@ readdirSync('/e');
         `const el = document.querySelector('.a');
 const el2 = document.getElementById('b');`
       );
-      const report = await analyzer.analyze([file]);
+      const _report = await analyzer.analyze([file]);
       // DOM manipulation issues are medium (5 pts each)
       // There should be at least 1 dom manipulation detected (merged as single pattern match)
       // We might get 1 issue = 95 which is still A, let's use a file with more known issues
       // Using a sync file op (high=10) for a known grade B scenario
       const file2 = createFile('utils/io.ts', `const d = readFileSync('/file');`);
-      const report2 = await analyzer.analyze([file2]);
+      const _report2 = await analyzer.analyze([file2]);
       // 1 high = -10 => score = 90, grade = A
       // We need a scenario for exactly B. Let's combine.
       // High(10) + medium(5) = 85 => grade B
