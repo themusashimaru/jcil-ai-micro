@@ -429,6 +429,15 @@ export const chatRequestSchema = z.object({
       budgetTokens: z.number().int().min(1000).max(50000).optional(),
     })
     .optional(),
+  // Device info for OS-aware IT support responses
+  deviceInfo: z
+    .object({
+      os: z.string().max(50),
+      osVersion: z.string().max(50),
+      browser: z.string().max(50),
+      deviceType: z.enum(['desktop', 'tablet', 'mobile']),
+    })
+    .optional(),
 });
 
 /** Generate title request */

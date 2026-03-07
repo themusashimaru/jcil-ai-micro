@@ -279,12 +279,20 @@ SECURITY:
   return prompt;
 }
 
+export interface DeviceInfo {
+  os: string;
+  osVersion: string;
+  browser: string;
+  deviceType: 'desktop' | 'tablet' | 'mobile';
+}
+
 export interface ContextSources {
   customInstructions?: string;
   memoryContext?: string;
   learningContext?: string;
   documentContext?: string;
   composioAddition?: string;
+  deviceInfo?: DeviceInfo;
 }
 
 /**
@@ -333,6 +341,15 @@ export function buildFullSystemPrompt(contexts: ContextSources): string {
   let fullSystemPrompt = buildBaseSystemPrompt();
   const baseTokens = estimateTokens(fullSystemPrompt);
   let remainingBudget = MAX_SYSTEM_PROMPT_TOKENS - baseTokens;
+
+  // Inject device info so AI can give OS-specific IT support
+  if (contexts.deviceInfo) {
+    const { os, osVersion, browser, deviceType } = contexts.deviceInfo;
+    const deviceLabel = `${os}${osVersion ? ' ' + osVersion : ''}, ${browser}, ${deviceType}`;
+    const deviceBlock = `\n\nUSER'S DEVICE: ${deviceLabel}\nWhen giving tech support or IT help, tailor instructions to this OS and browser. For visual tasks (changing settings, navigating menus), consider using the desktop_sandbox tool to show a live demo.`;
+    fullSystemPrompt += deviceBlock;
+    remainingBudget -= estimateTokens(deviceBlock);
+  }
 
   // CHAT-009: Inject user's custom instructions (highest priority after base prompt)
   // Sanitized to prevent prompt injection via custom instructions

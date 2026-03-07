@@ -32,6 +32,10 @@ const TOOL_ICONS: Record<string, string> = {
   video_gen: '🎬',
   file_analysis: '📊',
   amazon_search: '🛒',
+  desktop_sandbox: '🖥️',
+  screenshot: '📸',
+  run_code: '⚡',
+  workspace: '💻',
 };
 
 const TOOL_STATUS_COLORS: Record<string, string> = {
