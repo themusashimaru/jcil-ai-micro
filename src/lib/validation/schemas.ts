@@ -172,7 +172,15 @@ export const ticketReplySchema = z.object({
 
 /** File upload metadata */
 export const fileUploadSchema = z.object({
-  filename: z.string().min(1).max(255),
+  filename: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(
+      /^[a-zA-Z0-9][a-zA-Z0-9._\- ()]*$/,
+      'Filename must start with alphanumeric and contain only safe characters'
+    )
+    .refine((name) => !name.includes('..'), 'Filename must not contain path traversal'),
   content_type: z.string().max(100),
   size: z.number().int().min(1).max(FILE_LIMITS.MAX_FILE_SIZE),
 });
@@ -478,7 +486,11 @@ export const codeLabSessionCreateSchema = z.object({
 
 /** Code lab file operation */
 export const codeLabFileSchema = z.object({
-  path: z.string().min(1).max(1000),
+  path: z
+    .string()
+    .min(1)
+    .max(1000)
+    .refine((p) => !p.includes('..'), 'Path must not contain directory traversal (..)'),
   content: z.string().max(10000000).optional(), // 10MB max
   operation: z.enum(['read', 'write', 'delete', 'create']).optional(),
 });

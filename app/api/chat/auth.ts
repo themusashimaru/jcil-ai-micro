@@ -132,9 +132,10 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
         const rawTier = userData?.subscription_tier || 'free';
         const subStatus = userData?.subscription_status || 'active';
 
-        // Downgrade to free if subscription is past_due or canceled
-        // Users with failed payments should not keep paid access
-        if (rawTier !== 'free' && (subStatus === 'past_due' || subStatus === 'canceled')) {
+        // Only grant paid tier if subscription is explicitly active or trialing
+        // All other statuses (past_due, canceled, unpaid, incomplete, paused) → free
+        const isActiveSubscription = subStatus === 'active' || subStatus === 'trialing';
+        if (rawTier !== 'free' && !isActiveSubscription) {
           log.warn('User has non-active subscription, downgrading to free', {
             userId: user.id,
             tier: rawTier,

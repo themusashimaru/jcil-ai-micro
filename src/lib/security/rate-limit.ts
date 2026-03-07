@@ -151,8 +151,14 @@ async function checkRateLimitRedis(
       resetAt,
     };
   } catch (error) {
-    log.error('Redis rate limit error, falling back to memory', error as Error);
-    // Fallback to memory on Redis error
+    log.error('Redis rate limit error', error as Error);
+    // In production, fail CLOSED — reject the request rather than falling back
+    // to in-memory counters that reset on every serverless cold start
+    if (process.env.NODE_ENV === 'production') {
+      log.error('Redis rate limit error in production — fail-closed, request rejected');
+      return { allowed: false, remaining: 0, resetAt: Date.now() + 60000 };
+    }
+    // In dev/test, fall back to memory for convenience
     return checkRateLimitMemory(identifier, config);
   }
 }

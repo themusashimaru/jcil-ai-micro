@@ -345,6 +345,31 @@ export async function tryConversationalImageEdit(ctx: ImageRouteContext): Promis
     try {
       const editPrompt = conversationalEditDetection.extractedPrompt || ctx.lastUserContent;
 
+      // SSRF protection: only fetch from known image hosting domains
+      const allowedImageDomains = [
+        'supabase.co',
+        'supabase.in',
+        'api.bfl.ml',
+        'bfl.ml',
+        'replicate.delivery',
+        'oaidalleapiprodscus.blob.core.windows.net',
+      ];
+      try {
+        const imageUrl = new URL(previousImageUrl);
+        const isDomainAllowed = allowedImageDomains.some(
+          (d) => imageUrl.hostname === d || imageUrl.hostname.endsWith(`.${d}`)
+        );
+        if (!isDomainAllowed) {
+          log.warn('Image URL domain not in allowlist', {
+            hostname: imageUrl.hostname,
+          });
+          return null;
+        }
+      } catch {
+        log.warn('Invalid image URL for editing', { url: previousImageUrl.substring(0, 50) });
+        return null;
+      }
+
       // Fetch the previous image and convert to base64
       const imageResponse = await fetch(previousImageUrl);
       if (!imageResponse.ok) {
