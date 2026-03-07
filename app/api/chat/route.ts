@@ -38,6 +38,7 @@ import { searchUserDocuments } from '@/lib/documents/userSearch';
 // Local modules
 import { authenticateRequest } from './auth';
 import { getUserBYOKConfig } from '@/lib/ai/byok';
+import { getProviderAndModel } from '@/lib/ai/providers/registry';
 import { checkChatRateLimit } from './rate-limiting';
 import { getLastUserContent, truncateMessages, clampMaxTokens } from './helpers';
 import { buildFullSystemPrompt } from './system-prompt';
@@ -360,7 +361,6 @@ export async function POST(request: NextRequest) {
 
     // ── ROUTE 4: Claude Chat (main conversational flow) ──
     const truncatedMessages = truncateMessages(messages as CoreMessage[]);
-    const clampedMaxTokens = clampMaxTokens(max_tokens);
 
     // Build system prompt with all context (smart tiered tool loading)
     const { tools, composioToolContext } = await loadAllTools(userId, lastUserContent);
@@ -394,6 +394,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Clamp max tokens using the model's actual output limit from the registry
+    const modelInfo = getProviderAndModel(selectedModel);
+    const clampedMaxTokens = clampMaxTokens(max_tokens, modelInfo?.model.maxOutputTokens);
+
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
     const toolExecutor = createToolExecutor(userId, sessionId);
 
@@ -426,14 +430,19 @@ export async function POST(request: NextRequest) {
       userApiKey,
     };
 
-    // Non-Claude providers use adapter directly
-    if (selectedProviderId !== 'claude') {
+    // All providers (Claude + BYOK non-Claude) go through the full chat router
+    // with tool support. The chat router already handles multi-provider adapters.
+    // Only fall back to the lightweight handleNonClaudeProvider for server-keyed
+    // non-Claude providers that don't need tool support.
+    const useFullRouter = selectedProviderId === 'claude' || !!userApiKey;
+
+    if (!useFullRouter) {
       isStreamingResponse = true;
       slotAcquired = false;
       return handleNonClaudeProvider(streamConfig);
     }
 
-    // Claude provider with full tool support
+    // Full tool support for Claude and BYOK providers
     isStreamingResponse = true;
     slotAcquired = false;
     return await handleClaudeProvider({ ...streamConfig, pendingRequestId });

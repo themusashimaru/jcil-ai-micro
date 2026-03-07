@@ -197,6 +197,7 @@ export interface Message {
   model?: string; // Model used for this response (gpt-5-nano, gpt-5-mini, etc.)
   timestamp: Date;
   isStreaming?: boolean;
+  isError?: boolean; // True for error messages — enables retry UI
 }
 
 export interface ToolCall {

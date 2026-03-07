@@ -118,6 +118,11 @@ export function ChatMainArea({
     []
   );
   const handleClearReply = useCallback(() => setReplyingTo(null), [setReplyingTo]);
+  const handleRetry = useCallback(() => {
+    if (lastUserMessage) {
+      handleSendMessageRef.current(lastUserMessage, []);
+    }
+  }, [lastUserMessage]);
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -188,6 +193,7 @@ export function ChatMainArea({
             onActionEdit={handleActionEdit}
             onActionCancel={handleActionCancel}
             onFollowupSelect={handleFollowupSelect}
+            onRetry={handleRetry}
           />
         </ErrorBoundary>
 

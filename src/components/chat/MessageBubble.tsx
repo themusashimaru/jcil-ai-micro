@@ -51,6 +51,7 @@ interface MessageBubbleProps {
   onActionSend?: (preview: ActionPreviewData) => Promise<void>;
   onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
   onActionCancel?: (preview: ActionPreviewData) => void;
+  onRetry?: () => void;
 }
 
 export const MessageBubble = memo(
@@ -64,6 +65,7 @@ export const MessageBubble = memo(
     onActionSend,
     onActionEdit,
     onActionCancel,
+    onRetry,
   }: MessageBubbleProps) {
     const isUser = message.role === 'user';
     const [thinkingExpanded, setThinkingExpanded] = useState(false);
@@ -110,6 +112,8 @@ export const MessageBubble = memo(
               {message.toolCalls.map((tool) => (
                 <div
                   key={tool.id}
+                  role="status"
+                  aria-label={`Tool ${tool.name.replace(/_/g, ' ')}: ${tool.status}`}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${TOOL_STATUS_COLORS[tool.status] || TOOL_STATUS_COLORS.pending}`}
                 >
                   <span>{TOOL_ICONS[tool.name] || '🔧'}</span>
@@ -153,7 +157,7 @@ export const MessageBubble = memo(
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={message.imageUrl}
-                alt="AI-generated image"
+                alt={`AI-generated image${message.content ? `: ${message.content.slice(0, 120)}` : ''}`}
                 className="w-full h-auto rounded-lg"
               />
               <DownloadLink
@@ -292,7 +296,13 @@ export const MessageBubble = memo(
               <MessageGeneratedFiles files={message.files} />
             )}
 
-            <MessageFooter message={message} isUser={isUser} isAdmin={isAdmin} onReply={onReply} />
+            <MessageFooter
+              message={message}
+              isUser={isUser}
+              isAdmin={isAdmin}
+              onReply={onReply}
+              onRetry={message.isError ? onRetry : undefined}
+            />
           </div>
         </div>
       </div>

@@ -75,7 +75,33 @@ export function recordPageVisit(_sessionId: string, _url: string): void {
   // No-op until real visit tracking is implemented
 }
 
-/** Sanitize tool output (pass-through) */
+/**
+ * Sanitize tool output to prevent indirect prompt injection.
+ * Strips patterns that could trick the model into changing behavior
+ * when processing tool results from external sources.
+ */
 export function sanitizeOutput(output: string): string {
-  return output;
+  if (!output) return output;
+
+  let sanitized = output;
+
+  // Strip system/instruction XML tags from external content
+  sanitized = sanitized.replace(
+    /<\/?(?:system|instructions?|prompt|override|admin|root|command|execute|ignore|forget|reset|mode|persona|role)[^>]*>/gi,
+    ''
+  );
+
+  // Strip "ignore previous instructions" patterns from tool output
+  sanitized = sanitized.replace(
+    /(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+)?(?:previous|prior|above|earlier|system)\s+(?:instructions?|prompts?|rules?|guidelines?|context)/gi,
+    '[content filtered]'
+  );
+
+  // Strip role reassignment attempts from external content
+  sanitized = sanitized.replace(
+    /(?:you\s+are\s+now|act\s+as|pretend\s+(?:to\s+be|you\s+are)|from\s+now\s+on\s+you\s+are|new\s+instructions?:)/gi,
+    '[content filtered]'
+  );
+
+  return sanitized;
 }

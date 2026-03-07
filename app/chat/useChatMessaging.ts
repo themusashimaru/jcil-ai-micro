@@ -15,6 +15,18 @@ import type { ChatState } from './useChatState';
 
 const log = logger('ChatClient');
 
+// ── Chat messaging constants ──
+/** Max messages before triggering continuation prompt */
+const HARD_CONTEXT_LIMIT = 45;
+/** Max chars to show from a quoted reply */
+const REPLY_QUOTE_MAX_CHARS = 200;
+/** Timeout before aborting a chat request (ms) */
+const CHAT_TIMEOUT_MS = 180_000;
+/** Delay before showing "slow response" warning (ms) */
+const SLOW_RESPONSE_WARNING_MS = 30_000;
+/** Delay before retrying after continuation (ms) */
+const CONTINUATION_RETRY_DELAY_MS = 500;
+
 interface UseChatMessagingArgs {
   state: ChatState;
   handleChatContinuation: () => Promise<void>;
@@ -60,12 +72,14 @@ export function useChatMessaging({
     if (!content.trim() && attachments.length === 0) return;
     if (isStreaming) return;
 
-    const HARD_CONTEXT_LIMIT = 45;
     if (messages.length >= HARD_CONTEXT_LIMIT && !continuationDismissed) {
       try {
         await handleChatContinuation();
         setContinuationDismissed(true);
-        setTimeout(() => handleSendMessage(content, attachments, searchMode, selectedRepo), 500);
+        setTimeout(
+          () => handleSendMessage(content, attachments, searchMode, selectedRepo),
+          CONTINUATION_RETRY_DELAY_MS
+        );
       } catch {
         setContinuationDismissed(true);
       }
@@ -194,8 +208,8 @@ export function useChatMessaging({
     let finalContent = content;
     if (replyingTo) {
       const quoted =
-        replyingTo.content.length > 200
-          ? replyingTo.content.slice(0, 200) + '...'
+        replyingTo.content.length > REPLY_QUOTE_MAX_CHARS
+          ? replyingTo.content.slice(0, REPLY_QUOTE_MAX_CHARS) + '...'
           : replyingTo.content;
       finalContent = `[Replying to: "${quoted}"]\n\n${content}`;
       setReplyingTo(null);
@@ -264,9 +278,31 @@ export function useChatMessaging({
 
       if (abortControllerRef.current) abortControllerRef.current.abort();
       abortControllerRef.current = new AbortController();
+
+      // Timeout: show a warning at 30s, abort at 3 minutes
+      const slowWarningId = setTimeout(() => {
+        setMessages((prev) => prev.map((msg) => (msg.id === userMessageId ? msg : msg)));
+        // Show a transient status — doesn't replace content, just logs
+        log.info('Response taking longer than expected', { chatId: newChatId });
+      }, SLOW_RESPONSE_WARNING_MS);
+
       const chatTimeoutId = setTimeout(() => {
-        if (abortControllerRef.current) abortControllerRef.current.abort();
-      }, 180_000);
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          // Show explicit timeout message to user
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content:
+                'The request timed out after 3 minutes. This can happen with complex queries. Please try again, or try breaking your request into smaller parts.',
+              timestamp: new Date(),
+            },
+          ]);
+          setIsStreaming(false);
+        }
+      }, CHAT_TIMEOUT_MS);
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -283,6 +319,7 @@ export function useChatMessaging({
       });
 
       clearTimeout(chatTimeoutId);
+      clearTimeout(slowWarningId);
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -508,7 +545,18 @@ export function useChatMessaging({
             }
           } catch (readerError) {
             if (accumulatedContent.length > 0) {
+              // Stream was interrupted but we have partial content — show it
+              // with truncation notice so user knows it was cut off
               streamFinalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
+              streamFinalContent +=
+                '\n\n---\n*Response was interrupted. You can ask me to continue.*';
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: streamFinalContent, isStreaming: false }
+                    : msg
+                )
+              );
             } else throw readerError;
           } finally {
             reader.releaseLock();
@@ -743,6 +791,7 @@ export function useChatMessaging({
           id: crypto.randomUUID(),
           role: 'assistant',
           content: errorContent,
+          isError: true,
           timestamp: new Date(),
         },
       ]);

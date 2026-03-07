@@ -10,6 +10,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { CoreMessage } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireUser } from '@/lib/auth/user-guard';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
@@ -37,17 +38,19 @@ import { logger } from '@/lib/logger';
 import { safeDecrypt as decryptToken } from '@/lib/security/crypto';
 import { getProviderForModel, getProviderAndModel } from '@/lib/ai/providers/registry';
 import { getAdapter } from '@/lib/ai/providers/adapters/factory';
-import type { UnifiedMessage, UnifiedToolCall, ProviderId } from '@/lib/ai/providers/types';
+import type {
+  UnifiedMessage,
+  UnifiedToolCall,
+  UnifiedTool,
+  ProviderId,
+} from '@/lib/ai/providers/types';
+import { routeChatWithTools, type ToolExecutor } from '@/lib/ai/chat-router';
 import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
-import { getAvailableChatTools, executeChatTool } from '@/lib/ai/tools';
-import {
-  getComposioToolsForUser,
-  executeComposioTool,
-  isComposioTool,
-  isComposioConfigured,
-} from '@/lib/composio';
+import { executeChatTool } from '@/lib/ai/tools';
+import { loadAllTools } from '@/app/api/chat/chat-tools';
+import { executeComposioTool, isComposioTool } from '@/lib/composio';
 import { trackTokenUsage } from '@/lib/usage/track';
 import {
   canMakeRequest,
@@ -658,9 +661,10 @@ Keep it professional and focused on development.`,
 
             try {
               const anthropic = getAnthropicClient();
+              const fallbackModelInfo = getProviderAndModel(selectedModel);
               const fallbackResponse = await anthropic.messages.create({
                 model: selectedModel,
-                max_tokens: 4096,
+                max_tokens: fallbackModelInfo?.model.maxOutputTokens || 16384,
                 system: `You are Claude in Code Lab. The user asked a search question but web search failed.
 Provide the best answer you can from your training knowledge.
 Be honest about knowledge cutoff limitations when relevant.`,
@@ -762,48 +766,24 @@ Be honest about knowledge cutoff limitations when relevant.`,
     // Follow-up suggestions
     systemPrompt += `\n\nFOLLOW-UP SUGGESTIONS:\nAt the end of substantive responses (NOT greetings, NOT simple yes/no answers), include exactly 2-3 intelligent follow-up questions the user might want to ask next. Format them as:\n<suggested-followups>\n["Question 1?", "Question 2?", "Question 3?"]\n</suggested-followups>\nRules:\n- Questions should feel natural and insightful, like what a smart developer would ask next\n- They should deepen the conversation, not repeat what was already covered\n- Keep each question under 60 characters\n- Do NOT include follow-ups for greetings or one-word answers\n- The follow-ups tag must be the VERY LAST thing in your response`;
 
-    // Load tools
-    let chatTools: Awaited<ReturnType<typeof getAvailableChatTools>> = [];
+    // Load tools — unified loading with dedup, MCP, and Composio
+    let chatTools: UnifiedTool[] = [];
     try {
-      chatTools = await getAvailableChatTools();
+      const loaded = await loadAllTools(user.id, content);
+      chatTools = loaded.tools;
+      if (loaded.composioToolContext?.systemPromptAddition) {
+        systemPrompt += loaded.composioToolContext.systemPromptAddition;
+      }
       log.info('Loaded chat tools for Code Lab', { count: chatTools.length });
     } catch (toolErr) {
       log.warn('Failed to load chat tools', { error: toolErr });
-    }
-
-    // Composio / Connectors
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let composioToolContext: any = null;
-    if (isComposioConfigured()) {
-      try {
-        composioToolContext = await getComposioToolsForUser(user.id);
-        if (composioToolContext?.tools?.length > 0) {
-          for (const composioTool of composioToolContext.tools) {
-            chatTools.push({
-              name: composioTool.name,
-              description: composioTool.description,
-              parameters: composioTool.input_schema,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any);
-          }
-          log.info('Loaded Composio tools for Code Lab', {
-            count: composioToolContext.tools.length,
-            hasGitHub: composioToolContext.hasGitHub,
-          });
-
-          if (composioToolContext.systemPromptAddition) {
-            systemPrompt += composioToolContext.systemPromptAddition;
-          }
-        }
-      } catch (composioErr) {
-        log.warn('Failed to load Composio tools', { error: composioErr });
-      }
     }
 
     const encoder = new TextEncoder();
 
     // ========================================
     // NON-CLAUDE PROVIDERS (OpenAI, xAI, DeepSeek, Google)
+    // For BYOK users, pass tools so they get full capability parity.
     // ========================================
     if (providerId && providerId !== 'claude') {
       return handleNonClaudeProvider(
@@ -817,7 +797,8 @@ Be honest about knowledge cutoff limitations when relevant.`,
         imageAttachments,
         systemPrompt,
         sessionId,
-        encoder
+        encoder,
+        chatTools
       );
     }
 
@@ -928,21 +909,118 @@ async function handleNonClaudeProvider(
   imageAttachments: Array<{ name: string; type: string; data: string }>,
   systemPrompt: string,
   sessionId: string,
-  encoder: TextEncoder
+  encoder: TextEncoder,
+  chatTools: UnifiedTool[] = []
 ): Promise<Response> {
   log.info('Using non-Claude provider', { providerId, model: selectedModel });
 
+  // Check for BYOK early — if present, route through the full chat router with tools
+  const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
+  const userApiKey = byokConfig?.apiKey || null;
+  const effectiveModel = byokConfig?.model || selectedModel;
+
+  // BYOK users get routed through routeChatWithTools for full tool support
+  if (userApiKey && chatTools.length > 0) {
+    log.info('BYOK detected — routing through full chat router with tools', {
+      providerId,
+      model: effectiveModel,
+      toolCount: chatTools.length,
+    });
+
+    // Build CoreMessage array from history + current message
+    const coreMessages: CoreMessage[] = (history || []).map(
+      (m: { role: string; content: string }) => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.content,
+      })
+    );
+    if (enhancedContent) {
+      coreMessages.push({ role: 'user', content: enhancedContent });
+    }
+
+    // Convert tools to unified format
+    const unifiedTools: UnifiedTool[] = chatTools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters || { type: 'object' as const, properties: {} },
+    }));
+
+    // Create tool executor (single tool call → single result)
+    const toolExec: ToolExecutor = async (toolCall) => {
+      try {
+        const result = await executeChatTool(toolCall);
+        return {
+          toolCallId: toolCall.id,
+          content:
+            typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
+          isError: result.isError || false,
+        };
+      } catch (err) {
+        return {
+          toolCallId: toolCall.id,
+          content: `Tool error: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          isError: true,
+        };
+      }
+    };
+
+    const routeResult = await routeChatWithTools(
+      coreMessages,
+      {
+        providerId: providerId as ProviderId,
+        model: effectiveModel,
+        systemPrompt,
+        maxTokens: providerInfo?.model.maxOutputTokens || 8192,
+        temperature: 0.7,
+        tools: unifiedTools,
+        userApiKey,
+        onUsage: (usage) => {
+          trackTokenUsage({
+            userId: user.id,
+            modelName: effectiveModel,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            source: 'code-lab',
+            conversationId: sessionId,
+          }).catch((err: unknown) =>
+            log.error('Token tracking failed', err instanceof Error ? err : undefined)
+          );
+        },
+      },
+      toolExec
+    );
+
+    // Wrap the stream to capture content for DB save
+    const wrappedStream = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, ctrl) {
+        ctrl.enqueue(chunk);
+      },
+      flush() {
+        // Content is saved via usage callback; no extra action needed
+      },
+    });
+
+    const finalStream = routeResult.stream.pipeThrough(wrappedStream);
+    return new Response(finalStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Model-Used': routeResult.model,
+        'X-Provider': routeResult.providerId,
+        'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
+        'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
+      },
+    });
+  }
+
+  // Server-keyed non-Claude providers — simple adapter path (no tools)
   const stream = new ReadableStream({
     async start(controller) {
       const keepalive = createKeepalive(controller, encoder);
       let fullContent = '';
 
       try {
-        const byokConfig = await getUserBYOKConfig(supabase, user.id, providerId);
-        const userApiKey = byokConfig?.apiKey || null;
-        const effectiveModel = byokConfig?.model || selectedModel;
-
-        // Validate API key availability
+        // Validate API key availability (no BYOK at this point)
         if (!userApiKey) {
           const apiKeyEnvMap: Record<string, string[]> = {
             openai: ['OPENAI_API_KEY', 'OPENAI_API_KEY_1'],
@@ -1009,7 +1087,6 @@ async function handleNonClaudeProvider(
           maxTokens: providerInfo?.model.maxOutputTokens || 8192,
           temperature: 0.7,
           systemPrompt,
-          ...(userApiKey ? { userApiKey } : {}),
         });
 
         for await (const chunk of chatStream) {
@@ -1080,7 +1157,7 @@ async function handleClaudeProvider(
   enhancedContent: string,
   imageAttachments: Array<{ name: string; type: string; data: string }>,
   systemPrompt: string,
-  chatTools: Awaited<ReturnType<typeof getAvailableChatTools>>,
+  chatTools: UnifiedTool[],
   selectedModel: string,
   modelId: string | undefined,
   thinkingEnabled: boolean,
@@ -1147,11 +1224,13 @@ async function handleClaudeProvider(
           log.info('Using default Opus 4.6 for Code Lab', { model: effectiveModel });
         }
 
-        // Build API parameters
+        // Build API parameters — use the model's actual output limit
+        const modelInfo = getProviderAndModel(effectiveModel);
+        const modelMaxTokens = modelInfo?.model.maxOutputTokens || 16384;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const apiParams: any = {
           model: effectiveModel,
-          max_tokens: 8192,
+          max_tokens: modelMaxTokens,
           system: systemPrompt,
           messages,
           stream: true,
@@ -1172,7 +1251,7 @@ async function handleClaudeProvider(
           (effectiveModel.includes('sonnet') || effectiveModel.includes('opus'))
         ) {
           apiParams.thinking = { type: 'enabled', budget_tokens: thinkingBudget };
-          apiParams.max_tokens = Math.max(16000, thinkingBudget + 8192);
+          apiParams.max_tokens = Math.max(modelMaxTokens, thinkingBudget + modelMaxTokens);
           log.info('Extended thinking enabled', {
             budget: thinkingBudget,
             model: effectiveModel,
@@ -1389,7 +1468,7 @@ async function handleClaudeProvider(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const continueParams: any = {
               model: effectiveModel,
-              max_tokens: 8192,
+              max_tokens: modelMaxTokens,
               system: systemPrompt,
               messages: currentMessages,
               stream: true,

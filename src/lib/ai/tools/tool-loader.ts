@@ -377,6 +377,32 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeAccessibility',
     availabilityExport: 'isAccessibilityAvailable',
   },
+
+  // Document tools
+  create_presentation: {
+    importPath: './presentation-tool',
+    toolExport: 'presentationTool',
+    executorExport: 'executePresentation',
+    availabilityExport: 'isPresentationAvailable',
+  },
+  create_email_template: {
+    importPath: './email-template-tool',
+    toolExport: 'emailTemplateTool',
+    executorExport: 'executeEmailTemplate',
+    availabilityExport: 'isEmailTemplateAvailable',
+  },
+  document_template: {
+    importPath: './document-templates-tool',
+    toolExport: 'documentTemplatesTool',
+    executorExport: 'executeDocumentTemplate',
+    availabilityExport: 'isDocumentTemplateAvailable',
+  },
+  mail_merge: {
+    importPath: './mail-merge-tool',
+    toolExport: 'mailMergeTool',
+    executorExport: 'executeMailMerge',
+    availabilityExport: 'isMailMergeAvailable',
+  },
 };
 
 // ============================================================================
@@ -453,9 +479,7 @@ const TOOL_DEFS_TTL_MS = 60_000; // 1 minute
  *
  * @param tiers - Which tiers to include. Defaults to all tiers.
  */
-export async function loadAvailableToolDefinitions(
-  tiers?: ToolTier[]
-): Promise<UnifiedTool[]> {
+export async function loadAvailableToolDefinitions(tiers?: ToolTier[]): Promise<UnifiedTool[]> {
   const tierKey = tiers ? tiers.sort().join(',') : 'all';
 
   // Return cached definitions if still fresh
