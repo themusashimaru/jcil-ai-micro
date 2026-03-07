@@ -16,8 +16,14 @@ const nextConfig = {
 
   // App Router optimizations
   experimental: {
-    // Server-side native packages (for @napi-rs/canvas) — must be under experimental in Next.js 14.x
-    serverComponentsExternalPackages: ['@napi-rs/canvas'],
+    // Server-side native packages — must be under experimental in Next.js 14.x
+    // These packages use dynamic imports or native modules that break webpack bundling
+    serverComponentsExternalPackages: [
+      '@napi-rs/canvas',
+      '@e2b/code-interpreter',
+      '@e2b/desktop',
+      'puppeteer-core',
+    ],
     serverActions: {
       bodySizeLimit: '10mb',
     },

@@ -12,6 +12,7 @@ import { detectDocumentTypeFromMessage, isGenericTitle, formatMessagesForApi } f
 import { saveMessageToDatabase, createConversationInDatabase, safeJsonParse } from './chatApi';
 import { processDocumentMarkers } from './documentMarkers';
 import type { ChatState } from './useChatState';
+import { useDeviceInfo } from '@/hooks/useDeviceInfo';
 
 const log = logger('ChatClient');
 
@@ -62,6 +63,8 @@ export function useChatMessaging({
     profile,
     hasProfile,
   } = state;
+
+  const deviceInfo = useDeviceInfo();
 
   const handleSendMessage = async (
     content: string,
@@ -314,6 +317,7 @@ export function useChatMessaging({
           searchMode: searchMode || 'none',
           selectedRepo: selectedRepo || undefined,
           provider: selectedProvider,
+          deviceInfo,
         }),
         signal: abortControllerRef.current.signal,
       });

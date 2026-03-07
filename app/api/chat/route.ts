@@ -109,8 +109,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { messages, temperature, max_tokens, searchMode, conversationId, provider, thinking } =
-      validation.data;
+    const {
+      messages,
+      temperature,
+      max_tokens,
+      searchMode,
+      conversationId,
+      provider,
+      thinking,
+      deviceInfo,
+    } = validation.data;
 
     // ── Authentication + CSRF ──
     const authResult = await authenticateRequest(request);
@@ -371,6 +379,7 @@ export async function POST(request: NextRequest) {
       learningContext,
       documentContext,
       composioAddition: composioToolContext?.systemPromptAddition,
+      deviceInfo,
     });
 
     log.debug('Available chat tools', { toolCount: tools.length });

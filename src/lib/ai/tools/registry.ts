@@ -49,7 +49,7 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 51 tools total — all with real implementations.
+ * 56 tools total — all with real implementations.
  */
 export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   // =========================================================================
@@ -177,6 +177,16 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     dependencies: [],
   },
 
+  {
+    name: 'desktop_sandbox',
+    file: 'desktop-sandbox-tool.ts',
+    status: 'active',
+    category: 'web',
+    tier: 'extended',
+    description: 'Full virtual Linux desktop with GUI for computer-use (E2B Desktop)',
+    dependencies: ['@e2b/desktop'],
+  },
+
   // =========================================================================
   // CODE — Development and code-related tools
   // =========================================================================
@@ -224,6 +234,34 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     tier: 'extended',
     description: 'Run SQL queries in-browser via SQL.js',
     dependencies: ['sql.js'],
+  },
+
+  {
+    name: 'sandbox_files',
+    file: 'sandbox-files-tool.ts',
+    status: 'active',
+    category: 'code',
+    tier: 'extended',
+    description: 'Upload, download, and manage files in E2B sandbox',
+    dependencies: ['E2B'],
+  },
+  {
+    name: 'sandbox_test_runner',
+    file: 'sandbox-test-runner-tool.ts',
+    status: 'active',
+    category: 'code',
+    tier: 'extended',
+    description: 'Run tests, linting, type-checking, and builds in isolated E2B sandbox',
+    dependencies: ['E2B'],
+  },
+  {
+    name: 'sandbox_template',
+    file: 'sandbox-template-tool.ts',
+    status: 'active',
+    category: 'code',
+    tier: 'extended',
+    description: 'Create specialized sandboxes from pre-configured templates',
+    dependencies: ['E2B'],
   },
 
   // =========================================================================
@@ -367,6 +405,16 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     tier: 'specialist',
     description: 'Ray tracing renderer for 3D scenes',
     dependencies: [],
+  },
+
+  {
+    name: 'e2b_visualize',
+    file: 'e2b-chart-tool.ts',
+    status: 'active',
+    category: 'media',
+    tier: 'extended',
+    description: 'Generate charts/visualizations via matplotlib/seaborn/plotly in E2B sandbox',
+    dependencies: ['E2B'],
   },
 
   // =========================================================================

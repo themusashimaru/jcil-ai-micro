@@ -71,7 +71,7 @@ export function CodeLab({ userId: _userId }: CodeLabProps) {
 
   const [workspacePanelOpen, setWorkspacePanelOpen] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<
-    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'memory' | 'tasks'
+    'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'memory' | 'tasks' | 'desktop'
   >('files');
 
   const { backgroundAgents } = useBackgroundAgents();

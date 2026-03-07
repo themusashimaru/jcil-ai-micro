@@ -15,6 +15,7 @@ import { CodeLabDebugPanel } from './CodeLabDebugPanel';
 import { CodeLabPlanView } from './CodeLabPlanView';
 import { CodeLabMemoryEditor } from './CodeLabMemoryEditor';
 import { CodeLabComponentBoundary } from './CodeLabComponentBoundary';
+import { CodeLabLiveDesktop } from './CodeLabLiveDesktop';
 import type { CodeLabSession } from './types';
 import type { FileNode } from './CodeLabLiveFileTree';
 import type { FileDiff } from './CodeLabDiffViewer';
@@ -22,7 +23,16 @@ import type { Plan } from '@/lib/workspace/plan-mode';
 
 const log = logger('WorkspacePanel');
 
-type WorkspaceTab = 'files' | 'diff' | 'deploy' | 'visual' | 'debug' | 'plan' | 'memory' | 'tasks';
+type WorkspaceTab =
+  | 'files'
+  | 'diff'
+  | 'deploy'
+  | 'visual'
+  | 'debug'
+  | 'plan'
+  | 'memory'
+  | 'tasks'
+  | 'desktop';
 
 interface BackgroundAgent {
   id: string;
@@ -136,7 +146,13 @@ export function CodeLabWorkspacePanel({
           title="Close panel (Esc)"
           aria-label="Close workspace panel"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -195,7 +211,8 @@ export function CodeLabWorkspacePanel({
           aria-selected={activeTab === 'plan'}
           aria-label={`Plan panel${currentPlan && currentPlan.status === 'in_progress' ? ' (in progress)' : ''}`}
         >
-          Plan {currentPlan && currentPlan.status === 'in_progress' && <span aria-hidden="true">●</span>}
+          Plan{' '}
+          {currentPlan && currentPlan.status === 'in_progress' && <span aria-hidden="true">●</span>}
         </button>
         <button
           className={activeTab === 'memory' ? 'active' : ''}
@@ -220,6 +237,16 @@ export function CodeLabWorkspacePanel({
           Tasks{' '}
           {backgroundAgents.filter((a) => a.status === 'running').length > 0 &&
             `(${backgroundAgents.filter((a) => a.status === 'running').length})`}
+        </button>
+        <button
+          className={activeTab === 'desktop' ? 'active' : ''}
+          onClick={() => setActiveTab('desktop')}
+          role="tab"
+          aria-selected={activeTab === 'desktop'}
+          aria-label="Live Desktop panel"
+          title="Live Desktop (E2B)"
+        >
+          Desktop
         </button>
       </div>
       <div className="workspace-content">
@@ -383,11 +410,22 @@ export function CodeLabWorkspacePanel({
             )}
           </div>
         )}
+        {activeTab === 'desktop' && (
+          <CodeLabComponentBoundary componentName="Live Desktop">
+            <CodeLabLiveDesktop sessionId={currentSessionId} />
+          </CodeLabComponentBoundary>
+        )}
       </div>
       {currentSession?.repo && (
         <div className="workspace-git-actions">
           <button onClick={onGitPull} className="git-btn pull" aria-label="Git pull from remote">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -397,7 +435,13 @@ export function CodeLabWorkspacePanel({
             Pull
           </button>
           <button onClick={onGitPush} className="git-btn push" aria-label="Git push to remote">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

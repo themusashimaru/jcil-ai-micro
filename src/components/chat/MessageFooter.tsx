@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import type { Message } from '@/app/chat/types';
+import { useToastActions } from '@/components/ui/Toast';
 
 interface MessageFooterProps {
   message: Message;
@@ -15,14 +16,17 @@ interface MessageFooterProps {
 
 export function MessageFooter({ message, isUser, isAdmin, onReply, onRetry }: MessageFooterProps) {
   const [copied, setCopied] = useState(false);
+  const toast = useToastActions();
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
+      toast.success('Copied', 'Message copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+      toast.error('Copy failed', 'Could not copy to clipboard');
     }
   };
 

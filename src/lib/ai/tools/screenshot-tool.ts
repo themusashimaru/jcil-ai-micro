@@ -42,7 +42,13 @@ async function initE2B(): Promise<boolean> {
     log.info('E2B screenshot tool available');
     return true;
   } catch (error) {
-    log.error('Failed to initialize E2B for screenshot', { error: (error as Error).message });
+    log.error(
+      'Failed to initialize E2B for screenshot — dynamic import failed. Ensure @e2b/code-interpreter is in serverComponentsExternalPackages.',
+      {
+        error: (error as Error).message,
+        stack: (error as Error).stack?.split('\n').slice(0, 3).join(' | '),
+      }
+    );
     e2bAvailable = false;
     return false;
   }
