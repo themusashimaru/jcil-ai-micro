@@ -1,50 +1,151 @@
 /**
- * SAFETY & COST CONTROL — Pass-through implementations
+ * SAFETY & COST CONTROL
  *
- * These functions provide the API surface that tool files expect
- * without implementing real cost tracking or URL safety checks.
+ * Tool execution cost tracking with per-session limits.
+ * URL safety validation with SSRF protection.
+ * Prompt injection sanitization for tool outputs.
  *
- * TODO: Replace with real implementations when cost tracking is needed.
+ * Cost tracking uses in-process Map with session-scoped counters.
+ * In serverless environments, each instance tracks independently —
+ * this provides a per-instance safety net, not a global budget.
+ * For global cost tracking, integrate with a billing service.
  *
- * Last updated: 2026-02-22
+ * Last updated: 2026-03-07
  */
+
+import { logger } from '@/lib/logger';
+
+const log = logger('Safety');
 
 // ============================================================================
 // Cost Control
 // ============================================================================
 
-/** Cost limits per chat session (pass-through — no enforcement) */
+/** Cost limits per chat session */
 export const CHAT_COST_LIMITS = {
-  maxCostPerSession: Infinity,
-  maxCostPerTool: Infinity,
-  maxToolCallsPerSession: 1000,
+  /** Max estimated cost ($) per session before tools are blocked */
+  maxCostPerSession: 5.0,
+  /** Max estimated cost ($) per single tool invocation */
+  maxCostPerTool: 2.0,
+  /** Max total tool calls per session */
+  maxToolCallsPerSession: 200,
+  /** Max concurrent mini-agents per session */
   maxMiniAgents: 5,
 };
 
-/** Check if a tool execution is allowed (always allows) */
+/** Per-session cost tracking state */
+interface SessionCostState {
+  totalCost: number;
+  toolCalls: number;
+  lastActivity: number;
+}
+
+// In-process session cost tracker (per serverless instance)
+const sessionCosts = new Map<string, SessionCostState>();
+
+// Cleanup stale sessions every 10 minutes
+const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+let lastCleanup = Date.now();
+
+function cleanupStaleSessions(): void {
+  const now = Date.now();
+  if (now - lastCleanup < 10 * 60 * 1000) return;
+  lastCleanup = now;
+  for (const [id, state] of sessionCosts.entries()) {
+    if (now - state.lastActivity > SESSION_TTL_MS) {
+      sessionCosts.delete(id);
+    }
+  }
+}
+
+function getOrCreateSession(sessionId: string): SessionCostState {
+  cleanupStaleSessions();
+  let state = sessionCosts.get(sessionId);
+  if (!state) {
+    state = { totalCost: 0, toolCalls: 0, lastActivity: Date.now() };
+    sessionCosts.set(sessionId, state);
+  }
+  return state;
+}
+
+/** Check if a tool execution is allowed based on session cost limits */
 export function canExecuteTool(
-  _sessionId: string,
-  _toolName: string,
-  _estimatedCost: number
+  sessionId: string,
+  toolName: string,
+  estimatedCost: number
 ): { allowed: boolean; reason?: string } {
+  const state = getOrCreateSession(sessionId);
+
+  // Check per-tool cost limit
+  if (estimatedCost > CHAT_COST_LIMITS.maxCostPerTool) {
+    log.warn('Tool cost exceeds per-tool limit', {
+      sessionId: sessionId.slice(0, 8),
+      toolName,
+      estimatedCost,
+      limit: CHAT_COST_LIMITS.maxCostPerTool,
+    });
+    return {
+      allowed: false,
+      reason: `Tool cost ($${estimatedCost.toFixed(2)}) exceeds per-tool limit ($${CHAT_COST_LIMITS.maxCostPerTool.toFixed(2)})`,
+    };
+  }
+
+  // Check session cost limit
+  if (state.totalCost + estimatedCost > CHAT_COST_LIMITS.maxCostPerSession) {
+    log.warn('Session cost limit reached', {
+      sessionId: sessionId.slice(0, 8),
+      toolName,
+      currentCost: state.totalCost,
+      estimatedCost,
+      limit: CHAT_COST_LIMITS.maxCostPerSession,
+    });
+    return {
+      allowed: false,
+      reason: `Session cost limit reached ($${state.totalCost.toFixed(2)}/$${CHAT_COST_LIMITS.maxCostPerSession.toFixed(2)})`,
+    };
+  }
+
+  // Check tool call count limit
+  if (state.toolCalls >= CHAT_COST_LIMITS.maxToolCallsPerSession) {
+    log.warn('Session tool call limit reached', {
+      sessionId: sessionId.slice(0, 8),
+      toolName,
+      toolCalls: state.toolCalls,
+      limit: CHAT_COST_LIMITS.maxToolCallsPerSession,
+    });
+    return {
+      allowed: false,
+      reason: `Tool call limit reached (${state.toolCalls}/${CHAT_COST_LIMITS.maxToolCallsPerSession})`,
+    };
+  }
+
   return { allowed: true };
 }
 
-/** Record cost of a tool execution (no-op) */
-export function recordToolCost(
-  _sessionId: string,
-  _toolName: string,
-  _estimatedCost: number
-): void {
-  // No-op until real cost tracking is implemented
+/** Record cost of a tool execution */
+export function recordToolCost(sessionId: string, toolName: string, estimatedCost: number): void {
+  const state = getOrCreateSession(sessionId);
+  state.totalCost += estimatedCost;
+  state.toolCalls += 1;
+  state.lastActivity = Date.now();
+
+  log.debug('Tool cost recorded', {
+    sessionId: sessionId.slice(0, 8),
+    toolName,
+    cost: estimatedCost,
+    sessionTotal: state.totalCost,
+    sessionCalls: state.toolCalls,
+  });
 }
 
-/** Get session costs (returns empty state) */
-export function getChatSessionCosts(_sessionId: string): {
+/** Get session costs */
+export function getChatSessionCosts(sessionId: string): {
   totalCost: number;
   toolCalls: number;
 } {
-  return { totalCost: 0, toolCalls: 0 };
+  const state = sessionCosts.get(sessionId);
+  if (!state) return { totalCost: 0, toolCalls: 0 };
+  return { totalCost: state.totalCost, toolCalls: state.toolCalls };
 }
 
 // ============================================================================

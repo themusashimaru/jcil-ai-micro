@@ -141,6 +141,9 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
     requestId,
     request,
     userApiKey,
+    userId,
+    userPlanKey,
+    conversationId,
   } = config;
 
   log.info('Using non-Claude provider (direct adapter)', {
@@ -151,8 +154,13 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
   const providerInfo = getProviderAndModel(selectedModel);
   const encoder = new TextEncoder();
 
+  // H8: Timeout safety net for non-Claude streams (matches Claude's 30s slot timeout)
+  const NON_CLAUDE_TIMEOUT_MS = 60 * 1000; // 60s — longer than Claude's 30s to account for slower providers
+
   const nonClaudeStream = new ReadableStream({
     async start(controller) {
+      let streamTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
       try {
         // Validate API key (skip if user has BYOK)
         if (!userApiKey) {
@@ -228,9 +236,48 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
           ...(userApiKey ? { userApiKey } : {}),
         });
 
+        // H8: Set up stream timeout — if no chunks arrive for NON_CLAUDE_TIMEOUT_MS, abort
+        let lastChunkTime = Date.now();
+        streamTimeoutId = setInterval(() => {
+          if (Date.now() - lastChunkTime > NON_CLAUDE_TIMEOUT_MS) {
+            log.warn('Non-Claude stream timeout — no data received', {
+              provider: selectedProviderId,
+              model: selectedModel,
+              requestId,
+              timeoutMs: NON_CLAUDE_TIMEOUT_MS,
+            });
+            try {
+              controller.enqueue(
+                encoder.encode('\n\n**Error**\n\nThe request timed out. Please try again.')
+              );
+            } catch {
+              // Controller might be closed
+            }
+            controller.close();
+          }
+        }, 5000);
+
         for await (const chunk of chatStream) {
+          lastChunkTime = Date.now();
+
           if (chunk.type === 'text' && chunk.text) {
             controller.enqueue(encoder.encode(chunk.text));
+          } else if (chunk.type === 'message_end' && chunk.usage) {
+            // H7: Track token usage for non-Claude providers
+            const totalTokens = (chunk.usage.inputTokens || 0) + (chunk.usage.outputTokens || 0);
+
+            trackTokenUsage({
+              userId,
+              modelName: selectedModel,
+              inputTokens: chunk.usage.inputTokens,
+              outputTokens: chunk.usage.outputTokens,
+              source: 'chat',
+              conversationId,
+            }).catch((err: unknown) =>
+              log.error('logTokenUsage failed (non-Claude)', err instanceof Error ? err : undefined)
+            );
+
+            incrementTokenUsage(userId, userPlanKey, totalTokens).catch(() => {});
           } else if (chunk.type === 'error' && chunk.error) {
             log.error('Adapter stream error', {
               code: chunk.error.code,
@@ -240,8 +287,10 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
           }
         }
 
+        if (streamTimeoutId) clearInterval(streamTimeoutId);
         controller.close();
       } catch (error) {
+        if (streamTimeoutId) clearInterval(streamTimeoutId);
         log.error('Non-Claude provider error', error as Error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const lowerError = errorMessage.toLowerCase();

@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Rate limiting to prevent abuse
-    const { allowed } = checkRateLimit(user.id);
+    const { allowed } = await checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
       return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
