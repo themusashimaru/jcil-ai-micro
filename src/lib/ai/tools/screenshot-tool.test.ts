@@ -240,9 +240,9 @@ describe('isScreenshotAvailable', () => {
     expect(result).toBe(true);
   });
 
-  it('should return false when E2B_API_KEY is not set', async () => {
+  it('should return true even when E2B_API_KEY is not set (falls back to Jina Reader)', async () => {
     delete process.env.E2B_API_KEY;
     const result = await isScreenshotAvailable();
-    expect(result).toBe(false);
+    expect(result).toBe(true);
   });
 });

@@ -2,11 +2,12 @@
  * URL CONTENT FETCHER TOOL
  *
  * Fetches and extracts readable content from URLs.
- * Uses simple HTML parsing for static pages, E2B Puppeteer for JS-heavy sites.
+ * Uses simple HTML parsing for static pages, Jina Reader API for JS-heavy sites.
  *
  * Features:
  * - Automatic content extraction (removes navigation, ads, scripts)
- * - Fallback to headless browser for dynamic content
+ * - Automatic fallback to Jina Reader for JavaScript-rendered pages
+ * - Image URL extraction for media-rich pages
  * - Safety checks for blocked domains
  * - Timeout protection
  */
@@ -20,8 +21,10 @@ const log = logger('FetchUrlTool');
 // CONFIGURATION
 // ============================================================================
 
-const FETCH_TIMEOUT_MS = 15000; // 15 second timeout for fetch
+const FETCH_TIMEOUT_MS = 15000; // 15 second timeout for direct fetch
+const JINA_TIMEOUT_MS = 20000; // 20 second timeout for Jina Reader
 const MAX_CONTENT_LENGTH = 50000; // ~50KB max content to return
+const MIN_USEFUL_CONTENT_LENGTH = 200; // Below this, content is considered too thin
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -65,9 +68,10 @@ export const fetchUrlTool: UnifiedTool = {
 - You need to read an article, blog post, or documentation
 - User asks "What does this page say?" or "Summarize this link"
 - You need specific information from a webpage (not just search results)
+- You need to extract images/logos from a website
 
-This extracts the readable text content, removing navigation, ads, and scripts.
-For dynamic/JavaScript-heavy sites, it will use a headless browser automatically.
+This renders JavaScript-heavy pages and extracts readable content.
+Supports text, links, structured content, and image URL extraction.
 
 Note: Cannot access paywalled content, login-required pages, or blocked domains.`,
   parameters: {
@@ -79,8 +83,9 @@ Note: Cannot access paywalled content, login-required pages, or blocked domains.
       },
       extract_type: {
         type: 'string',
-        description: 'What to extract from the page',
-        enum: ['text', 'links', 'structured'],
+        description:
+          'What to extract: "text" for readable content, "links" for all links, "structured" for formatted content, "images" for image URLs',
+        enum: ['text', 'links', 'structured', 'images'],
         default: 'text',
       },
     },
@@ -283,6 +288,190 @@ function extractLinksFromHtml(html: string, baseUrl: string): string {
   );
 }
 
+function extractImageUrlsFromHtml(html: string, baseUrl: string): string {
+  const images: Array<{ src: string; alt: string }> = [];
+
+  // Match <img> tags
+  const imgRegex = /<img[^>]*\s+src="([^"]+)"[^>]*>/gi;
+  let match;
+  while ((match = imgRegex.exec(html)) !== null) {
+    let src = match[1];
+    const altMatch = match[0].match(/alt="([^"]*)"/i);
+    const alt = altMatch ? altMatch[1] : '';
+
+    // Skip tiny images (tracking pixels, spacers)
+    if (src.includes('1x1') || src.includes('pixel') || src.includes('spacer')) continue;
+    // Skip data URIs that are tiny
+    if (src.startsWith('data:') && src.length < 200) continue;
+
+    // Resolve relative URLs
+    try {
+      if (!src.startsWith('http') && !src.startsWith('data:')) {
+        src = new URL(src, baseUrl).href;
+      }
+    } catch {
+      continue;
+    }
+
+    if (!images.some((i) => i.src === src)) {
+      images.push({ src, alt });
+    }
+  }
+
+  // Also check for og:image and other meta images
+  const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"[^>]*>/i);
+  if (ogImageMatch && ogImageMatch[1]) {
+    let ogSrc = ogImageMatch[1];
+    try {
+      if (!ogSrc.startsWith('http')) {
+        ogSrc = new URL(ogSrc, baseUrl).href;
+      }
+    } catch {
+      /* skip */
+    }
+    if (!images.some((i) => i.src === ogSrc)) {
+      images.unshift({ src: ogSrc, alt: 'OpenGraph image' });
+    }
+  }
+
+  // Check for CSS background images in inline styles
+  const bgRegex = /background(?:-image)?:\s*url\(['"]?([^'")\s]+)['"]?\)/gi;
+  while ((match = bgRegex.exec(html)) !== null) {
+    let src = match[1];
+    try {
+      if (!src.startsWith('http') && !src.startsWith('data:')) {
+        src = new URL(src, baseUrl).href;
+      }
+    } catch {
+      continue;
+    }
+    if (!images.some((i) => i.src === src)) {
+      images.push({ src, alt: 'background image' });
+    }
+  }
+
+  // Check for srcset images (high-res versions)
+  const srcsetRegex = /srcset="([^"]*)"/gi;
+  while ((match = srcsetRegex.exec(html)) !== null) {
+    const srcsetParts = match[1].split(',');
+    for (const part of srcsetParts) {
+      const [srcRaw] = part.trim().split(/\s+/);
+      if (!srcRaw) continue;
+      let src = srcRaw;
+      try {
+        if (!src.startsWith('http') && !src.startsWith('data:')) {
+          src = new URL(src, baseUrl).href;
+        }
+      } catch {
+        continue;
+      }
+      if (!images.some((i) => i.src === src)) {
+        images.push({ src, alt: 'srcset image' });
+      }
+    }
+  }
+
+  if (images.length === 0) {
+    return 'No images found on this page.';
+  }
+
+  // Separate logo candidates from regular images
+  const logoImages = images.filter(
+    (i) =>
+      i.src.toLowerCase().includes('logo') ||
+      i.alt.toLowerCase().includes('logo') ||
+      i.src.toLowerCase().includes('brand')
+  );
+  const otherImages = images.filter(
+    (i) =>
+      !i.src.toLowerCase().includes('logo') &&
+      !i.alt.toLowerCase().includes('logo') &&
+      !i.src.toLowerCase().includes('brand')
+  );
+
+  let result = `Found ${images.length} images:\n\n`;
+
+  if (logoImages.length > 0) {
+    result += '**Logo/Brand Images:**\n';
+    for (const img of logoImages.slice(0, 5)) {
+      result += `- ${img.alt || 'Logo'}: ${img.src}\n`;
+    }
+    result += '\n';
+  }
+
+  result += '**Page Images:**\n';
+  for (const img of otherImages.slice(0, 30)) {
+    result += `- ${img.alt || '(no alt text)'}: ${img.src}\n`;
+  }
+
+  return result;
+}
+
+// ============================================================================
+// JINA READER FALLBACK
+// ============================================================================
+
+/**
+ * Fetch page content using Jina Reader API (r.jina.ai).
+ * This renders JavaScript, extracts clean content, and returns markdown.
+ * Free tier with no API key required.
+ */
+async function fetchViaJinaReader(
+  url: string
+): Promise<{ success: boolean; content?: string; error?: string }> {
+  const jinaUrl = `https://r.jina.ai/${url}`;
+  log.info('Falling back to Jina Reader for JS-heavy page', { url });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), JINA_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(jinaUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'text/markdown',
+        'X-Return-Format': 'markdown',
+        'X-With-Images': 'true',
+      },
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Jina Reader error: HTTP ${response.status}`,
+      };
+    }
+
+    let content = await response.text();
+
+    // Truncate if needed
+    if (content.length > MAX_CONTENT_LENGTH) {
+      content = content.slice(0, MAX_CONTENT_LENGTH) + '\n\n[Content truncated...]';
+    }
+
+    if (content.length < MIN_USEFUL_CONTENT_LENGTH) {
+      return {
+        success: false,
+        error: 'Page returned very little content even after JavaScript rendering.',
+      };
+    }
+
+    content += `\n\n---\n*Source: ${url}*`;
+
+    log.info('Jina Reader fetch successful', { url, contentLength: content.length });
+    return { success: true, content };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('abort')) {
+      return { success: false, error: 'Jina Reader request timed out.' };
+    }
+    log.error('Jina Reader fetch failed', { url, error: msg });
+    return { success: false, error: `Jina Reader failed: ${msg}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ============================================================================
 // FETCH IMPLEMENTATION
 // ============================================================================
@@ -308,9 +497,37 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
+/**
+ * Detect if HTML content is from a JavaScript-rendered page with minimal static content.
+ */
+function isJsHeavyPage(html: string): boolean {
+  // Clear indicators of JS-only rendering
+  if (html.includes('__NEXT_DATA__') || html.includes('__NUXT__')) return true;
+  if (html.includes('window.__INITIAL_STATE__') && !html.includes('<article')) return true;
+
+  // Page has <noscript> warning and very little content
+  if (html.includes('<noscript>') && html.length < 5000) return true;
+
+  // React/Vue/Angular root div with no content
+  if (html.match(/<div\s+id="(root|app|__next)"[^>]*>\s*<\/div>/i)) return true;
+
+  // Very little actual text content relative to page size
+  const textContent = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // If after stripping all tags we have very little text but a lot of HTML, it's JS-heavy
+  if (html.length > 10000 && textContent.length < 500) return true;
+
+  return false;
+}
+
 async function fetchUrlContent(
   url: string,
-  extractType: 'text' | 'links' | 'structured' = 'text'
+  extractType: 'text' | 'links' | 'structured' | 'images' = 'text'
 ): Promise<{ success: boolean; content?: string; error?: string }> {
   // Safety check
   const safetyCheck = isUrlSafe(url);
@@ -324,9 +541,10 @@ async function fetchUrlContent(
     const response = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
 
     if (!response.ok) {
-      // Handle specific error codes
+      // Handle specific error codes — try Jina Reader as fallback for 403s
       if (response.status === 403) {
-        return { success: false, error: 'Access forbidden (403). This page may require login.' };
+        log.info('Direct fetch returned 403, trying Jina Reader fallback', { url });
+        return fetchViaJinaReader(url);
       }
       if (response.status === 404) {
         return { success: false, error: 'Page not found (404).' };
@@ -363,17 +581,36 @@ async function fetchUrlContent(
     // Get HTML content
     const html = await response.text();
 
-    // Check if page seems to require JavaScript
-    const needsJs =
-      html.includes('__NEXT_DATA__') ||
-      html.includes('_app') ||
-      (html.includes('<noscript>') && html.length < 5000) ||
-      (html.includes('window.__INITIAL_STATE__') && !html.includes('<article'));
+    // Check if page requires JavaScript rendering
+    const needsJs = isJsHeavyPage(html);
 
     if (needsJs) {
-      log.info('Page may require JavaScript, content might be incomplete', { url });
-      // For now, we'll still try to extract what we can
-      // In future, could fall back to E2B Puppeteer here
+      log.info('JS-heavy page detected, using Jina Reader fallback', { url });
+      const jinaResult = await fetchViaJinaReader(url);
+      if (jinaResult.success) {
+        // For image extraction, we still need the raw HTML plus Jina content
+        if (extractType === 'images') {
+          // Jina markdown may contain image URLs — extract them
+          const imageLines = (jinaResult.content || '')
+            .split('\n')
+            .filter(
+              (l) =>
+                l.match(/!\[.*?\]\(.*?\)/) ||
+                l.match(/https?:\/\/\S+\.(jpg|jpeg|png|svg|webp|gif)/i)
+            );
+          if (imageLines.length > 0) {
+            return {
+              success: true,
+              content: `Images found on ${url}:\n\n${imageLines.join('\n')}\n\n---\n*Source: ${url}*`,
+            };
+          }
+          // Fall through to HTML-based extraction with what we have
+        } else {
+          return jinaResult;
+        }
+      }
+      // If Jina fails, still try to extract what we can from the raw HTML
+      log.warn('Jina Reader fallback failed, extracting from raw HTML', { url });
     }
 
     // Extract based on type
@@ -382,17 +619,32 @@ async function fetchUrlContent(
       case 'links':
         content = extractLinksFromHtml(html, url);
         break;
+      case 'images':
+        content = extractImageUrlsFromHtml(html, url);
+        content += `\n\n---\n*Source: ${url}*`;
+        break;
       case 'structured':
-        // For structured, we extract text with better formatting
         content = extractTextFromHtml(html);
-        // Add source URL at the end
         content += `\n\n---\n*Source: ${url}*`;
         break;
       case 'text':
-      default:
+      default: {
         content = extractTextFromHtml(html);
         content += `\n\n---\n*Source: ${url}*`;
+
+        // If direct extraction yielded very little content, try Jina Reader
+        if (!needsJs && content.length < MIN_USEFUL_CONTENT_LENGTH) {
+          log.info('Direct extraction yielded thin content, trying Jina Reader', {
+            url,
+            contentLength: content.length,
+          });
+          const jinaResult = await fetchViaJinaReader(url);
+          if (jinaResult.success) {
+            return jinaResult;
+          }
+        }
         break;
+      }
     }
 
     // Truncate if too long
@@ -407,7 +659,9 @@ async function fetchUrlContent(
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     if (errorMessage.includes('aborted') || errorMessage.includes('abort')) {
-      return { success: false, error: 'Request timed out. The page took too long to respond.' };
+      // Direct fetch timed out — try Jina Reader
+      log.info('Direct fetch timed out, trying Jina Reader fallback', { url });
+      return fetchViaJinaReader(url);
     }
 
     if (errorMessage.includes('ENOTFOUND') || errorMessage.includes('getaddrinfo')) {
@@ -440,7 +694,7 @@ export async function executeFetchUrl(toolCall: UnifiedToolCall): Promise<Unifie
 
   const args = typeof rawArgs === 'string' ? {} : rawArgs;
   const url = args.url as string;
-  const extractType = (args.extract_type as 'text' | 'links' | 'structured') || 'text';
+  const extractType = (args.extract_type as 'text' | 'links' | 'structured' | 'images') || 'text';
 
   if (!url) {
     return {
@@ -478,5 +732,5 @@ export async function executeFetchUrl(toolCall: UnifiedToolCall): Promise<Unifie
 // ============================================================================
 
 export function isFetchUrlAvailable(): boolean {
-  return true; // Always available since it uses native fetch
+  return true; // Always available since it uses native fetch + Jina Reader
 }
