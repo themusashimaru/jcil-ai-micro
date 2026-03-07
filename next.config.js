@@ -21,6 +21,7 @@ const nextConfig = {
     serverComponentsExternalPackages: [
       '@napi-rs/canvas',
       '@e2b/code-interpreter',
+      '@e2b/desktop',
       'puppeteer-core',
     ],
     serverActions: {

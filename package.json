@@ -41,6 +41,7 @@
     "@composio/anthropic": "^0.6.3",
     "@composio/core": "^0.6.3",
     "@e2b/code-interpreter": "^2.3.3",
+    "@e2b/desktop": "^2.2.2",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@google/generative-ai": "^0.24.1",

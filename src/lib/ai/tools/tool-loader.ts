@@ -107,6 +107,12 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeScreenshot',
     availabilityExport: 'isScreenshotAvailable',
   },
+  desktop_sandbox: {
+    importPath: './desktop-sandbox-tool',
+    toolExport: 'desktopSandboxTool',
+    executorExport: 'executeDesktopSandbox',
+    availabilityExport: 'isDesktopSandboxAvailable',
+  },
   capture_webpage: {
     importPath: './web-capture-tool',
     toolExport: 'webCaptureTool',
@@ -136,6 +142,26 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     toolExport: 'linkShortenTool',
     executorExport: 'executeLinkShorten',
     availabilityExport: 'isLinkShortenAvailable',
+  },
+
+  // Sandbox tools
+  sandbox_files: {
+    importPath: './sandbox-files-tool',
+    toolExport: 'sandboxFilesTool',
+    executorExport: 'executeSandboxFiles',
+    availabilityExport: 'isSandboxFilesAvailable',
+  },
+  sandbox_test_runner: {
+    importPath: './sandbox-test-runner-tool',
+    toolExport: 'sandboxTestRunnerTool',
+    executorExport: 'executeSandboxTestRunner',
+    availabilityExport: 'isSandboxTestRunnerAvailable',
+  },
+  sandbox_template: {
+    importPath: './sandbox-template-tool',
+    toolExport: 'sandboxTemplateTool',
+    executorExport: 'executeSandboxTemplate',
+    availabilityExport: 'isSandboxTemplateAvailable',
   },
 
   // Code tools
@@ -244,6 +270,12 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     toolExport: 'chartTool',
     executorExport: 'executeChart',
     availabilityExport: 'isChartAvailable',
+  },
+  e2b_visualize: {
+    importPath: './e2b-chart-tool',
+    toolExport: 'e2bChartTool',
+    executorExport: 'executeE2BChart',
+    availabilityExport: 'isE2BChartAvailable',
   },
   graphics_3d: {
     importPath: './graphics-3d-tool',
