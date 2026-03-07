@@ -294,12 +294,12 @@ export function ComposerActionBar({
         {isStreaming && onStop ? (
           <button
             onClick={onStop}
-            className="rounded-full p-2 transition-all flex items-center justify-center bg-primary text-white"
+            className="rounded-full p-2 transition-all flex items-center justify-center bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30"
             aria-label="Stop generating response"
-            title="Stop generating"
+            title="Stop generating (Esc)"
           >
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="2" />
+            <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12" rx="2" fill="white" />
             </svg>
           </button>
         ) : (
