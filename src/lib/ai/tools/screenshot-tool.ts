@@ -123,11 +123,55 @@ export async function executeScreenshot(toolCall: UnifiedToolCall): Promise<Unif
   // Initialize E2B
   const available = await initE2B();
   if (!available || !Sandbox) {
-    return {
-      toolCallId: id,
-      content: 'Screenshot tool is not available. E2B sandbox service is not configured.',
-      isError: true,
-    };
+    // E2B not configured — fall back to Jina Reader for content extraction
+    const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+    const url = args.url as string;
+    if (!url) {
+      return {
+        toolCallId: id,
+        content: 'No URL provided.',
+        isError: true,
+      };
+    }
+    log.info('E2B not available for screenshot, using Jina Reader fallback', { url });
+    try {
+      const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+      const jinaUrl = `https://r.jina.ai/${normalizedUrl}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const jinaResponse = await fetch(jinaUrl, {
+        signal: controller.signal,
+        headers: {
+          Accept: 'text/markdown',
+          'X-Return-Format': 'markdown',
+          'X-With-Images': 'true',
+        },
+      });
+      clearTimeout(timeout);
+      if (!jinaResponse.ok) {
+        return {
+          toolCallId: id,
+          content: `Screenshot unavailable (E2B not configured). Content fetch also failed (HTTP ${jinaResponse.status}).`,
+          isError: true,
+        };
+      }
+      let content = await jinaResponse.text();
+      if (content.length > 50000) {
+        content = content.slice(0, 50000) + '\n\n[Content truncated...]';
+      }
+      return {
+        toolCallId: id,
+        content: `[Screenshot unavailable — E2B sandbox not configured. Extracted page content instead:]\n\n${content}`,
+        isError: false,
+      };
+    } catch (jinaError) {
+      const msg = jinaError instanceof Error ? jinaError.message : String(jinaError);
+      return {
+        toolCallId: id,
+        content: `Screenshot unavailable (E2B not configured) and content fallback failed: ${msg}`,
+        isError: true,
+      };
+    }
   }
 
   const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
@@ -259,5 +303,6 @@ asyncio.run(take_screenshot())
 // ============================================================================
 
 export async function isScreenshotAvailable(): Promise<boolean> {
-  return Boolean(process.env.E2B_API_KEY);
+  // Always available — uses E2B when configured, falls back to content extraction
+  return true;
 }

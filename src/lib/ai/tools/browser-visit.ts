@@ -387,11 +387,57 @@ export async function executeBrowserVisitTool(
   // Initialize E2B
   const available = await initE2B();
   if (!available) {
-    return {
-      toolCallId: id,
-      content: 'Browser visit is not available. E2B sandbox is not configured.',
-      isError: true,
-    };
+    // E2B not configured — fall back to Jina Reader for content extraction
+    const args = typeof rawArgs === 'string' ? {} : rawArgs;
+    let url = args.url as string;
+    if (!url) {
+      return {
+        toolCallId: id,
+        content: 'No URL provided.',
+        isError: true,
+      };
+    }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    log.info('E2B not available, using Jina Reader fallback for browser_visit', { url });
+    try {
+      const jinaUrl = `https://r.jina.ai/${url}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      const jinaResponse = await fetch(jinaUrl, {
+        signal: controller.signal,
+        headers: {
+          Accept: 'text/markdown',
+          'X-Return-Format': 'markdown',
+          'X-With-Images': 'true',
+        },
+      });
+      clearTimeout(timeout);
+      if (!jinaResponse.ok) {
+        return {
+          toolCallId: id,
+          content: `Failed to fetch page content (HTTP ${jinaResponse.status}). The page may be blocking automated access.`,
+          isError: true,
+        };
+      }
+      let content = await jinaResponse.text();
+      if (content.length > 50000) {
+        content = content.slice(0, 50000) + '\n\n[Content truncated...]';
+      }
+      return {
+        toolCallId: id,
+        content: content || 'No content extracted from page.',
+        isError: false,
+      };
+    } catch (jinaError) {
+      const msg = jinaError instanceof Error ? jinaError.message : String(jinaError);
+      return {
+        toolCallId: id,
+        content: `Browser visit unavailable and fallback failed: ${msg}`,
+        isError: true,
+      };
+    }
   }
 
   const args = typeof rawArgs === 'string' ? {} : rawArgs;
@@ -547,7 +593,8 @@ export async function executeBrowserVisitTool(
 // ============================================================================
 
 export async function isBrowserVisitAvailable(): Promise<boolean> {
-  return initE2B();
+  // Always available — uses E2B when configured, falls back to Jina Reader
+  return true;
 }
 
 export async function cleanupBrowserSandbox(): Promise<void> {
