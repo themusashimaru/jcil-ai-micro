@@ -11,9 +11,6 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
-  // Standalone output for Docker deployments
-  output: 'standalone',
-
   // App Router optimizations
   experimental: {
     // Server-side native packages — must be under experimental in Next.js 14.x
@@ -23,6 +20,7 @@ const nextConfig = {
       '@e2b/code-interpreter',
       '@e2b/desktop',
       'puppeteer-core',
+      'encoding',
     ],
     serverActions: {
       bodySizeLimit: '10mb',
