@@ -20,6 +20,7 @@ const nextConfig = {
       '@e2b/code-interpreter',
       '@e2b/desktop',
       'puppeteer-core',
+      'encoding',
     ],
     serverActions: {
       bodySizeLimit: '10mb',
