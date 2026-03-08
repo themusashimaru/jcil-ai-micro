@@ -467,6 +467,12 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
           if (loaderResult) {
             return loaderResult;
           }
+          // Loader exists but returned null — tool recognized but not executed
+          return {
+            toolCallId: toolCall.id,
+            content: `Tool not executed: ${toolName}`,
+            isError: true,
+          } as UnifiedToolResult;
         } else if (toolName.startsWith('mcp_')) {
           // MCP tool
           return await executeMCPTool(mcpManager, toolName, toolCall, userId);
