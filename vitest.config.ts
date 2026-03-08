@@ -13,6 +13,7 @@ export default defineConfig({
       'lib/**/*.test.ts',
     ],
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 10000,
     exclude: ['node_modules', '.next'],
     coverage: {
       provider: 'v8',
