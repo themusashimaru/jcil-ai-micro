@@ -47,6 +47,7 @@ export function MessageFooter({ message, isUser, isAdmin, onReply, onRetry }: Me
           minute: '2-digit',
           second: '2-digit',
           hour12: false,
+          timeZone: 'UTC',
         })}{' '}
         <span className="opacity-60">UTC</span>
       </span>

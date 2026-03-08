@@ -37,6 +37,7 @@ import {
 } from '@/app/api/chat/mcp/helpers';
 import { checkResearchRateLimit, checkToolRateLimit } from './rate-limiting';
 import { sanitizeToolError } from './helpers';
+import { sanitizeOutput } from '@/lib/ai/tools/safety';
 
 const log = logger('ChatTools');
 
@@ -452,25 +453,54 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
       isError: true,
     };
 
+    // Timeout wrapper to prevent hung tools from blocking slots forever
+    const TOOL_TIMEOUT_MS =
+      toolName === 'run_code' || toolName === 'parallel_research'
+        ? 120_000 // 2 min for long-running tools
+        : 30_000; // 30s for everything else
+
     try {
-      if (hasToolLoader(toolName)) {
-        // Built-in tool via lazy loader
-        const loaderResult = await executeToolByName(toolCallWithSession);
-        if (loaderResult) {
-          result = loaderResult;
+      const toolPromise = (async () => {
+        if (hasToolLoader(toolName)) {
+          // Built-in tool via lazy loader
+          const loaderResult = await executeToolByName(toolCallWithSession);
+          if (loaderResult) {
+            return loaderResult;
+          }
+          // Loader exists but returned null — tool recognized but not executed
+          return {
+            toolCallId: toolCall.id,
+            content: `Tool not executed: ${toolName}`,
+            isError: true,
+          } as UnifiedToolResult;
+        } else if (toolName.startsWith('mcp_')) {
+          // MCP tool
+          return await executeMCPTool(mcpManager, toolName, toolCall, userId);
+        } else if (isComposioTool(toolName)) {
+          // Composio tool
+          return await executeComposioToolCall(toolName, toolCall, userId);
         }
-      } else if (toolName.startsWith('mcp_')) {
-        // MCP tool
-        result = await executeMCPTool(mcpManager, toolName, toolCall, userId);
-      } else if (isComposioTool(toolName)) {
-        // Composio tool
-        result = await executeComposioToolCall(toolName, toolCall, userId);
-      } else {
-        result = {
+        return {
           toolCallId: toolCall.id,
           content: `Unknown tool: ${toolName}`,
           isError: true,
-        };
+        } as UnifiedToolResult;
+      })();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Tool '${toolName}' timed out after ${TOOL_TIMEOUT_MS / 1000}s`)),
+          TOOL_TIMEOUT_MS
+        )
+      );
+
+      const execResult = await Promise.race([toolPromise, timeoutPromise]);
+      if (execResult) {
+        // Sanitize tool output to prevent indirect prompt injection
+        if (!execResult.isError && typeof execResult.content === 'string') {
+          execResult.content = sanitizeOutput(execResult.content);
+        }
+        result = execResult;
       }
     } catch (toolError) {
       const errorMsg = toolError instanceof Error ? toolError.message : String(toolError);

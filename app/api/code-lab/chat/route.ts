@@ -12,6 +12,7 @@
 import { NextRequest } from 'next/server';
 import { CoreMessage } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { requireUser } from '@/lib/auth/user-guard';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { chatErrorResponse } from '@/lib/api/utils';
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Rate limiting to prevent abuse
-    const { allowed } = checkRateLimit(user.id);
+    const { allowed } = await checkRateLimit(user.id);
     if (!allowed) {
       log.warn('Rate limit exceeded', { userId: user.id });
       return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
@@ -105,28 +106,83 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const body = await request.json();
-    const { sessionId, content, repo, attachments, forceSearch, modelId, thinking } = body;
+    // Zod schema for code-lab chat requests
+    const codeLabChatSchema = z.object({
+      sessionId: z.string().uuid('sessionId must be a valid UUID'),
+      content: z.string().max(100000, 'Message exceeds maximum length').optional(),
+      repo: z
+        .object({
+          owner: z.string().max(200),
+          name: z.string().max(200),
+          branch: z.string().max(200).optional(),
+        })
+        .optional()
+        .nullable(),
+      attachments: z
+        .array(
+          z.object({
+            type: z.string().max(50),
+            data: z.string().max(10_000_000), // 10MB base64
+            mediaType: z.string().max(100).optional(),
+            filename: z.string().max(255).optional(),
+          })
+        )
+        .max(10)
+        .optional(),
+      forceSearch: z.boolean().optional(),
+      modelId: z.string().max(100).optional(),
+      thinking: z
+        .object({
+          enabled: z.boolean().optional(),
+          budgetTokens: z.number().int().min(1000).max(100000).optional(),
+        })
+        .optional(),
+    });
 
-    // Input validation - max content length to prevent abuse
-    const MAX_CONTENT_LENGTH = 100000;
-    if (content && typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
+    let rawBody: unknown;
+    try {
+      rawBody = await request.json();
+    } catch {
       return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
-        error: 'Message too long',
-        code: ERROR_CODES.REQUEST_TOO_LARGE,
-        message: `Message exceeds maximum length of ${MAX_CONTENT_LENGTH} characters.`,
+        error: 'Invalid JSON body',
+        code: ERROR_CODES.INVALID_INPUT,
         action: 'validate',
       });
     }
+
+    const validation = codeLabChatSchema.safeParse(rawBody);
+    if (!validation.success) {
+      return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+        error: 'Validation failed',
+        code: ERROR_CODES.INVALID_INPUT,
+        action: 'validate',
+        details: validation.error.errors.map((e) => ({
+          field: e.path.join('.'),
+          message: e.message,
+        })),
+      });
+    }
+
+    const {
+      sessionId,
+      content: rawContent,
+      repo,
+      attachments,
+      forceSearch,
+      modelId,
+      thinking,
+    } = validation.data;
+    // Normalize content to string (schema allows undefined when attachments are present)
+    const content = rawContent || '';
 
     // Model selection - default to Opus 4.6
     const selectedModel = modelId || 'claude-opus-4-6';
     const thinkingEnabled = thinking?.enabled === true;
     const thinkingBudget = thinking?.budgetTokens || 10000;
 
-    if (!sessionId || (!content && (!attachments || attachments.length === 0))) {
+    if (!content && (!attachments || attachments.length === 0)) {
       return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
-        error: 'Missing sessionId or content',
+        error: 'Missing content or attachments',
         code: ERROR_CODES.INVALID_INPUT,
         action: 'validate',
       });
@@ -453,7 +509,6 @@ export async function POST(request: NextRequest) {
     }
 
     const forceWorkspace =
-      body.useWorkspace === true ||
       enhancedContent.toLowerCase().includes('/workspace') ||
       enhancedContent.toLowerCase().includes('/sandbox') ||
       enhancedContent.toLowerCase().includes('/execute');
@@ -548,7 +603,7 @@ export async function POST(request: NextRequest) {
         })),
         githubToken,
         selectedRepo: repo
-          ? { owner: repo.owner, repo: repo.name, fullName: repo.fullName }
+          ? { owner: repo.owner, repo: repo.name, fullName: `${repo.owner}/${repo.name}` }
           : undefined,
         skipClarification:
           content.toLowerCase().includes('just build') ||
@@ -579,7 +634,7 @@ export async function POST(request: NextRequest) {
                     owner: repo.owner,
                     name: repo.name,
                     branch: repo.branch || 'main',
-                    fullName: repo.fullName,
+                    fullName: `${repo.owner}/${repo.name}`,
                   }
                 : undefined,
               previousMessages: (history || []).map((m: { role: string; content: string }) => ({
@@ -708,7 +763,7 @@ Be honest about knowledge cutoff limitations when relevant.`,
     });
 
     // Build system prompt
-    const hasRepo = repo && repo.fullName;
+    const hasRepo = !!(repo && repo.owner && repo.name);
     const hasImages = imageAttachments.length > 0;
 
     let systemPrompt = buildSystemPrompt(hasRepo, hasImages, repo, imageAttachments);
@@ -857,7 +912,7 @@ ${hasImages ? '- Analyzing screenshots and images (you have vision capabilities)
 
 ${
   hasRepo
-    ? `**Repository Connected:** ${repo.fullName} (branch: ${repo.branch || 'main'})
+    ? `**Repository Connected:** ${`${repo.owner}/${repo.name}`} (branch: ${repo.branch || 'main'})
 You can reference this repository and help with code within it.`
     : `**No Repository Connected**
 The user has not connected a repository to this session. Do NOT assume you have access to any codebase or project files. If the user asks about code, ask them to either:

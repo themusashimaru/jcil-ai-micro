@@ -1,69 +1,23 @@
 /**
- * In-Memory Rate Limiter for Code Lab Chat
+ * Rate Limiter for Code Lab Chat
  *
- * Per-user rate limiting with automatic cleanup of expired entries
- * to prevent memory leaks in long-running serverless instances.
+ * Delegates to the shared Redis-backed rate limiter for multi-instance safety.
+ * In serverless environments (Vercel), in-memory rate limits reset on every
+ * cold start, making them trivially bypassable. This module uses the same
+ * Redis-backed sliding window algorithm as the main chat route.
  */
 
-import { logger } from '@/lib/logger';
+import { checkRateLimit as sharedCheckRateLimit } from '@/lib/security/rate-limit';
 
-const log = logger('CodeLabChat:RateLimit');
-
-// In-memory rate limit store (per user, resets every minute)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_REQUESTS = 30; // 30 requests per minute
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Cleanup every 5 minutes
-let lastCleanupTime = Date.now();
 
-/**
- * Clean up expired rate limit entries to prevent memory leaks.
- * Called periodically during rate limit checks.
- */
-function cleanupExpiredRateLimits(): void {
-  const now = Date.now();
-
-  // Only run cleanup every CLEANUP_INTERVAL_MS
-  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
-    return;
-  }
-
-  lastCleanupTime = now;
-  let cleanedCount = 0;
-
-  for (const [userId, limit] of rateLimitStore.entries()) {
-    if (now > limit.resetTime) {
-      rateLimitStore.delete(userId);
-      cleanedCount++;
-    }
-  }
-
-  if (cleanedCount > 0) {
-    log.debug('Cleaned up expired rate limit entries', {
-      count: cleanedCount,
-      remaining: rateLimitStore.size,
-    });
-  }
-}
-
-export function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-
-  // MEMORY LEAK FIX: Periodically clean up expired entries
-  cleanupExpiredRateLimits();
-
-  const userLimit = rateLimitStore.get(userId);
-
-  if (!userLimit || now > userLimit.resetTime) {
-    // Reset or initialize
-    rateLimitStore.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_REQUESTS - 1 };
-  }
-
-  if (userLimit.count >= RATE_LIMIT_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  userLimit.count++;
-  return { allowed: true, remaining: RATE_LIMIT_REQUESTS - userLimit.count };
+export async function checkRateLimit(
+  userId: string
+): Promise<{ allowed: boolean; remaining: number }> {
+  const result = await sharedCheckRateLimit(`codelab:chat:${userId}`, {
+    limit: RATE_LIMIT_REQUESTS,
+    windowMs: RATE_LIMIT_WINDOW_MS,
+  });
+  return { allowed: result.allowed, remaining: result.remaining };
 }

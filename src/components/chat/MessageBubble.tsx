@@ -318,6 +318,10 @@ export const MessageBubble = memo(
       prev.message.content === next.message.content &&
       prev.message.toolCalls === next.message.toolCalls &&
       prev.message.attachments === next.message.attachments &&
+      prev.message.isStreaming === next.message.isStreaming &&
+      prev.message.isError === next.message.isError &&
+      prev.message.generatedImage === next.message.generatedImage &&
+      prev.message.videoUrl === next.message.videoUrl &&
       prev.isLast === next.isLast &&
       prev.isAdmin === next.isAdmin &&
       prev.enableCodeActions === next.enableCodeActions
