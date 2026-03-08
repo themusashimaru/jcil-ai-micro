@@ -11,9 +11,6 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
-  // Standalone output for Docker deployments
-  output: 'standalone',
-
   // App Router optimizations
   experimental: {
     // Server-side native packages — must be under experimental in Next.js 14.x
