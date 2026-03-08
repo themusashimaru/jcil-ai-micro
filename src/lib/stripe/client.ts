@@ -17,7 +17,9 @@ function getStripe(): Stripe {
       throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
     }
     _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2026-02-25.clover',
+      // Let the Stripe SDK use its own default API version.
+      // Hardcoding a version string causes build failures when the lockfile
+      // pins a different SDK version than the local node_modules.
       typescript: true,
     });
   }
