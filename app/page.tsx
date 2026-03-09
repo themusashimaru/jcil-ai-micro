@@ -22,6 +22,7 @@ import HowItWorks from './components/landing/HowItWorks';
 import UseCases from './components/landing/UseCases';
 import PricingSection from './components/PricingSection';
 import FinalCTA from './components/landing/FinalCTA';
+import IntegrationsShowcase from './components/landing/IntegrationsShowcase';
 
 export default function HomePage() {
   return (
@@ -31,6 +32,8 @@ export default function HomePage() {
       <HeroSection />
 
       <TrustBar />
+
+      <IntegrationsShowcase />
 
       <ProductsSection />
 

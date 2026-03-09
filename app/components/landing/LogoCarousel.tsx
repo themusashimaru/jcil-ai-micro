@@ -46,7 +46,7 @@ export default function LogoCarousel({
 
   return (
     <div className={`overflow-hidden ${className}`}>
-      {title && <p className="text-center text-sm text-slate-500 mb-8">{title}</p>}
+      {title && <p className="text-center text-sm text-zinc-500 mb-8">{title}</p>}
 
       <div className="relative">
         <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
@@ -59,7 +59,7 @@ export default function LogoCarousel({
           {duplicatedLogos.map((logo, i) => (
             <div
               key={`${logo.name}-${i}`}
-              className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors shrink-0"
+              className="flex items-center gap-3 text-zinc-400 hover:text-white transition-colors shrink-0"
             >
               <span className="opacity-70 hover:opacity-100 transition-opacity">{logo.icon}</span>
             </div>
@@ -93,7 +93,7 @@ export function LogoGrid({ className = '' }: { className?: string }) {
       {techLogos.slice(0, 6).map((logo) => (
         <div
           key={logo.name}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors opacity-60 hover:opacity-100"
+          className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors opacity-60 hover:opacity-100"
         >
           {logo.icon}
         </div>
@@ -104,7 +104,7 @@ export function LogoGrid({ className = '' }: { className?: string }) {
 
 export function LogoStrip({ className = '' }: { className?: string }) {
   return (
-    <div className={`flex items-center justify-center gap-6 text-slate-500 ${className}`}>
+    <div className={`flex items-center justify-center gap-6 text-zinc-500 ${className}`}>
       <span className="text-xs uppercase tracking-wider">Powered by</span>
       <div className="flex items-center gap-4">
         <AnthropicLogo className="h-4 w-auto opacity-50 hover:opacity-100 transition-opacity" />

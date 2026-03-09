@@ -50,8 +50,8 @@ export default function HeroSection() {
 
         {/* Subtitle — slide up delayed */}
         <p className="mx-auto mt-8 max-w-2xl animate-[fadeInUp_0.8s_ease-out_0.3s_both] text-lg leading-relaxed text-zinc-400 sm:text-xl">
-          51 real tools. 6 AI agents. 5 LLM providers. Full IDE. Sandboxed execution.
-          Enterprise security. All grounded in Scripture.
+          51 real tools. 6 AI agents. 5 LLM providers. Full IDE. Sandboxed execution. Enterprise
+          security. All grounded in Scripture.
         </p>
 
         {/* CTAs — slide up delayed */}
@@ -59,19 +59,20 @@ export default function HeroSection() {
           <Link
             href="/signup"
             className="group w-full rounded-full bg-white px-8 py-3.5 text-base font-semibold text-zinc-900 transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,255,255,0.15)] sm:w-auto"
+            style={{ color: '#18181b' }}
           >
             Get started free
           </Link>
           <Link
             href="/code-lab/about"
-            className="w-full rounded-full border border-white/[0.15] px-8 py-3.5 text-base font-medium text-zinc-300 transition-all duration-300 hover:border-white/[0.3] hover:text-white sm:w-auto"
+            className="w-full rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-zinc-300 transition-all duration-300 hover:border-white/30 hover:text-white sm:w-auto"
           >
             Explore Code Lab
           </Link>
         </div>
 
         {/* Trust line */}
-        <p className="mt-14 animate-[fadeIn_0.8s_ease-out_0.7s_both] text-sm text-zinc-600">
+        <p className="mt-14 animate-[fadeIn_0.8s_ease-out_0.7s_both] text-sm text-zinc-500">
           Switch models mid-conversation &middot; No credit card required &middot; BYOK supported
         </p>
       </div>

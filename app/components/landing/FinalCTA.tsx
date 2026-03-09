@@ -21,13 +21,14 @@ export default function FinalCTA() {
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/signup"
-            className="w-full rounded-full bg-white px-8 py-3.5 text-base font-semibold text-black transition-all hover:bg-zinc-200 sm:w-auto"
+            className="w-full rounded-full bg-white px-8 py-3.5 text-base font-semibold text-zinc-900 transition-all hover:bg-zinc-200 sm:w-auto"
+            style={{ color: '#18181b' }}
           >
             Get started free
           </Link>
           <Link
             href="/contact"
-            className="w-full rounded-full border border-white/[0.1] px-8 py-3.5 text-base font-medium text-zinc-300 transition-all hover:border-white/[0.2] hover:text-white sm:w-auto"
+            className="w-full rounded-full border border-white/20 px-8 py-3.5 text-base font-medium text-zinc-300 transition-all hover:border-white/40 hover:text-white sm:w-auto"
           >
             Contact sales
           </Link>

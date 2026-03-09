@@ -41,12 +41,15 @@ export default function LandingHeader({
 
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isMobileMenuOpen]);
 
-  const bg = transparent && !isScrolled
-    ? 'bg-transparent'
-    : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06]';
+  const bg =
+    transparent && !isScrolled
+      ? 'bg-transparent'
+      : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06]';
 
   return (
     <>
@@ -70,12 +73,16 @@ export default function LandingHeader({
 
             {/* Desktop CTA */}
             <div className="hidden lg:flex lg:items-center lg:gap-3">
-              <Link href="/login" className="px-4 py-2 text-sm text-zinc-400 transition-colors hover:text-white">
+              <Link
+                href="/login"
+                className="px-4 py-2 text-sm text-zinc-400 transition-colors hover:text-white"
+              >
                 Sign in
               </Link>
               <Link
                 href={ctaHref}
                 className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-900 transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                style={{ color: '#18181b' }}
               >
                 {ctaText}
               </Link>
@@ -87,8 +94,18 @@ export default function LandingHeader({
               className="lg:hidden rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
               aria-label="Open menu"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 9h16.5m-16.5 6.75h16.5"
+                />
               </svg>
             </button>
           </nav>
@@ -98,8 +115,15 @@ export default function LandingHeader({
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-zinc-950/95 backdrop-blur-xl border-l border-white/[0.06]" role="dialog" aria-label="Mobile menu">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div
+            className="absolute right-0 top-0 h-full w-full max-w-sm bg-zinc-950/95 backdrop-blur-xl border-l border-white/[0.06]"
+            role="dialog"
+            aria-label="Mobile menu"
+          >
             <div className="flex flex-col h-full">
               <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
                 <LandingLogo />
@@ -108,7 +132,13 @@ export default function LandingHeader({
                   className="rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
                   aria-label="Close menu"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -139,6 +169,7 @@ export default function LandingHeader({
                   href={ctaHref}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center justify-center w-full py-3.5 text-base font-semibold text-zinc-900 bg-white rounded-full transition-all"
+                  style={{ color: '#18181b' }}
                 >
                   {ctaText}
                 </Link>
