@@ -94,7 +94,16 @@ export async function POST(request: NextRequest) {
     }
 
     const sizeCheck = validateRequestSize(rawBody, SIZE_LIMITS.XLARGE);
-    if (!sizeCheck.valid) return sizeCheck.response!;
+    if (!sizeCheck.valid) {
+      return (
+        sizeCheck.response ??
+        chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
+          error: 'Request too large',
+          code: ERROR_CODES.INVALID_INPUT,
+          action: 'validate',
+        })
+      );
+    }
 
     const validation = chatRequestSchema.safeParse(rawBody);
     if (!validation.success) {
@@ -455,6 +464,14 @@ export async function POST(request: NextRequest) {
     isStreamingResponse = true;
     slotAcquired = false;
     return await handleClaudeProvider({ ...streamConfig, pendingRequestId });
+  } catch (error) {
+    log.error('Unhandled chat error', error instanceof Error ? error : undefined);
+    return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
+      error: 'Internal server error',
+      code: ERROR_CODES.INTERNAL_ERROR,
+      message: 'Something went wrong. Please try again.',
+      action: 'retry',
+    });
   } finally {
     if (slotAcquired && !isStreamingResponse) {
       releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
