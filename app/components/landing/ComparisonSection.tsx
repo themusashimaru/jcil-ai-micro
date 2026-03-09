@@ -14,17 +14,20 @@ interface ComparisonRow {
 }
 
 const comparisons: ComparisonRow[] = [
-  { feature: 'Scripture-grounded responses', jcil: true, generic: false },
-  { feature: 'Tool orchestration (tools chain together)', jcil: true, generic: false },
+  { feature: 'BYOK — bring your own API keys, any provider', jcil: '5 providers', generic: false },
+  { feature: 'Switch models mid-conversation', jcil: true, generic: false },
+  { feature: 'Full coding IDE in the browser', jcil: true, generic: false },
+  { feature: 'Extended thinking / reasoning mode', jcil: true, generic: 'Limited' },
+  { feature: 'Parallel AI agents (up to 100 scouts)', jcil: '6 agents', generic: false },
+  { feature: 'Real-time web search (native)', jcil: true, generic: 'Limited' },
   { feature: 'AI image generation (FLUX.2)', jcil: '5 models', generic: 'DALL-E only' },
   { feature: 'Real code execution (E2B sandbox)', jcil: true, generic: 'Limited' },
-  { feature: 'Full coding IDE with debugging', jcil: true, generic: false },
-  { feature: 'Real AI tools (not stubs)', jcil: '51 tools', generic: 'Varies' },
   { feature: 'Document generation (Word, Excel, PDF, PPTX)', jcil: true, generic: 'Limited' },
-  { feature: 'Parallel web research agents', jcil: true, generic: false },
-  { feature: 'Composio integrations', jcil: '67+ apps', generic: false },
+  { feature: 'Real AI tools (not stubs)', jcil: '51 tools', generic: 'Varies' },
+  { feature: '67+ app integrations via Composio (SOC 2)', jcil: true, generic: false },
+  { feature: 'Persistent memory across sessions', jcil: true, generic: false },
+  { feature: 'Scripture-grounded responses', jcil: true, generic: false },
   { feature: 'Data never used for training', jcil: true, generic: 'Varies' },
-  { feature: 'Built for churches & ministries', jcil: true, generic: false },
 ];
 
 function CellValue({ value }: { value: string | boolean }) {
