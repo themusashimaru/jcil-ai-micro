@@ -173,6 +173,8 @@ export function useAgentOperations({
         let buffer = '';
         let lastProgressUpdate = Date.now();
         let progressMessageId: string | null = null;
+        let receivedComplete = false;
+        let lastErrorMessage = '';
 
         while (true) {
           const { done, value } = await reader.read();
@@ -224,6 +226,7 @@ export function useAgentOperations({
               }
 
               if (event.type === 'strategy_complete' && event.data?.result) {
+                receivedComplete = true;
                 const content = formatResultContent(
                   config,
                   event.data.result,
@@ -237,13 +240,23 @@ export function useAgentOperations({
                 mode.setActive(false);
                 if (config.clearSessionOnComplete) mode.setSessionId(null);
               }
-              if (event.type === 'error' || event.type === 'kill_switch')
-                throw new Error(`Agent error: ${event.message}`);
+
+              // Don't throw on intermediate error/kill_switch events — the backend
+              // continues executing and will send a strategy_complete with results.
+              // Track the message so we can surface it if the stream ends without results.
+              if (event.type === 'error' || event.type === 'kill_switch') {
+                lastErrorMessage = event.message || 'Unknown error';
+                log.warn('Agent event:', { type: event.type, message: lastErrorMessage });
+              }
             } catch (e) {
-              if (e instanceof Error && e.message.startsWith('Agent error:')) throw e;
               log.warn('Failed to parse SSE event:', { error: e });
             }
           }
+        }
+
+        // Stream ended without receiving strategy_complete — surface the error
+        if (!receivedComplete) {
+          throw new Error(lastErrorMessage || 'Strategy execution ended without results');
         }
       } catch (error) {
         setMessages((prev) => [

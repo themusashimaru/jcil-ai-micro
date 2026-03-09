@@ -498,7 +498,13 @@ export class StrategyAgent {
         return strategy;
       } else {
         // No findings at all - return minimal result
-        this.emit('error', 'No research findings available to synthesize.', { error: killReason });
+        // Use synthesis_progress instead of error so the frontend keeps reading the stream.
+        // handleExecute will still wrap the result in a strategy_complete event.
+        this.emit(
+          'synthesis_progress',
+          'No research findings were collected. Generating best-effort response...',
+          { error: killReason }
+        );
         return this.createMinimalResult(killReason || 'No findings collected');
       }
     } catch (error) {
