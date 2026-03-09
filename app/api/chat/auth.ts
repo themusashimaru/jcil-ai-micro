@@ -117,43 +117,56 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
     let userPlanKey = 'free';
     let customInstructions = '';
 
-    try {
-      const cached = await getCachedUserData(user.id);
-      if (cached) {
-        isAdmin = cached.isAdmin;
-        userPlanKey = cached.tier;
-      } else {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('is_admin, subscription_tier, subscription_status')
-          .eq('id', user.id)
-          .single();
-        isAdmin = userData?.is_admin === true;
-        const rawTier = userData?.subscription_tier || 'free';
-        const subStatus = userData?.subscription_status || 'active';
+    // Step 1: Try Redis cache
+    const cached = await getCachedUserData(user.id).catch(() => null);
+    if (cached) {
+      isAdmin = cached.isAdmin;
+      userPlanKey = cached.tier;
+    } else {
+      // Step 2: Cache miss or Redis down — query DB directly (this MUST succeed)
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('is_admin, subscription_tier, subscription_status')
+        .eq('id', user.id)
+        .single();
 
-        // Only grant paid tier if subscription is explicitly active or trialing
-        // All other statuses (past_due, canceled, unpaid, incomplete, paused) → free
-        const isActiveSubscription = subStatus === 'active' || subStatus === 'trialing';
-        if (rawTier !== 'free' && !isActiveSubscription) {
-          log.warn('User has non-active subscription, downgrading to free', {
-            userId: user.id,
-            tier: rawTier,
-            status: subStatus,
-          });
-          userPlanKey = 'free';
-        } else {
-          userPlanKey = rawTier;
-        }
-        // Cache set failure is non-fatal
-        await setCachedUserData(user.id, isAdmin, userPlanKey).catch(() => {});
+      if (dbError) {
+        // DB query failed — this is NOT safe to continue with 'free' defaults.
+        // A paying user would silently lose their paid features.
+        log.error('Failed to load user data from DB — cannot determine tier', {
+          userId: user.id,
+          error: dbError.message,
+        });
+        return {
+          authenticated: false,
+          status: 503,
+          body: {
+            error: 'Service temporarily unavailable',
+            code: 'USER_DATA_UNAVAILABLE',
+            message: 'Unable to load your account data. Please try again in a moment.',
+          },
+        };
       }
-    } catch (cacheErr) {
-      // Redis/DB outage should NOT lock users out — continue with defaults
-      log.warn('Failed to load user data, using defaults', {
-        userId: user.id,
-        error: cacheErr instanceof Error ? cacheErr.message : 'Unknown',
-      });
+
+      isAdmin = userData?.is_admin === true;
+      const rawTier = userData?.subscription_tier || 'free';
+      const subStatus = userData?.subscription_status || 'active';
+
+      // Only grant paid tier if subscription is explicitly active or trialing
+      // All other statuses (past_due, canceled, unpaid, incomplete, paused) → free
+      const isActiveSubscription = subStatus === 'active' || subStatus === 'trialing';
+      if (rawTier !== 'free' && !isActiveSubscription) {
+        log.warn('User has non-active subscription, downgrading to free', {
+          userId: user.id,
+          tier: rawTier,
+          status: subStatus,
+        });
+        userPlanKey = 'free';
+      } else {
+        userPlanKey = rawTier;
+      }
+      // Cache set failure is non-fatal
+      await setCachedUserData(user.id, isAdmin, userPlanKey).catch(() => {});
     }
 
     // CHAT-009: Load custom instructions from user settings

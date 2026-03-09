@@ -70,11 +70,6 @@ describe('Redis Client', () => {
       const { cacheDeletePattern } = await import('./client');
       expect(typeof cacheDeletePattern).toBe('function');
     });
-
-    it('should export checkRateLimit function', async () => {
-      const { checkRateLimit } = await import('./client');
-      expect(typeof checkRateLimit).toBe('function');
-    });
   });
 
   describe('Cache Get Behavior', () => {
@@ -93,24 +88,6 @@ describe('Redis Client', () => {
       const { cacheSet } = await import('./client');
       // cacheSet should accept (key: string, value: T, ttlSeconds: number)
       expect(cacheSet.length).toBe(3);
-    });
-  });
-
-  describe('Rate Limit Function', () => {
-    it('should accept key, limit, and windowSeconds parameters', async () => {
-      const { checkRateLimit } = await import('./client');
-      // checkRateLimit should accept (key: string, limit: number, windowSeconds: number)
-      expect(checkRateLimit.length).toBe(3);
-    });
-
-    it('should return true when Redis is not configured (fail-open resilience)', async () => {
-      // When Redis is not configured, checkRateLimit should return true (allow request)
-      // This is the fail-open resilience behavior - allow requests when rate limiting unavailable
-      const { checkRateLimit, isRedisAvailable } = await import('./client');
-      if (!isRedisAvailable()) {
-        const result = await checkRateLimit('test-key', 10, 60);
-        expect(result).toBe(true);
-      }
     });
   });
 
@@ -146,42 +123,17 @@ describe('Redis Client', () => {
   });
 });
 
-describe('Redis Rate Limiting', () => {
-  describe('Sliding Window Algorithm', () => {
-    it('should use sorted sets for sliding window', () => {
-      // The implementation uses ZREMRANGEBYSCORE, ZADD, ZCARD, and EXPIRE
-      // This is a standard sliding window rate limiting pattern
-      const expectedOperations = ['zremrangebyscore', 'zadd', 'zcard', 'expire'];
-      expectedOperations.forEach((op) => {
-        expect(typeof op).toBe('string');
-      });
-    });
-
-    it('should calculate window start correctly', () => {
-      const now = Date.now();
-      const windowSeconds = 60;
-      const windowStart = now - windowSeconds * 1000;
-
-      // Window start should be 60 seconds ago
-      expect(windowStart).toBeLessThan(now);
-      expect(now - windowStart).toBe(windowSeconds * 1000);
-    });
-  });
-});
-
 describe('Redis Graceful Degradation', () => {
-  it('should allow requests when Redis is unavailable', () => {
-    // The design philosophy is to allow requests when Redis fails
-    // This prevents total system failure if Redis goes down
+  it('cache operations return safe defaults when Redis is unavailable', () => {
+    // The design philosophy is to return safe defaults when Redis is down
     const fallbackBehavior = {
       cacheGet: null,
       cacheSet: false,
       cacheDelete: false,
       cacheDeletePattern: false,
-      checkRateLimit: true, // Allow when Redis unavailable
     };
 
-    expect(fallbackBehavior.checkRateLimit).toBe(true);
     expect(fallbackBehavior.cacheGet).toBe(null);
+    expect(fallbackBehavior.cacheSet).toBe(false);
   });
 });

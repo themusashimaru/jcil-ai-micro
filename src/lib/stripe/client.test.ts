@@ -121,10 +121,11 @@ describe('Stripe Client', () => {
       expect(priceId).toBe('price_exec_123');
     });
 
-    it('should return empty string for unknown tier', async () => {
+    it('should throw for unknown tier instead of returning empty string', async () => {
       const { getPriceIdForTier } = await import('./client');
-      const priceId = getPriceIdForTier('unknown');
-      expect(priceId).toBe('');
+      expect(() => getPriceIdForTier('unknown')).toThrow(
+        'Stripe price ID not configured for tier "unknown"'
+      );
     });
   });
 

@@ -182,12 +182,23 @@ export async function tryImageCreation(ctx: ImageRouteContext): Promise<Response
         code: errorCode,
       });
 
-      // Fall through to regular chat if image generation fails
-      return null;
+      // Return an error response so the user knows image gen failed
+      // (instead of silently falling through to regular chat)
+      return new Response(
+        JSON.stringify({
+          type: 'image_generation_error',
+          content: `I tried to generate an image but it failed: ${errorMessage}. Please try again or rephrase your request.`,
+          error: { message: errorMessage, code: errorCode },
+        }),
+        {
+          status: 200, // 200 so the chat UI renders the message
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
   } catch (detectionError) {
     log.debug('Image request detection failed', { error: detectionError });
-    return null;
+    return null; // Detection failure is fine — just means it's not an image request
   }
 }
 
@@ -307,11 +318,21 @@ export async function tryImageEditWithAttachment(ctx: ImageRouteContext): Promis
         code: errorCode,
       });
 
-      return null;
+      return new Response(
+        JSON.stringify({
+          type: 'image_generation_error',
+          content: `I tried to edit the image but it failed: ${errorMessage}. Please try again.`,
+          error: { message: errorMessage, code: errorCode },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
   } catch (editDetectionError) {
     log.debug('Image edit detection failed', { error: editDetectionError });
-    return null;
+    return null; // Detection failure is fine — not an edit request
   }
 }
 
@@ -464,10 +485,20 @@ export async function tryConversationalImageEdit(ctx: ImageRouteContext): Promis
         code: errorCode,
       });
 
-      return null;
+      return new Response(
+        JSON.stringify({
+          type: 'image_generation_error',
+          content: `I tried to edit the image but it failed: ${errorMessage}. Please try again.`,
+          error: { message: errorMessage, code: errorCode },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
   } catch (conversationalEditError) {
     log.debug('Conversational edit detection failed', { error: conversationalEditError });
-    return null;
+    return null; // Detection failure is fine — not a conversational edit
   }
 }

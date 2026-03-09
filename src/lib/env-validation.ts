@@ -39,12 +39,12 @@ const PRODUCTION_REQUIRED_VARS: EnvVar[] = [
   { name: 'STRIPE_PRICE_ID_PLUS', description: 'Stripe price ID for Plus tier' },
   { name: 'STRIPE_PRICE_ID_PRO', description: 'Stripe price ID for Pro tier' },
   { name: 'STRIPE_PRICE_ID_EXECUTIVE', description: 'Stripe price ID for Executive tier' },
+  { name: 'ENCRYPTION_KEY', description: 'Token encryption for GitHub tokens and BYOK keys' },
+  { name: 'CRON_SECRET', description: 'Cron job authentication to prevent unauthorized triggers' },
 ];
 
 /** Recommended: App works but with degraded functionality */
 const RECOMMENDED_VARS: EnvVar[] = [
-  { name: 'ENCRYPTION_KEY', description: 'Token encryption (GitHub, BYOK)' },
-  { name: 'CRON_SECRET', description: 'Cron job authentication' },
   {
     name: 'UPSTASH_REDIS_REST_URL',
     description: 'Redis for rate limiting (falls back to in-memory)',

@@ -42,7 +42,13 @@ export function getPriceIdForTier(tier: string): string {
     pro: process.env.STRIPE_PRICE_ID_PRO,
     executive: process.env.STRIPE_PRICE_ID_EXECUTIVE,
   };
-  return priceIds[tier] || '';
+  const priceId = priceIds[tier];
+  if (!priceId) {
+    throw new Error(
+      `Stripe price ID not configured for tier "${tier}". Set STRIPE_PRICE_ID_${tier.toUpperCase()} in environment variables.`
+    );
+  }
+  return priceId;
 }
 
 // Legacy export for backwards compatibility

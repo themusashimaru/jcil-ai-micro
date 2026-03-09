@@ -225,14 +225,33 @@ class MCPManager {
       status.status = 'starting';
     }
 
+    // Whitelist of environment variables allowed in MCP ${VAR} substitution.
+    // Prevents arbitrary env var injection (e.g., reading ANTHROPIC_API_KEY,
+    // SUPABASE_SERVICE_ROLE_KEY, or other secrets through MCP config).
+    const ALLOWED_MCP_ENV_VARS = new Set([
+      'GITHUB_TOKEN',
+      'GITHUB_PERSONAL_ACCESS_TOKEN',
+      'DATABASE_URL',
+      'E2B_API_KEY',
+      'COMPOSIO_API_KEY',
+    ]);
+
     try {
       // Build environment with overrides
       const env: Record<string, string> = {};
       if (config.env) {
         for (const [key, value] of Object.entries(config.env)) {
-          // Replace ${VAR} placeholders
+          // Replace ${VAR} placeholders — only for whitelisted env vars
           if (value.startsWith('${') && value.endsWith('}')) {
             const envVar = value.slice(2, -1);
+            if (!ALLOWED_MCP_ENV_VARS.has(envVar)) {
+              log.warn('MCP env var substitution blocked — not in whitelist', {
+                serverId,
+                envVar,
+                configKey: key,
+              });
+              continue;
+            }
             const override = envOverrides?.[envVar] || process.env[envVar];
             if (override) {
               env[key] = override;

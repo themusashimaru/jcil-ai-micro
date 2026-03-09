@@ -1000,12 +1000,12 @@ describe('composio/client', () => {
       expect(result[0].description).toBe('');
     });
 
-    it('returns empty array on API error', async () => {
+    it('throws on API error instead of silently returning empty array', async () => {
       mockToolsGet.mockRejectedValue(new Error('API error'));
 
-      const result = await getAvailableTools('user-1', ['GITHUB']);
-
-      expect(result).toEqual([]);
+      await expect(getAvailableTools('user-1', ['GITHUB'])).rejects.toThrow(
+        'Failed to load Composio tools: API error'
+      );
     });
 
     it('handles null response from SDK', async () => {
