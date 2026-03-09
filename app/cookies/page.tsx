@@ -31,7 +31,7 @@ export default function CookiesPage() {
         <div className="space-y-8 text-slate-600">
           <div>
             <p className="text-sm text-slate-500 mb-4">
-              <strong className="text-slate-700">Effective Date:</strong> November 12, 2025<br />
+              <strong className="text-slate-700">Effective Date:</strong> March 9, 2026<br />
               <strong className="text-slate-700">Service:</strong> JCIL.AI
             </p>
           </div>
@@ -55,7 +55,7 @@ export default function CookiesPage() {
             </p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>
-                <strong className="text-slate-700">Authentication (Auth0 & Supabase):</strong> We use cookies to identify you when you log in, manage your active session, and prevent you from having to re-enter your credentials on every page load.
+                <strong className="text-slate-700">Authentication (NextAuth & Supabase):</strong> We use cookies to identify you when you log in, manage your active session, and prevent you from having to re-enter your credentials on every page load.
               </li>
               <li>
                 <strong className="text-slate-700">Security:</strong> These cookies help us detect malicious traffic and protect against Cross-Site Request Forgery (CSRF) attacks.
@@ -74,12 +74,12 @@ export default function CookiesPage() {
               Because we use trusted third-party infrastructure to build JCIL.AI, these providers may place cookies on your device:
             </p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
-              <li><strong className="text-slate-700">Auth0:</strong> Used for secure identity management and Single Sign-On (SSO).</li>
+              <li><strong className="text-slate-700">NextAuth:</strong> Used for secure identity management and session handling.</li>
               <li><strong className="text-slate-700">Supabase:</strong> Used to maintain the connection between your browser and our database.</li>
               <li><strong className="text-slate-700">Vercel:</strong> Used for hosting metrics and edge network performance.</li>
             </ul>
             <p className="mt-4">
-              <strong className="text-slate-700">Note:</strong> Our AI providers (Anthropic Claude and Perplexity) process your text inputs on the server side and do not place cookies on your browser.
+              <strong className="text-slate-700">Note:</strong> Our AI providers (Anthropic Claude and any BYOK providers you configure) process your text inputs on the server side and do not place cookies on your browser.
             </p>
           </section>
 
@@ -93,7 +93,7 @@ export default function CookiesPage() {
                 <strong className="text-slate-700">Browser Controls:</strong> You can block or delete cookies through your browser settings (Chrome, Safari, Firefox, Edge).
               </li>
               <li>
-                <strong className="text-slate-700">Consequence:</strong> Please be aware that if you block Strictly Necessary cookies (specifically those from Auth0 or Supabase), you will not be able to log in or use the chat features of JCIL.AI.
+                <strong className="text-slate-700">Consequence:</strong> Please be aware that if you block Strictly Necessary cookies (specifically those from NextAuth or Supabase), you will not be able to log in or use the chat features of JCIL.AI.
               </li>
             </ul>
           </section>

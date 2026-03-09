@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <div className="space-y-8 text-slate-600">
           <div>
             <p className="text-sm text-slate-500 mb-4">
-              <strong className="text-slate-700">Effective Date:</strong> November 12, 2025<br />
+              <strong className="text-slate-700">Effective Date:</strong> March 9, 2026<br />
               <strong className="text-slate-700">Service:</strong> JCIL.AI
             </p>
           </div>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
             <p>We collect the following types of information to provide and secure our services:</p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>
-                <strong className="text-slate-700">Account Information:</strong> We use Auth0 for secure authentication. We collect your email address and basic profile information necessary to create and manage your account.
+                <strong className="text-slate-700">Account Information:</strong> We use NextAuth for secure authentication. We collect your email address and basic profile information necessary to create and manage your account.
               </li>
               <li>
                 <strong className="text-slate-700">User Content:</strong> This includes the text prompts you enter, the files you upload, and the AI-generated responses (collectively, &quot;Chat History&quot;).
@@ -69,17 +69,30 @@ export default function PrivacyPage() {
             </p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>
-                <strong className="text-slate-700">LLM Provider (Anthropic Claude):</strong> Our core conversational intelligence is powered by Anthropic&apos;s Claude. Your prompts are sent to Anthropic to generate responses.
+                <strong className="text-slate-700">Default LLM Provider (Anthropic Claude):</strong> Our default conversational intelligence is powered by Anthropic&apos;s Claude Sonnet 4.6. Your prompts are sent to Anthropic to generate responses. Anthropic does not use your data for model training.
               </li>
               <li>
-                <strong className="text-slate-700">Web Search (Perplexity):</strong> For real-time web searches, queries are processed through Perplexity&apos;s API. This allows us to provide up-to-date information when needed.
+                <strong className="text-slate-700">Web Search (Anthropic Native):</strong> Real-time web searches are processed through Anthropic&apos;s native web search tool, integrated directly into the Claude model. Search queries are subject to Anthropic&apos;s privacy policy.
+              </li>
+              <li>
+                <strong className="text-slate-700">Bring Your Own Key (BYOK):</strong> JCIL supports optional BYOK for multiple AI providers including OpenAI, Google Gemini, xAI (Grok), and DeepSeek. When you provide your own API key and select an alternative provider, your prompts and data are sent directly to that provider under <strong>their</strong> privacy policy and terms of service — not ours. We encrypt your API keys at rest using AES-256 encryption, but we are not responsible for how third-party providers handle your data. We encourage you to review each provider&apos;s privacy policy before enabling BYOK.
+              </li>
+              <li>
+                <strong className="text-slate-700">Image Generation (FLUX.2):</strong> AI image generation is powered by Black Forest Labs&apos; FLUX.2 models via Replicate. Image prompts are sent to Replicate for processing.
+              </li>
+              <li>
+                <strong className="text-slate-700">Code Execution (E2B):</strong> Code Lab uses E2B sandboxed environments for secure code execution. Code you write and execute is processed in isolated E2B containers.
+              </li>
+              <li>
+                <strong className="text-slate-700">App Integrations (Composio):</strong> 67+ third-party app integrations are provided through Composio (SOC 2 compliant). When you connect an integration, data flows through Composio to the target application.
               </li>
               <li>
                 <strong className="text-slate-700">Infrastructure:</strong>
                 <ul className="list-disc ml-6 mt-2 space-y-1">
-                  <li>Auth0: Identity management and login security.</li>
-                  <li>Supabase: Encrypted database storage for chat logs and user data.</li>
+                  <li>NextAuth: Identity management and login security.</li>
+                  <li>Supabase: Encrypted database storage with row-level security for chat logs and user data.</li>
                   <li>Vercel: Cloud hosting and deployment.</li>
+                  <li>Redis: Rate limiting and session management.</li>
                 </ul>
               </li>
             </ul>
@@ -122,14 +135,14 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">6. Content Filtering & Values</h2>
             <p>
-              Our AI is tuned to provide responses through a Christian conservative lens. While we utilize Anthropic Claude for intelligence and Perplexity for web search, we apply our own system instructions to ensure content aligns with our community standards.
+              Our AI is tuned to provide responses through a Christian conservative lens. While we utilize Anthropic Claude for intelligence and Anthropic&apos;s native web search for real-time information, we apply our own system instructions to ensure content aligns with our community standards.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">7. Security</h2>
             <p>
-              We implement industry-standard security measures. Your data is protected behind Auth0 authentication, and all data at rest in Supabase and in transit is encrypted. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.
+              We implement industry-standard security measures. Your data is protected behind NextAuth authentication, and all data at rest in Supabase and in transit is encrypted. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.
             </p>
           </section>
 

@@ -31,7 +31,7 @@ export default function TermsPage() {
         <div className="space-y-8 text-slate-600">
           <div>
             <p className="text-sm text-slate-500 mb-4">
-              <strong className="text-slate-700">Effective Date:</strong> November 12, 2025<br />
+              <strong className="text-slate-700">Effective Date:</strong> March 9, 2026<br />
               <strong className="text-slate-700">Service:</strong> JCIL.AI
             </p>
           </div>
@@ -46,7 +46,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">2. Description of Service</h2>
             <p>
-              JCIL.AI is an AI-powered chat assistant designed to provide information and guidance through a specific Christian conservative worldview. The Service utilizes third-party Large Language Models (Anthropic Claude) and web search (Perplexity) to generate responses.
+              JCIL.AI is an AI-powered chat and development platform designed to provide information, tools, and guidance through a Christian conservative worldview. The Service utilizes Anthropic&apos;s Claude Sonnet 4.6 as its default large language model, with Anthropic&apos;s native web search for real-time information. Users may optionally bring their own API keys (BYOK) to use alternative providers including OpenAI, Google Gemini, xAI (Grok), and DeepSeek.
             </p>
           </section>
 
@@ -135,7 +135,9 @@ export default function TermsPage() {
             <p>Your use of the Service is also governed by our Privacy Policy. You acknowledge that:</p>
             <ul className="list-disc ml-6 mt-4 space-y-2">
               <li>Chats are retained for 6 months for legal compliance and safety auditing.</li>
-              <li>Chats are processed by third-party providers (Anthropic and Perplexity) as described in the Privacy Policy.</li>
+              <li>By default, chats are processed by Anthropic (Claude) as described in the Privacy Policy.</li>
+              <li>If you enable BYOK (Bring Your Own Key) and select an alternative AI provider, your data is sent to that provider under their terms and privacy policy. JCIL.AI is not responsible for third-party provider data handling.</li>
+              <li>API keys you provide are encrypted at rest using AES-256 encryption and are never shared with third parties other than the provider you selected.</li>
             </ul>
           </section>
 
