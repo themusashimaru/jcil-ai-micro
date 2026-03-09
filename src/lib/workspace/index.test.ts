@@ -343,6 +343,10 @@ describe('ShellExecutor', () => {
 
   describe('runBackground', () => {
     it('should enqueue a background task', async () => {
+      // Prevent fire-and-forget processTask from polluting later tests
+      vi.spyOn(TaskQueue.prototype as never, 'processTask' as never).mockResolvedValue(
+        undefined as never
+      );
       // TaskQueue constructor creates supabase client, enqueue inserts
       mockShellSuccess('task output');
       mockSingle.mockResolvedValue({ data: { workspaceId: 'ws-test', command: 'npm test' } });
@@ -830,6 +834,10 @@ describe('TaskQueue', () => {
 
   describe('enqueue', () => {
     it('should create a pending task with correct fields', async () => {
+      // Prevent fire-and-forget processTask from polluting later tests
+      vi.spyOn(TaskQueue.prototype as never, 'processTask' as never).mockResolvedValue(
+        undefined as never
+      );
       // processTask runs in background - mock its DB calls
       mockSingle.mockResolvedValue({ data: { workspaceId: 'ws-1', command: 'npm test' } });
       mockShellSuccess('tests passed');
@@ -1115,15 +1123,28 @@ describe('SessionManager', () => {
 
 describe('BatchOperationManager', () => {
   let bom: BatchOperationManager;
+  let executeSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     bom = new BatchOperationManager('ws-batch');
+    // Spy on ShellExecutor.prototype.execute to avoid fragile dynamic import mocks
+    executeSpy = vi.spyOn(ShellExecutor.prototype, 'execute');
+  });
+
+  afterEach(() => {
+    executeSpy.mockRestore();
   });
 
   describe('createBatch', () => {
     it('should create batch with pending status', async () => {
       // readFile for backup will fail (no existing file)
-      mockShellError('', 'not found', 1);
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'cat "/src/new.ts"',
+        output: 'not found',
+        exitCode: 1,
+        startedAt: new Date(),
+      });
 
       const batch = await bom.createBatch([
         { type: 'create', path: '/src/new.ts', content: 'new file' },
@@ -1136,7 +1157,13 @@ describe('BatchOperationManager', () => {
 
     it('should create backups for update operations', async () => {
       // readFile succeeds -> backup is set
-      mockShellSuccess('original content');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'cat "/src/file.ts"',
+        output: 'original content',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const ops = [{ type: 'update' as const, path: '/src/file.ts', content: 'updated' }];
       const batch = await bom.createBatch(ops);
@@ -1144,7 +1171,13 @@ describe('BatchOperationManager', () => {
     });
 
     it('should create backups for delete operations', async () => {
-      mockShellSuccess('doomed content');
+      executeSpy.mockResolvedValue({
+        id: 'mock',
+        command: 'cat "/src/old.ts"',
+        output: 'doomed content',
+        exitCode: 0,
+        startedAt: new Date(),
+      });
 
       const ops = [{ type: 'delete' as const, path: '/src/old.ts' }];
       const batch = await bom.createBatch(ops);
