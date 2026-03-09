@@ -5,6 +5,10 @@
  * Executors are loaded via dynamic import() only when Claude actually calls a tool.
  * Tool definitions (schemas) are loaded once per server lifetime and cached.
  *
+ * IMPORTANT: All import() calls use static string literals so webpack can
+ * analyze and bundle the tool modules. DO NOT use variable import paths or
+ * webpackIgnore — it breaks tool loading on Vercel serverless functions.
+ *
  * This replaces:
  * 1. The 55 static imports at the top of route.ts
  * 2. The 90+ case switch statement in route.ts
@@ -15,7 +19,7 @@
  * - Adding new tools = adding one entry here + one tool file
  * - No switch statement to maintain
  *
- * Last updated: 2026-02-22
+ * Last updated: 2026-03-09
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -48,12 +52,106 @@ interface ToolLoaderEntry {
 }
 
 // ============================================================================
+// STATIC IMPORT MAP
+// ============================================================================
+
+/**
+ * Static import functions for each tool module.
+ * Each entry uses a string literal so webpack can analyze and bundle the modules.
+ * DO NOT refactor this to use variables or template literals — it will break
+ * tool loading on Vercel serverless functions (modules won't be included in
+ * the bundle and import() will fail with MODULE_NOT_FOUND).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
+  // Core API tools
+  web_search: () => import('./web-search'),
+  fetch_url: () => import('./fetch-url'),
+  run_code: () => import('./run-code'),
+  analyze_image: () => import('./vision-analyze'),
+  parallel_research: () => import('./mini-agent'),
+  create_and_run_tool: () => import('./dynamic-tool'),
+
+  // Web tools
+  browser_visit: () => import('./browser-visit'),
+  screenshot: () => import('./screenshot-tool'),
+  desktop_sandbox: () => import('./desktop-sandbox-tool'),
+  capture_webpage: () => import('./web-capture-tool'),
+  youtube_transcript: () => import('./youtube-transcript'),
+  github: () => import('./github-tool'),
+  http_request: () => import('./http-request-tool'),
+  shorten_link: () => import('./link-shorten-tool'),
+
+  // Sandbox tools
+  sandbox_files: () => import('./sandbox-files-tool'),
+  sandbox_test_runner: () => import('./sandbox-test-runner-tool'),
+  sandbox_template: () => import('./sandbox-template-tool'),
+
+  // Code tools
+  fix_error: () => import('./error-fixer-tool'),
+  refactor_code: () => import('./refactor-tool'),
+  format_code: () => import('./prettier-tool'),
+  diff_compare: () => import('./diff-tool'),
+  query_data_sql: () => import('./sql-tool'),
+
+  // Document tools
+  create_document: () => import('./document-tool'),
+  extract_pdf: () => import('./extract-pdf'),
+  extract_table: () => import('./extract-table'),
+  pdf_manipulate: () => import('./pdf-tool'),
+  create_spreadsheet: () => import('./spreadsheet-tool'),
+  excel_advanced: () => import('./excel-tool'),
+
+  // Media tools
+  transform_image: () => import('./image-transform-tool'),
+  transcribe_audio: () => import('./audio-transcribe'),
+  media_process: () => import('./media-tool'),
+  image_metadata: () => import('./exif-tool'),
+  ocr_extract_text: () => import('./ocr-tool'),
+  create_chart: () => import('./chart-tool'),
+  e2b_visualize: () => import('./e2b-chart-tool'),
+  graphics_3d: () => import('./graphics-3d-tool'),
+  hough_vision: () => import('./hough-vision-tool'),
+  ray_tracing: () => import('./ray-tracing-tool'),
+
+  // Data tools
+  generate_fake_data: () => import('./faker-tool'),
+  validate_data: () => import('./validator-tool'),
+  convert_file: () => import('./file-convert-tool'),
+  generate_qr_code: () => import('./qr-code-tool'),
+  generate_barcode: () => import('./barcode-tool'),
+  zip_files: () => import('./zip-tool'),
+  search_index: () => import('./search-index-tool'),
+  analyze_text_nlp: () => import('./nlp-tool'),
+
+  // Scientific tools
+  geo_calculate: () => import('./geospatial-tool'),
+  analyze_sequence: () => import('./dna-bio-tool'),
+  signal_process: () => import('./signal-tool'),
+  sequence_analyze: () => import('./sequence-analyze-tool'),
+  medical_calc: () => import('./medical-calc-tool'),
+  solve_constraints: () => import('./constraint-tool'),
+  parse_grammar: () => import('./parser-tool'),
+
+  // Security tools
+  crypto_toolkit: () => import('./crypto-tool'),
+  phone_validate: () => import('./phone-tool'),
+  check_accessibility: () => import('./accessibility-tool'),
+
+  // Document template tools
+  create_presentation: () => import('./presentation-tool'),
+  create_email_template: () => import('./email-template-tool'),
+  document_template: () => import('./document-templates-tool'),
+  mail_merge: () => import('./mail-merge-tool'),
+};
+
+// ============================================================================
 // TOOL LOADER REGISTRY
 // ============================================================================
 
 /**
- * Maps each tool name to its lazy-loadable module info.
- * This is the ONLY place tool name → module mappings need to be maintained.
+ * Maps each tool name to its export names for extracting tool/executor/availability
+ * from the dynamically imported module.
  */
 const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   // Core API tools
@@ -450,6 +548,7 @@ const moduleCache = new Map<string, ToolModule>();
 
 /**
  * Dynamically import a tool module and cache it.
+ * Uses TOOL_IMPORTERS (static import map) so webpack bundles all tool files.
  */
 async function loadToolModule(toolName: string): Promise<ToolModule | null> {
   // Check cache first
@@ -459,9 +558,12 @@ async function loadToolModule(toolName: string): Promise<ToolModule | null> {
   const entry = TOOL_LOADER_MAP[toolName];
   if (!entry) return null;
 
-  // Dynamic import — only loads the file when first needed
+  const importer = TOOL_IMPORTERS[toolName];
+  if (!importer) return null;
+
+  // Static import path — webpack can analyze and bundle the module
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod: any = await import(/* webpackIgnore: true */ entry.importPath);
+  const mod: any = await importer();
 
   const toolModule: ToolModule = {
     tool: mod[entry.toolExport],
