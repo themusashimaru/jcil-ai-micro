@@ -1,155 +1,118 @@
 /**
- * PRODUCTS SECTION COMPONENT
+ * PRODUCTS SECTION
  *
- * Chat + Code Lab product cards with accurate metrics
- * No unverified claims
+ * Two clean product cards — Chat and Code Lab.
+ * Anthropic-inspired layout: simple, informative, trustworthy.
  */
 
 import Link from 'next/link';
-import Section, { SectionHeader } from './Section';
-import { ChatIcon, CodeIcon } from './Icons';
-
-function CheckMark({ className = '' }: { className?: string }) {
-  return (
-    <svg
-      className={`w-4 h-4 shrink-0 ${className}`}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function ArrowRight() {
-  return (
-    <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  );
-}
 
 export default function ProductsSection() {
   return (
-    <Section id="products" background="gradient" padding="lg">
-      <SectionHeader
-        badge="Our Products"
-        badgeColor="purple"
-        title="Pick your platform"
-        description="Whether you need everyday AI assistance or full autonomous development capabilities, we have you covered."
-      />
-
-      <div className="grid gap-8 lg:grid-cols-2 max-w-5xl mx-auto">
-        {/* Chat Product */}
-        <div className="group relative bg-gradient-to-br from-amber-950/80 to-amber-950/40 rounded-3xl p-8 lg:p-10 border border-amber-500/20 hover:border-amber-500/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-600/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="relative">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center">
-                <ChatIcon className="w-7 h-7 text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Chat</h3>
-                <p className="text-amber-300 text-sm">For everyone</p>
-              </div>
-            </div>
-
-            <p className="text-slate-300 mb-8 text-base leading-relaxed">
-              Multi-model AI intelligence with Biblical grounding. Get thoughtful answers, research
-              assistance, and creative help&mdash;all aligned with Scripture and Christian values.
-            </p>
-
-            <div className="space-y-3 mb-8">
-              {[
-                'Theological Q&A with Scripture references',
-                'Sermon & Bible study preparation',
-                'Web search & real-time fact checking',
-                'Document generation (Word, Excel, PDF)',
-                'Image analysis & document processing',
-              ].map((feature) => (
-                <div key={feature} className="flex items-center gap-3 text-sm text-slate-300">
-                  <CheckMark className="text-amber-400" />
-                  {feature}
-                </div>
-              ))}
-            </div>
-
-            <Link
-              href="/chat"
-              className="inline-flex items-center justify-center w-full rounded-xl bg-amber-600 hover:bg-amber-500 px-6 py-3.5 text-white font-semibold transition-all"
-            >
-              Start Chatting
-              <ArrowRight />
-            </Link>
-          </div>
+    <section id="products" className="bg-black py-24 lg:py-32">
+      <div className="mx-auto max-w-6xl px-6">
+        {/* Section header */}
+        <div className="mx-auto mb-16 max-w-2xl text-center">
+          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+            Two products, one mission
+          </h2>
+          <p className="mt-4 text-lg text-slate-400">
+            Whether you need everyday AI assistance or a full development environment.
+          </p>
         </div>
 
-        {/* Code Lab Product */}
-        <div className="group relative bg-gradient-to-br from-fuchsia-950/80 to-fuchsia-950/40 rounded-3xl p-8 lg:p-10 border border-fuchsia-500/20 hover:border-fuchsia-500/40 transition-all duration-500">
-          <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-600/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-
-          <div className="relative">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-fuchsia-500/20 flex items-center justify-center">
-                <CodeIcon className="w-7 h-7 text-fuchsia-400" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Code Lab</h3>
-                <p className="text-fuchsia-300 text-sm">Enterprise AI IDE</p>
-              </div>
+        {/* Product cards */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Chat */}
+          <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-8 transition-colors hover:border-white/20 lg:p-10">
+            <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+              </svg>
             </div>
-
-            <p className="text-slate-300 mb-6 text-base leading-relaxed">
-              A powerful AI development environment on the web. 51 real tools, E2B sandboxed
-              execution, and multi-model support&mdash;with{' '}
-              <span className="text-fuchsia-400 font-semibold">zero installation</span>.
+            <h3 className="text-xl font-semibold text-white">Chat</h3>
+            <p className="mt-1 text-sm text-amber-400/80">For everyone</p>
+            <p className="mt-4 leading-relaxed text-slate-400">
+              Multi-model AI with Biblical grounding. Theological Q&amp;A, sermon preparation,
+              document generation, web search, and image analysis — all aligned with Christian values.
             </p>
+            <ul className="mt-6 space-y-2.5 text-sm text-slate-400">
+              <ProductFeature>Scripture-grounded answers with references</ProductFeature>
+              <ProductFeature>Document generation (Word, Excel, PDF)</ProductFeature>
+              <ProductFeature>Web search and real-time research</ProductFeature>
+              <ProductFeature>Persistent memory across sessions</ProductFeature>
+            </ul>
+            <Link
+              href="/chat"
+              className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-white transition-colors hover:text-amber-400"
+            >
+              Start chatting
+              <ArrowIcon />
+            </Link>
+          </div>
 
-            <div className="grid grid-cols-4 gap-2 mb-6">
-              <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">51</div>
-                <div className="text-[10px] text-slate-400">Tools</div>
-              </div>
-              <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">5</div>
-                <div className="text-[10px] text-slate-400">Models</div>
-              </div>
-              <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">67+</div>
-                <div className="text-[10px] text-slate-400">Integrations</div>
-              </div>
-              <div className="bg-fuchsia-500/10 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-fuchsia-300">E2B</div>
-                <div className="text-[10px] text-slate-400">Sandbox</div>
-              </div>
+          {/* Code Lab */}
+          <div className="group rounded-2xl border border-white/10 bg-white/[0.02] p-8 transition-colors hover:border-white/20 lg:p-10">
+            <div className="mb-6 flex h-10 w-10 items-center justify-center rounded-lg bg-fuchsia-500/10">
+              <svg className="h-5 w-5 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+              </svg>
             </div>
-
-            <div className="space-y-2 mb-6">
-              {[
-                'Claude Sonnet 4.6, GPT-5.2, Gemini, Grok, DeepSeek',
-                'E2B sandboxed code execution',
-                'GitHub integration & project scaffolding',
-                'Web search, scraping & research tools',
-                'Composio: 67+ app integrations',
-              ].map((feature) => (
-                <div key={feature} className="flex items-center gap-2 text-sm text-slate-300">
-                  <CheckMark className="text-fuchsia-400" />
-                  {feature}
-                </div>
-              ))}
+            <h3 className="text-xl font-semibold text-white">Code Lab</h3>
+            <p className="mt-1 text-sm text-fuchsia-400/80">Enterprise AI IDE</p>
+            <p className="mt-4 leading-relaxed text-slate-400">
+              A full development environment in your browser. 51 real tools, E2B sandboxed execution,
+              multi-model support, and 67+ integrations — zero installation required.
+            </p>
+            <div className="mt-6 flex gap-6 text-sm">
+              <Stat value="51" label="Tools" />
+              <Stat value="5" label="Models" />
+              <Stat value="67+" label="Integrations" />
             </div>
-
+            <ul className="mt-6 space-y-2.5 text-sm text-slate-400">
+              <ProductFeature>Claude, GPT, Gemini, Grok, DeepSeek</ProductFeature>
+              <ProductFeature>Sandboxed code execution (E2B)</ProductFeature>
+              <ProductFeature>GitHub integration and project scaffolding</ProductFeature>
+              <ProductFeature>67+ app integrations via Composio</ProductFeature>
+            </ul>
             <Link
               href="/code-lab/about"
-              className="inline-flex items-center justify-center w-full rounded-xl bg-fuchsia-600 hover:bg-fuchsia-500 px-6 py-3.5 text-white font-semibold transition-all"
+              className="mt-8 inline-flex items-center gap-1.5 text-sm font-medium text-white transition-colors hover:text-fuchsia-400"
             >
-              View Technical Specs
-              <ArrowRight />
+              View technical specs
+              <ArrowIcon />
             </Link>
           </div>
         </div>
       </div>
-    </Section>
+    </section>
+  );
+}
+
+function ProductFeature({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-400/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>{children}</span>
+    </li>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div className="text-lg font-semibold text-white">{value}</div>
+      <div className="text-xs text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+    </svg>
   );
 }

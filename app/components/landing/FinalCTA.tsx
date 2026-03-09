@@ -1,47 +1,36 @@
 /**
- * FINAL CTA SECTION
+ * FINAL CTA
  *
- * Bottom-of-page call to action
+ * Clean bottom-of-page call to action.
  */
 
 import Link from 'next/link';
-import Section from './Section';
-import { CrossIcon } from './Icons';
 
 export default function FinalCTA() {
   return (
-    <Section padding="xl">
-      <div className="relative mx-auto max-w-4xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-600/20 via-orange-600/20 to-amber-600/20 rounded-3xl blur-xl" />
-
-        <div className="relative bg-gradient-to-br from-slate-900 to-slate-950 rounded-3xl p-8 lg:p-16 border border-white/10 text-center">
-          <CrossIcon className="w-10 h-10 text-amber-400 mx-auto mb-6" />
-          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-            Ready to build with faith-aligned AI?
-          </h2>
-          <p className="text-lg text-slate-400 mb-8 max-w-xl mx-auto">
-            Join the community building something meaningful for the Kingdom. Start free, grow with
-            us.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/signup"
-              className="w-full sm:w-auto rounded-xl bg-amber-600 hover:bg-amber-500 px-10 py-4 text-base font-semibold text-white transition-all shadow-lg shadow-amber-500/20"
-            >
-              Get Started Free
-            </Link>
-            <Link
-              href="/contact"
-              className="w-full sm:w-auto rounded-xl border border-white/20 bg-white/5 px-10 py-4 text-base font-semibold text-white hover:bg-white/10 transition-all"
-            >
-              Contact Sales
-            </Link>
-          </div>
-          <p className="mt-6 text-sm text-slate-500">
-            No credit card required. Start building in minutes.
-          </p>
+    <section className="bg-black py-24 lg:py-32">
+      <div className="mx-auto max-w-3xl px-6 text-center">
+        <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          Ready to get started?
+        </h2>
+        <p className="mt-4 text-lg text-slate-400">
+          Start free. No credit card required. Build something meaningful.
+        </p>
+        <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Link
+            href="/signup"
+            className="w-full rounded-lg bg-white px-8 py-3.5 text-base font-semibold text-black transition-all hover:bg-slate-100 sm:w-auto"
+          >
+            Get started free
+          </Link>
+          <Link
+            href="/contact"
+            className="w-full rounded-lg border border-white/15 px-8 py-3.5 text-base font-medium text-slate-300 transition-all hover:border-white/30 hover:text-white sm:w-auto"
+          >
+            Contact sales
+          </Link>
         </div>
       </div>
-    </Section>
+    </section>
   );
 }
