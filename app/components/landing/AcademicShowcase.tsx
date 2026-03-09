@@ -2,8 +2,7 @@
  * ACADEMIC & SCIENCE SHOWCASE
  *
  * Highlights JCIL's scientific, mathematical, and academic tools.
- * Targets college students, researchers, seminarians, educators, and homeschool families.
- * Every tool listed is real and production-ready.
+ * Composio-inspired unified glass card design.
  */
 
 import Section, { SectionHeader } from './Section';
@@ -11,7 +10,6 @@ import Section, { SectionHeader } from './Section';
 interface AcademicDomain {
   icon: React.ReactNode;
   name: string;
-  color: string;
   tagline: string;
   tools: string[];
   audience: string;
@@ -21,7 +19,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <DNAIcon />,
     name: 'Biology & Life Sciences',
-    color: 'green',
     tagline: 'From DNA to discovery',
     tools: [
       'DNA sequence analysis & codon mapping',
@@ -34,7 +31,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <MathIcon />,
     name: 'Mathematics & Engineering',
-    color: 'blue',
     tagline: 'Compute, solve, visualize',
     tools: [
       'Constraint solver (optimization problems)',
@@ -47,7 +43,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <GlobeIcon />,
     name: 'Geography & Earth Sciences',
-    color: 'cyan',
     tagline: 'Map the world with data',
     tools: [
       'Geospatial calculations (distance, coordinates)',
@@ -60,7 +55,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <CodeIcon />,
     name: 'Computer Science',
-    color: 'fuchsia',
     tagline: 'Code it, run it, ship it',
     tools: [
       'E2B sandboxed code execution (Python, JS)',
@@ -73,7 +67,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <BookIcon />,
     name: 'Theology & Seminary',
-    color: 'amber',
     tagline: 'Scripture-grounded scholarship',
     tools: [
       'Cross-reference search across Biblical texts',
@@ -86,7 +79,6 @@ const domains: AcademicDomain[] = [
   {
     icon: <BeakerIcon />,
     name: 'Physics & Chemistry',
-    color: 'purple',
     tagline: 'Simulate and analyze',
     tools: [
       'Ray tracing & light simulation',
@@ -98,56 +90,45 @@ const domains: AcademicDomain[] = [
   },
 ];
 
-const colorMap: Record<string, { border: string; bg: string; text: string; badge: string }> = {
-  green: { border: 'border-green-500/20', bg: 'bg-green-500/5', text: 'text-green-400', badge: 'bg-green-500/10 text-green-300 border-green-500/30' },
-  blue: { border: 'border-blue-500/20', bg: 'bg-blue-500/5', text: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
-  cyan: { border: 'border-cyan-500/20', bg: 'bg-cyan-500/5', text: 'text-cyan-400', badge: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30' },
-  fuchsia: { border: 'border-fuchsia-500/20', bg: 'bg-fuchsia-500/5', text: 'text-fuchsia-400', badge: 'bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/30' },
-  amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/5', text: 'text-amber-400', badge: 'bg-amber-500/10 text-amber-300 border-amber-500/30' },
-  purple: { border: 'border-purple-500/20', bg: 'bg-purple-500/5', text: 'text-purple-400', badge: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
-};
-
 export default function AcademicShowcase() {
   return (
-    <Section id="academics" padding="lg">
+    <Section id="academics">
       <SectionHeader
         badge="Built for Scholars"
-        badgeColor="blue"
         title="University-grade tools, faith-based values"
         description="Whether you're in a seminary lecture hall or a biochemistry lab, JCIL gives you real scientific tools — not toy demos. Every tool runs real computations with real libraries."
       />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-        {domains.map((domain) => {
-          const colors = colorMap[domain.color];
-          return (
-            <div
-              key={domain.name}
-              className={`rounded-2xl border ${colors.border} ${colors.bg} p-6 lg:p-8 transition-all hover:border-opacity-40`}
-            >
-              <div className={`mb-4 ${colors.text}`}>{domain.icon}</div>
-              <h3 className="text-base font-semibold text-white">{domain.name}</h3>
-              <p className={`mt-1 text-sm font-medium ${colors.text}`}>{domain.tagline}</p>
-
-              <ul className="mt-4 space-y-2">
-                {domain.tools.map((tool) => (
-                  <li key={tool} className="flex items-start gap-2 text-sm text-slate-400">
-                    <svg className={`mt-0.5 h-4 w-4 shrink-0 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>{tool}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <p className="mt-4 text-xs text-slate-500 italic">{domain.audience}</p>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {domains.map((domain) => (
+          <div
+            key={domain.name}
+            className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 lg:p-8 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]"
+          >
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-zinc-400 transition-colors group-hover:text-violet-400">
+              {domain.icon}
             </div>
-          );
-        })}
+            <h3 className="text-base font-semibold text-white">{domain.name}</h3>
+            <p className="mt-1 text-sm font-medium text-violet-400/70">{domain.tagline}</p>
+
+            <ul className="mt-4 space-y-2">
+              {domain.tools.map((tool) => (
+                <li key={tool} className="flex items-start gap-2 text-sm text-zinc-500">
+                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-violet-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{tool}</span>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-4 text-xs text-zinc-600 italic">{domain.audience}</p>
+          </div>
+        ))}
       </div>
 
       <div className="mt-10 text-center">
-        <p className="text-sm text-slate-500 max-w-2xl mx-auto">
+        <p className="text-sm text-zinc-600 max-w-2xl mx-auto">
           All tools run real computations — SQLite via WebAssembly, Tesseract.js for OCR,
           turf.js for geospatial, FFmpeg for media processing, Puppeteer for web automation.
           No stubs, no simulations.

@@ -25,7 +25,7 @@ import FinalCTA from './components/landing/FinalCTA';
 
 export default function HomePage() {
   return (
-    <main id="main-content" className="min-h-screen bg-black text-white">
+    <main id="main-content" className="min-h-screen bg-zinc-950 text-white">
       <LandingHeader transparent />
 
       <HeroSection />
@@ -53,7 +53,7 @@ export default function HomePage() {
       <UseCases />
 
       {/* Pricing */}
-      <div id="pricing" className="bg-black">
+      <div id="pricing">
         <PricingSection />
       </div>
 

@@ -1,9 +1,8 @@
 /**
  * POWER FEATURES SECTION
  *
- * Highlights the 6 most compelling individual capabilities
- * that competitors don't have or charge extra for.
- * Every feature listed is real and production-ready.
+ * Highlights the 6 most compelling individual capabilities.
+ * Composio-inspired glass cards with unified styling.
  */
 
 import Section, { SectionHeader } from './Section';
@@ -65,33 +64,32 @@ const features: PowerFeature[] = [
 
 export default function PowerFeatures() {
   return (
-    <Section id="power-features" padding="lg" background="gradient">
+    <Section id="power-features">
       <SectionHeader
         badge="Built Different"
-        badgeColor="amber"
         title="Features your current AI doesn't have"
         description="Every capability below is production-ready and included in your plan. No add-ons, no waitlists, no &quot;coming soon&quot; disclaimers."
       />
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="group relative rounded-2xl border border-white/10 bg-white/[0.02] p-6 lg:p-8 transition-all hover:border-amber-500/30 hover:bg-white/[0.04]"
+            className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 lg:p-8 transition-all hover:border-white/[0.12] hover:bg-white/[0.04]"
           >
             {feature.badge && (
-              <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
+              <span className="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest text-violet-400 bg-violet-500/10 border border-violet-500/20 rounded-full px-2.5 py-0.5">
                 {feature.badge}
               </span>
             )}
 
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/20 transition-colors">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-zinc-400 transition-colors group-hover:border-violet-500/20 group-hover:text-violet-400">
               {feature.icon}
             </div>
 
             <h3 className="text-base font-semibold text-white">{feature.title}</h3>
-            <p className="mt-1 text-sm font-medium text-amber-400/80">{feature.tagline}</p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-400">{feature.description}</p>
+            <p className="mt-1 text-sm font-medium text-violet-400/80">{feature.tagline}</p>
+            <p className="mt-3 text-sm leading-relaxed text-zinc-500">{feature.description}</p>
           </div>
         ))}
       </div>

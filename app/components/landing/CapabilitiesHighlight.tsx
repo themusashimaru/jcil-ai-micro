@@ -2,71 +2,68 @@
  * CAPABILITIES HIGHLIGHT
  *
  * 9 standout capabilities in a 3x3 grid.
- * Covers: IDE, agents, computer use, integrations, memory, images, docs, sandbox, security.
+ * Composio-inspired glass card grid with unified styling.
  */
+
+import Section, { SectionHeader } from './Section';
 
 export default function CapabilitiesHighlight() {
   return (
-    <section className="border-y border-white/5 bg-white/[0.01] py-24 lg:py-32">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="mx-auto mb-16 max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-            What sets JCIL apart
-          </h2>
-          <p className="mt-4 text-lg text-slate-400">
-            Everything listed here is production-ready. No demos, no stubs, no vaporware.
-          </p>
-        </div>
+    <Section id="capabilities">
+      <SectionHeader
+        badge="9 Core Capabilities"
+        title="What sets JCIL apart"
+        description="Everything listed here is production-ready. No demos, no stubs, no vaporware."
+      />
 
-        <div className="grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/5 sm:grid-cols-2 lg:grid-cols-3">
-          <Capability
-            icon={<IDEIcon />}
-            title="Full-Service IDE, Any Model"
-            description="Like Claude Code — but for every model. Switch between Claude, GPT, Gemini, Grok, and DeepSeek with a keystroke. File browser, git, terminal, debugging — in your browser."
-          />
-          <Capability
-            icon={<AgentIcon />}
-            title="6 AI Agents, 100 Parallel Scouts"
-            description="Deep Strategy deploys an Opus architect with up to 100 parallel scouts. Deep Research and Deep Writer run real web searches at scale. Like Manus — but with model choice."
-          />
-          <Capability
-            icon={<MemoryIcon />}
-            title="Persistent Memory"
-            description="JCIL remembers you across sessions. Preferences, facts, relationships, interests — stored securely in PostgreSQL with GDPR-compliant deletion. Your AI actually knows you."
-          />
-          <Capability
-            icon={<ImageIcon />}
-            title="FLUX.2 Image Generation"
-            description="Create images from natural language with FLUX.2. Not just chat — actual image creation, editing, and analysis powered by state-of-the-art models."
-          />
-          <Capability
-            icon={<DocIcon />}
-            title="Enterprise Document Generation"
-            description="Create Word docs, Excel spreadsheets with working formulas, PDFs, and presentations. Invoices, contracts, reports, resumes — from a single prompt."
-          />
-          <Capability
-            icon={<ConnectorIcon />}
-            title="67+ App Integrations (SOC 2)"
-            description="Connect to Slack, Gmail, GitHub, Jira, and 60+ more via Composio. SOC 2 compliant — chosen specifically for enterprise-safe connectivity."
-          />
-          <Capability
-            icon={<ComputerIcon />}
-            title="IT Assistance & Computer Use"
-            description="Anthropic's native computer use tools. Interact with desktops, troubleshoot systems, provide real IT support — actual computer control, not just chat."
-          />
-          <Capability
-            icon={<SandboxIcon />}
-            title="Sandboxed Code Execution"
-            description="Run Python, JavaScript, and terminal commands in isolated E2B sandboxes. Fully containerized — your code executes safely without touching production."
-          />
-          <Capability
-            icon={<ShieldIcon />}
-            title="Enterprise Security"
-            description="End-to-end encryption, API keys encrypted at rest, row-level security, Redis rate limiting, CSRF protection, and full audit trails on every request."
-          />
-        </div>
+      <div className="grid gap-px overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.04] sm:grid-cols-2 lg:grid-cols-3">
+        <Capability
+          icon={<IDEIcon />}
+          title="Full-Service IDE, Any Model"
+          description="Like Claude Code — but for every model. Switch between Claude, GPT, Gemini, Grok, and DeepSeek with a keystroke. File browser, git, terminal, debugging — in your browser."
+        />
+        <Capability
+          icon={<AgentIcon />}
+          title="6 AI Agents, 100 Parallel Scouts"
+          description="Deep Strategy deploys an Opus architect with up to 100 parallel scouts. Deep Research and Deep Writer run real web searches at scale. Like Manus — but with model choice."
+        />
+        <Capability
+          icon={<MemoryIcon />}
+          title="Persistent Memory"
+          description="JCIL remembers you across sessions. Preferences, facts, relationships, interests — stored securely in PostgreSQL with GDPR-compliant deletion. Your AI actually knows you."
+        />
+        <Capability
+          icon={<ImageIcon />}
+          title="FLUX.2 Image Generation"
+          description="Create images from natural language with FLUX.2. Not just chat — actual image creation, editing, and analysis powered by state-of-the-art models."
+        />
+        <Capability
+          icon={<DocIcon />}
+          title="Enterprise Document Generation"
+          description="Create Word docs, Excel spreadsheets with working formulas, PDFs, and presentations. Invoices, contracts, reports, resumes — from a single prompt."
+        />
+        <Capability
+          icon={<ConnectorIcon />}
+          title="67+ App Integrations (SOC 2)"
+          description="Connect to Slack, Gmail, GitHub, Jira, and 60+ more via Composio. SOC 2 compliant — chosen specifically for enterprise-safe connectivity."
+        />
+        <Capability
+          icon={<ComputerIcon />}
+          title="IT Assistance & Computer Use"
+          description="Anthropic's native computer use tools. Interact with desktops, troubleshoot systems, provide real IT support — actual computer control, not just chat."
+        />
+        <Capability
+          icon={<SandboxIcon />}
+          title="Sandboxed Code Execution"
+          description="Run Python, JavaScript, and terminal commands in isolated E2B sandboxes. Fully containerized — your code executes safely without touching production."
+        />
+        <Capability
+          icon={<ShieldIcon />}
+          title="Enterprise Security"
+          description="End-to-end encryption, API keys encrypted at rest, row-level security, Redis rate limiting, CSRF protection, and full audit trails on every request."
+        />
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -80,10 +77,12 @@ function Capability({
   description: string;
 }) {
   return (
-    <div className="bg-black p-8">
-      <div className="mb-4 text-slate-400">{icon}</div>
+    <div className="group bg-zinc-950 p-8 transition-colors hover:bg-white/[0.02]">
+      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-zinc-400 transition-colors group-hover:border-violet-500/20 group-hover:text-violet-400">
+        {icon}
+      </div>
       <h3 className="text-base font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-400">{description}</p>
+      <p className="mt-2 text-sm leading-relaxed text-zinc-500">{description}</p>
     </div>
   );
 }

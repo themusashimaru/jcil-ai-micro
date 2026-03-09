@@ -2,7 +2,7 @@
  * LANDING FOOTER
  *
  * Clean footer with navigation columns.
- * All links verified and functional.
+ * Composio-inspired unified styling.
  */
 
 import Link from 'next/link';
@@ -48,8 +48,8 @@ const footerLinks: Record<string, FooterSection> = {
 
 export default function LandingFooter() {
   return (
-    <footer className="border-t border-white/5 bg-black" role="contentinfo">
-      <div className="mx-auto max-w-7xl px-6">
+    <footer className="border-t border-white/[0.04]" role="contentinfo">
+      <div className="mx-auto max-w-6xl px-6">
         <div className="py-12 lg:py-16">
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-4">
             {/* Brand */}
@@ -57,13 +57,13 @@ export default function LandingFooter() {
               <Link href="/" className="inline-block">
                 <span className="text-xl font-bold text-white">JCIL.AI</span>
               </Link>
-              <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-500">
+              <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-600">
                 Enterprise AI built for Christians. Real tools, real intelligence,
                 grounded in Scripture.
               </p>
-              <p className="mt-4 max-w-xs text-xs italic text-amber-500/50">
+              <p className="mt-4 max-w-xs text-xs italic text-zinc-700">
                 &ldquo;Whatever you do, work at it with all your heart, as working for the Lord.&rdquo;
-                <span className="mt-1 block not-italic text-amber-500/30">(Colossians 3:23)</span>
+                <span className="mt-1 block not-italic text-zinc-800">(Colossians 3:23)</span>
               </p>
             </div>
 
@@ -79,7 +79,7 @@ export default function LandingFooter() {
                           href={link.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-white"
+                          className="inline-flex items-center gap-1 text-sm text-zinc-600 transition-colors hover:text-white"
                         >
                           {link.label}
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +89,7 @@ export default function LandingFooter() {
                       ) : (
                         <Link
                           href={link.href}
-                          className="text-sm text-slate-500 transition-colors hover:text-white"
+                          className="text-sm text-zinc-600 transition-colors hover:text-white"
                         >
                           {link.label}
                         </Link>
@@ -103,15 +103,15 @@ export default function LandingFooter() {
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-white/5 py-6">
+        <div className="border-t border-white/[0.04] py-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-zinc-700">
               &copy; {new Date().getFullYear()} JCIL.AI. All rights reserved.
             </p>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2 text-sm text-zinc-700">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
               </span>
               All systems operational
             </div>
