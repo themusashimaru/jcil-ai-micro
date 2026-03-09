@@ -12,6 +12,8 @@ import HeroSection from './components/landing/HeroSection';
 import TrustBar from './components/landing/TrustBar';
 import ProductsSection from './components/landing/ProductsSection';
 import CapabilitiesHighlight from './components/landing/CapabilitiesHighlight';
+import PowerFeatures from './components/landing/PowerFeatures';
+import ToolsShowcase from './components/landing/ToolsShowcase';
 import AgentsSection from './components/landing/AgentsSection';
 import ComparisonSection from './components/landing/ComparisonSection';
 import HowItWorks from './components/landing/HowItWorks';
@@ -31,6 +33,10 @@ export default function HomePage() {
       <ProductsSection />
 
       <CapabilitiesHighlight />
+
+      <PowerFeatures />
+
+      <ToolsShowcase />
 
       <AgentsSection />
 
