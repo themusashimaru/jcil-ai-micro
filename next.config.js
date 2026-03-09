@@ -21,19 +21,17 @@ const nextConfig = {
     'nanoid',
     '@composio/core',
     '@composio/anthropic',
+    'e2b',
+    '@e2b/code-interpreter',
+    '@e2b/desktop',
   ],
 
   // App Router optimizations
   experimental: {
     // Server-side native packages — must be under experimental in Next.js 14.x
-    // These packages use dynamic imports or native modules that break webpack bundling
-    serverComponentsExternalPackages: [
-      '@napi-rs/canvas',
-      '@e2b/code-interpreter',
-      '@e2b/desktop',
-      'puppeteer-core',
-      'encoding',
-    ],
+    // ONLY truly native packages that use .node bindings belong here
+    // E2B packages are pure JS (HTTP API clients) — bundled via transpilePackages
+    serverComponentsExternalPackages: ['@napi-rs/canvas', 'puppeteer-core'],
     serverActions: {
       bodySizeLimit: '10mb',
     },
