@@ -84,10 +84,12 @@ export const MessageBubble = memo(
       while ((match = thinkingRegex.exec(message.content)) !== null) {
         thinkingParts.push(match[1]);
       }
-      const cleaned =
+      let cleaned =
         thinkingParts.length > 0
           ? message.content.replace(thinkingRegex, '').trim()
           : message.content;
+      // Strip hidden image reference links (e.g. [ref:https://...supabase.co/...])
+      cleaned = cleaned.replace(/\n*\[ref:https?:\/\/[^\]]+\]/g, '').trim();
       return { thinkingContent: thinkingParts.join('\n\n'), displayContent: cleaned };
     }, [message.content, isUser]);
 
