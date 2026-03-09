@@ -11,6 +11,18 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
+  // Force-bundle ESM-only packages so Node.js doesn't try to require() them
+  // Prevents ERR_REQUIRE_ESM at runtime on Vercel serverless functions
+  transpilePackages: [
+    'jose',
+    'uuid',
+    'diff',
+    'zod',
+    'nanoid',
+    '@composio/core',
+    '@composio/anthropic',
+  ],
+
   // App Router optimizations
   experimental: {
     // Server-side native packages — must be under experimental in Next.js 14.x
