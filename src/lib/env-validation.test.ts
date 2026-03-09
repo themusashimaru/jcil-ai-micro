@@ -124,6 +124,8 @@ describe('validateEnvironment', () => {
     process.env.STRIPE_PRICE_ID_PLUS = 'price_plus';
     process.env.STRIPE_PRICE_ID_PRO = 'price_pro';
     process.env.STRIPE_PRICE_ID_EXECUTIVE = 'price_exec';
+    process.env.ENCRYPTION_KEY = 'test-encryption-key';
+    process.env.CRON_SECRET = 'test-cron-secret';
     (process.env as Record<string, string>).NODE_ENV = 'production';
 
     // Should not throw — NEXT_PUBLIC_SENTRY_DSN is accepted as alternative

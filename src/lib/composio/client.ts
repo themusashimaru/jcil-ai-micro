@@ -556,8 +556,12 @@ export async function getAvailableTools(
       };
     });
   } catch (error) {
-    log.error('Failed to get available tools', { userId, toolkits, error });
-    return [];
+    log.error('Failed to get available tools from Composio', { userId, toolkits, error });
+    // Propagate the error so callers know tools failed to load
+    // (returning [] would silently make all integrations disappear)
+    throw new Error(
+      `Failed to load Composio tools: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 

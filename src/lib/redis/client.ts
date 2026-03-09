@@ -90,43 +90,6 @@ export async function cacheDeletePattern(pattern: string): Promise<boolean> {
 }
 
 /**
- * Check rate limit using sliding window
- * Returns true if within limit, false if exceeded
- * RESILIENCE: Fails open - returns true if Redis unavailable (allow by default)
- * Blocking all users is worse than temporarily losing rate limiting
- */
-export async function checkRateLimit(
-  key: string,
-  limit: number,
-  windowSeconds: number
-): Promise<boolean> {
-  if (!redis) {
-    log.error('Redis not configured — rate limiting fail-open, allowing request');
-    return true; // RESILIENCE: Fail open - allow if Redis not configured
-  }
-
-  try {
-    const now = Date.now();
-    const windowStart = now - windowSeconds * 1000;
-
-    // Use sorted set for sliding window
-    const multi = redis.multi();
-    multi.zremrangebyscore(key, 0, windowStart); // Remove old entries
-    multi.zadd(key, { score: now, member: `${now}` }); // Add current request
-    multi.zcard(key); // Count requests in window
-    multi.expire(key, windowSeconds); // Set expiry
-
-    const results = await multi.exec();
-    const count = results[2] as number;
-
-    return count <= limit;
-  } catch (error) {
-    log.error('Rate limit check error — fail-open, allowing request', error as Error);
-    return true; // RESILIENCE: Fail open - allow on error
-  }
-}
-
-/**
  * Check if Redis is available and configured
  */
 export function isRedisAvailable(): boolean {

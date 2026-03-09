@@ -30,7 +30,7 @@ export interface BYOKConfig {
 
 /**
  * Get user's BYOK configuration for a provider (API key + optional custom model).
- * Returns null if not configured or decryption fails.
+ * Returns null if not configured. Throws if key exists but decryption fails.
  */
 export async function getUserBYOKConfig(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,8 +68,16 @@ export async function getUserBYOKConfig(
 
     const decryptedKey = decryptToken(encryptedKey);
     if (!decryptedKey) {
-      log.warn('Failed to decrypt BYOK key', { userId, provider: providerId });
-      return null;
+      // CRITICAL: Do NOT return null here — the caller would silently fall back
+      // to the platform API key, meaning the user's key is ignored without notice.
+      // Throw so callers can surface a meaningful error to the user.
+      log.error('Failed to decrypt BYOK key — user has a key configured but decryption failed', {
+        userId,
+        provider: providerId,
+      });
+      throw new Error(
+        `Your ${providerId} API key could not be decrypted. Please re-enter it in Settings → API Keys.`
+      );
     }
 
     log.info('Using BYOK for provider', {
