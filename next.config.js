@@ -1,5 +1,14 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { withSentryConfig } = require('@sentry/nextjs');
+// Sentry is optional — only load if DSN is configured AND the package is installed
+let withSentryConfig;
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    ({ withSentryConfig } = require('@sentry/nextjs'));
+  } catch {
+    // @sentry/nextjs not installed — skip Sentry wrapping
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -161,9 +170,10 @@ const sentryWebpackPluginOptions = {
   },
 };
 
-// Export config wrapped with Sentry (only if Sentry is configured) and bundle analyzer
-const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+// Export config wrapped with Sentry (only if Sentry is configured and installed) and bundle analyzer
+const finalConfig =
+  process.env.NEXT_PUBLIC_SENTRY_DSN && withSentryConfig
+    ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+    : nextConfig;
 
 module.exports = withBundleAnalyzer(finalConfig);

@@ -11,6 +11,10 @@ interface SectionProps {
   children: ReactNode;
   className?: string;
   id?: string;
+  /** @deprecated No longer used — kept for backwards compatibility */
+  padding?: string;
+  /** @deprecated No longer used — kept for backwards compatibility */
+  background?: string;
 }
 
 export default function Section({ children, className = '', id }: SectionProps) {
@@ -25,6 +29,8 @@ interface SectionHeaderProps {
   badge?: string;
   title: string;
   description?: string;
+  /** @deprecated No longer used — kept for backwards compatibility */
+  badgeColor?: string;
 }
 
 export function SectionHeader({ badge, title, description }: SectionHeaderProps) {
@@ -38,9 +44,7 @@ export function SectionHeader({ badge, title, description }: SectionHeaderProps)
       <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
         {title}
       </h2>
-      {description && (
-        <p className="mt-5 text-lg leading-relaxed text-zinc-400">{description}</p>
-      )}
+      {description && <p className="mt-5 text-lg leading-relaxed text-zinc-400">{description}</p>}
     </div>
   );
 }
