@@ -2,7 +2,7 @@
  * PRODUCTS SECTION
  *
  * Two clean product cards — Chat and Code Lab.
- * Anthropic-inspired layout: simple, informative, trustworthy.
+ * Code Lab emphasized as "Claude Code for all models."
  */
 
 import Link from 'next/link';
@@ -17,7 +17,7 @@ export default function ProductsSection() {
             Two products, one mission
           </h2>
           <p className="mt-4 text-lg text-slate-400">
-            Whether you need everyday AI assistance or a full development environment.
+            Everyday AI assistance or a full autonomous development environment.
           </p>
         </div>
 
@@ -34,12 +34,12 @@ export default function ProductsSection() {
             <p className="mt-1 text-sm text-amber-400/80">For everyone</p>
             <p className="mt-4 leading-relaxed text-slate-400">
               Multi-model AI with Biblical grounding. Theological Q&amp;A, sermon preparation,
-              document generation, web search, and image analysis — all aligned with Christian values.
+              document generation, and parallel research agents — all aligned with Christian values.
             </p>
             <ul className="mt-6 space-y-2.5 text-sm text-slate-400">
               <ProductFeature>Scripture-grounded answers with references</ProductFeature>
               <ProductFeature>Document generation (Word, Excel, PDF)</ProductFeature>
-              <ProductFeature>Web search and real-time research</ProductFeature>
+              <ProductFeature>Mini-agent: 2-10 parallel research agents per query</ProductFeature>
               <ProductFeature>Persistent memory across sessions</ProductFeature>
             </ul>
             <Link
@@ -59,21 +59,24 @@ export default function ProductsSection() {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-white">Code Lab</h3>
-            <p className="mt-1 text-sm text-fuchsia-400/80">Enterprise AI IDE</p>
+            <p className="mt-1 text-sm text-fuchsia-400/80">Full-service AI IDE &middot; Claude Code for every model</p>
             <p className="mt-4 leading-relaxed text-slate-400">
-              A full development environment in your browser. 51 real tools, E2B sandboxed execution,
-              multi-model support, and 67+ integrations — zero installation required.
+              A complete development environment in your browser. Switch between Claude, GPT,
+              Gemini, Grok, and DeepSeek mid-conversation. File browser, git integration,
+              visual debugging, terminal — zero installation.
             </p>
             <div className="mt-6 flex gap-6 text-sm">
               <Stat value="51" label="Tools" />
               <Stat value="5" label="Models" />
               <Stat value="67+" label="Integrations" />
+              <Stat value="6" label="AI Agents" />
             </div>
             <ul className="mt-6 space-y-2.5 text-sm text-slate-400">
-              <ProductFeature>Claude, GPT, Gemini, Grok, DeepSeek</ProductFeature>
-              <ProductFeature>Sandboxed code execution (E2B)</ProductFeature>
-              <ProductFeature>GitHub integration and project scaffolding</ProductFeature>
-              <ProductFeature>67+ app integrations via Composio</ProductFeature>
+              <ProductFeature>Switch models with &#8984;M — use any provider, any time</ProductFeature>
+              <ProductFeature>BYOK: Bring your own API keys for any provider</ProductFeature>
+              <ProductFeature>E2B sandboxed execution (Python, JS, terminal)</ProductFeature>
+              <ProductFeature>Git integration, file browser, visual debugging</ProductFeature>
+              <ProductFeature>67+ app integrations via Composio (SOC 2)</ProductFeature>
             </ul>
             <Link
               href="/code-lab/about"

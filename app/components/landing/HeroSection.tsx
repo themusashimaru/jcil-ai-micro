@@ -18,15 +18,16 @@ export default function HeroSection() {
       <div className="relative mx-auto max-w-4xl px-6 pb-20 pt-32 text-center lg:pt-40">
         {/* Headline */}
         <h1 className="text-4xl font-semibold leading-[1.15] tracking-tight text-white sm:text-5xl lg:text-6xl">
-          AI built for people
+          A full AI development environment
           <br />
-          <span className="text-slate-400">who build for the Kingdom</span>
+          <span className="text-slate-400">for every model, grounded in faith</span>
         </h1>
 
         {/* Subtitle */}
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400 sm:text-xl">
-          Enterprise-grade intelligence with 51 real tools, a full coding IDE,
-          and multi-model support — grounded in Christian values.
+          The power of Claude Code — for Claude, GPT, Gemini, Grok, and DeepSeek.
+          51 real tools, 6 AI agents, sandboxed execution, and enterprise security.
+          Built for Christians who build.
         </p>
 
         {/* CTA */}
@@ -47,7 +48,7 @@ export default function HeroSection() {
 
         {/* Trust line */}
         <p className="mt-12 text-sm text-slate-500">
-          Powered by Claude Sonnet 4.6 &middot; No credit card required
+          Switch models mid-conversation &middot; No credit card required
         </p>
       </div>
     </section>
