@@ -14,8 +14,10 @@ import ProductsSection from './components/landing/ProductsSection';
 import CapabilitiesHighlight from './components/landing/CapabilitiesHighlight';
 import PowerFeatures from './components/landing/PowerFeatures';
 import ToolsShowcase from './components/landing/ToolsShowcase';
+import AcademicShowcase from './components/landing/AcademicShowcase';
 import AgentsSection from './components/landing/AgentsSection';
 import ComparisonSection from './components/landing/ComparisonSection';
+import ValuesSection from './components/landing/ValuesSection';
 import HowItWorks from './components/landing/HowItWorks';
 import UseCases from './components/landing/UseCases';
 import PricingSection from './components/PricingSection';
@@ -38,9 +40,13 @@ export default function HomePage() {
 
       <ToolsShowcase />
 
+      <AcademicShowcase />
+
       <AgentsSection />
 
       <ComparisonSection />
+
+      <ValuesSection />
 
       <HowItWorks />
 
