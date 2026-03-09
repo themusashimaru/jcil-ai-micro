@@ -268,7 +268,21 @@ export function useMessenger({
           signal: abortControllerRef.current.signal,
         });
 
-        if (!response.ok) throw new Error('Failed to send message');
+        if (!response.ok) {
+          let serverMessage = `HTTP ${response.status}`;
+          try {
+            const errorData = await response.json();
+            serverMessage =
+              errorData?.message ||
+              (typeof errorData?.error === 'string'
+                ? errorData.error
+                : errorData?.error?.message) ||
+              serverMessage;
+          } catch {
+            /* response may not be JSON */
+          }
+          throw new Error(serverMessage);
+        }
 
         const isActionCommand = response.headers.get('X-Action-Command') === 'true';
         const reader = response.body?.getReader();
@@ -470,7 +484,21 @@ export function useMessenger({
           );
         } else {
           log.error('Error sending message', err as Error);
-          setError('Failed to send message');
+          const rawMsg = err instanceof Error ? err.message : '';
+          const lowerMsg = rawMsg.toLowerCase();
+          let userErrorMsg: string;
+          if (lowerMsg.includes('rate limit') || lowerMsg.includes('429'))
+            userErrorMsg = "You're sending messages too quickly. Please wait a moment.";
+          else if (lowerMsg.includes('quota exceeded') || lowerMsg.includes('token limit'))
+            userErrorMsg = "You've reached your usage limit. Please upgrade your plan.";
+          else if (lowerMsg.includes('unauthorized') || lowerMsg.includes('401'))
+            userErrorMsg = 'Your session may have expired. Please refresh the page.';
+          else if (lowerMsg.includes('server busy') || lowerMsg.includes('503'))
+            userErrorMsg = 'The server is busy. Please try again in a moment.';
+          else if (rawMsg && rawMsg !== 'undefined' && rawMsg.length > 5) userErrorMsg = rawMsg;
+          else userErrorMsg = 'Failed to send message. Please try again.';
+
+          setError(userErrorMsg);
           setMessages((prev) =>
             prev.filter((m) => m.id !== assistantId && m.id !== userMessage.id)
           );

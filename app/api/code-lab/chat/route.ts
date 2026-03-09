@@ -1226,7 +1226,17 @@ async function handleClaudeProvider(
 ): Promise<Response> {
   const anthropic = getAnthropicClient();
 
-  const messages: Anthropic.MessageParam[] = (history || []).map(
+  // Filter out system messages — Claude API only accepts 'user' | 'assistant' roles.
+  // System-role messages (conversation summaries) are prepended to the system prompt instead.
+  const systemHistoryMessages = (history || []).filter((m) => m.role === 'system');
+  const nonSystemHistory = (history || []).filter((m) => m.role !== 'system');
+
+  if (systemHistoryMessages.length > 0) {
+    const summaryContext = systemHistoryMessages.map((m) => m.content).join('\n\n');
+    systemPrompt += `\n\n${summaryContext}`;
+  }
+
+  const messages: Anthropic.MessageParam[] = nonSystemHistory.map(
     (m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
