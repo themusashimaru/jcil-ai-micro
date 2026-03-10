@@ -131,10 +131,10 @@ export function GetStartedCarousel({
     <div className="w-full max-w-xl mx-auto">
       {/* Header - minimal */}
       <div className="flex items-center justify-between mb-1.5 px-1">
-        <h3 className="text-[10px] font-medium text-gray-600">Quick actions</h3>
+        <h3 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Quick actions</h3>
         <button
           onClick={handleDismiss}
-          className="p-0.5 rounded text-gray-600 hover:text-gray-400 hover:bg-gray-800/50 transition-colors"
+          className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
           aria-label="Dismiss"
         >
           <X className="w-2.5 h-2.5" />
@@ -147,7 +147,7 @@ export function GetStartedCarousel({
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 -translate-x-1/2"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-background border border-border text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all opacity-0 group-hover:opacity-100 -translate-x-1/2"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-3 h-3" />
@@ -169,7 +169,7 @@ export function GetStartedCarousel({
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-gray-800/90 border border-gray-700 text-gray-300 hover:text-white hover:bg-gray-700 transition-all opacity-0 group-hover:opacity-100 translate-x-1/2"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 flex items-center justify-center bg-background border border-border text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all opacity-0 group-hover:opacity-100 translate-x-1/2"
             aria-label="Scroll right"
           >
             <ChevronRight className="w-3 h-3" />

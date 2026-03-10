@@ -43,7 +43,7 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
       onClick={onClick}
       disabled={card.comingSoon}
       className={`
-        flex-shrink-0 w-[120px] p-2 rounded-lg border transition-all text-left carousel-card
+        flex-shrink-0 w-[120px] p-2 border transition-all text-left carousel-card
         ${card.comingSoon ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
       `}
       style={{
@@ -53,29 +53,29 @@ export function CarouselCard({ card, onClick }: CarouselCardProps) {
         borderColor: 'var(--carousel-card-border)',
       }}
     >
-      {/* Icon + Title row - compact horizontal layout */}
+      {/* Icon + Title row */}
       <div className="flex items-center gap-1.5 mb-1">
-        <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-[var(--carousel-icon-bg)]">
+        <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 bg-[var(--carousel-icon-bg)]">
           <IconComponent className="w-3 h-3 text-[var(--carousel-icon-color)]" />
         </div>
-        <h4 className="text-[10px] font-medium leading-tight whitespace-nowrap text-[var(--carousel-text)]">
+        <h4 className="font-mono text-[9px] font-medium leading-tight whitespace-nowrap uppercase tracking-wider text-[var(--carousel-text)]">
           {card.title}
         </h4>
         {card.comingSoon && (
-          <span className="text-[6px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium flex-shrink-0">
+          <span className="font-mono text-[6px] px-1 py-0.5 border border-[var(--carousel-card-hover-border)] text-[var(--carousel-icon-color)] font-medium flex-shrink-0">
             Soon
           </span>
         )}
       </div>
 
-      {/* Description - single line */}
-      <p className="text-[8px] leading-tight line-clamp-1 text-[var(--carousel-text-muted)]">
+      {/* Description */}
+      <p className="font-mono text-[7px] leading-tight line-clamp-1 text-[var(--carousel-text-muted)]">
         {card.description}
       </p>
 
       {/* Badge for admin features */}
       {card.badge && (
-        <p className="text-[6px] mt-0.5 font-medium truncate text-[var(--carousel-text-muted)]">
+        <p className="font-mono text-[6px] mt-0.5 font-medium truncate text-[var(--carousel-text-muted)]">
           {card.badge}
         </p>
       )}

@@ -59,52 +59,52 @@
   }
 }
 
-/* Dark theme (default) */
+/* Dark / Editorial theme (default) — matches landing page aesthetic */
 :root {
   --font-bebas: 'Bebas Neue', Impact, sans-serif;
   --font-ibm-plex-mono: 'IBM Plex Mono', monospace;
   --background: #000000;
   --foreground: #ffffff;
-  --glass-bg: rgba(0, 0, 0, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --glass-shadow: rgba(0, 0, 0, 0.5);
 
-  /* Theme colors */
-  --primary: #38bdf8; /* Softer sky blue */
-  --primary-hover: rgba(56, 189, 248, 0.1);
-  --primary-glow: rgba(56, 189, 248, 0.4);
-  --avatar-bg: rgba(56, 189, 248, 0.35); /* Brighter for avatars/indicators */
-  --button-disabled-bg: #4a5568; /* Muted gray when disabled */
+  /* Editorial colors — orange accent matching landing page */
+  --primary: #f97316; /* Orange-500 — editorial accent */
+  --primary-hover: rgba(249, 115, 22, 0.12);
+  --primary-glow: rgba(249, 115, 22, 0.4);
+  --avatar-bg: rgba(249, 115, 22, 0.25);
+  --button-disabled-bg: #333333;
   --text-primary: #ffffff;
   --text-secondary: #9ca3af; /* Gray-400 */
   --text-muted: #6b7280; /* Gray-500 */
   --surface: #000000;
-  --surface-elevated: #18181b; /* Zinc-900 */
-  --border: rgba(255, 255, 255, 0.1);
+  --surface-elevated: #111111;
+  --border: rgba(255, 255, 255, 0.08);
 
-  /* Chat-specific dark mode colors */
-  --chat-input-bg: rgba(0, 0, 0, 0.8);
-  --chat-user-bubble-bg: transparent; /* Same as background */
+  /* Chat-specific editorial colors */
+  --chat-input-bg: #000000;
+  --chat-user-bubble-bg: transparent;
   --chat-user-bubble-text: #ffffff;
   --chat-ai-bubble-bg: transparent;
   --chat-ai-bubble-text: #ffffff;
-  --chat-ai-bubble-border: #38bdf8;
+  --chat-ai-bubble-border: rgba(249, 115, 22, 0.3);
 
-  /* Carousel - dark charcoal in dark mode */
-  --carousel-card-bg: #1a1a1a;
-  --carousel-card-disabled-bg: rgba(26, 26, 26, 0.5);
-  --carousel-card-border: rgba(255, 255, 255, 0.1);
-  --carousel-card-hover-border: rgba(255, 255, 255, 0.2);
-  --carousel-icon-bg: rgba(255, 255, 255, 0.1);
-  --carousel-icon-color: #d1d5db;
+  /* Carousel — editorial dark */
+  --carousel-card-bg: #111111;
+  --carousel-card-disabled-bg: rgba(17, 17, 17, 0.5);
+  --carousel-card-border: rgba(255, 255, 255, 0.08);
+  --carousel-card-hover-border: rgba(249, 115, 22, 0.3);
+  --carousel-icon-bg: rgba(249, 115, 22, 0.1);
+  --carousel-icon-color: #f97316;
   --carousel-text: #ffffff;
-  --carousel-text-muted: #d1d5db; /* Brighter gray-300 for readability */
+  --carousel-text-muted: #9ca3af;
 
   /* Landing v2 design tokens (shadcn-compatible for v0 components) */
   --accent: #f97316; /* Orange-500 — editorial accent */
   --accent-foreground: #000000;
   --muted-foreground: #9ca3af; /* Gray-400 */
-  --card: #18181b; /* Zinc-900 */
+  --card: #111111;
   --card-foreground: #ffffff;
 }
 
@@ -357,23 +357,45 @@
     background: rgba(255, 255, 255, 0.45);
   }
 
-  /* Dark mode overrides (pure dark theme only, not ocean) */
-  /* User bubble gets the nice bordered style in dark mode */
+  /* ========================================
+   * EDITORIAL DARK MODE — Sharp, no glass
+   * Matches landing page editorial aesthetic
+   * ======================================== */
+
+  /* Editorial: User bubble — sharp border, no glass, no rounded */
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble {
-    background: rgba(30, 30, 40, 0.6);
-    border: 1px solid var(--border);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     overflow: hidden;
   }
 
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::before,
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::after {
-    display: none;
+    display: none !important;
   }
 
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble:hover {
     transform: none;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    border-color: rgba(249, 115, 22, 0.2) !important;
+    box-shadow: none !important;
+  }
+
+  /* Editorial: All bubbles — sharp corners */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble {
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Editorial: Hide triangle tails */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
   }
 
   /* ========================================
@@ -1052,53 +1074,39 @@
     }
   }
 
-  /* Premium glassmorphic sidebar buttons (dark mode - electric blue glow) */
+  /* Editorial sidebar buttons (dark mode — sharp, orange accent) */
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .sidebar-btn-glass {
-    background: rgba(77, 255, 255, 0.15) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(77, 255, 255, 0.3) !important;
-    border-top-color: rgba(77, 255, 255, 0.5);
-    border-left-color: rgba(77, 255, 255, 0.4);
-    color: #4dffff !important;
-    box-shadow:
-      0 4px 20px rgba(77, 255, 255, 0.2),
-      0 0 15px rgba(77, 255, 255, 0.1),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    background: transparent !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(249, 115, 22, 0.3) !important;
+    color: #f97316 !important;
+    box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .sidebar-btn-glass:hover {
-    background: rgba(77, 255, 255, 0.25) !important;
-    transform: translateY(-1px);
-    box-shadow:
-      0 8px 30px rgba(77, 255, 255, 0.3),
-      0 0 25px rgba(77, 255, 255, 0.15),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+    background: rgba(249, 115, 22, 0.1) !important;
+    border-color: rgba(249, 115, 22, 0.5) !important;
+    transform: none;
+    box-shadow: none;
   }
 
-  /* Code Command button glass style (dark mode - blue glow) */
+  /* Code Command button (dark mode — editorial) */
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .code-cmd-btn-glass {
-    background: rgba(59, 130, 246, 0.2) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1.5px solid rgba(59, 130, 246, 0.4) !important;
-    border-top-color: rgba(59, 130, 246, 0.6);
-    border-left-color: rgba(59, 130, 246, 0.5);
-    box-shadow:
-      0 4px 20px rgba(59, 130, 246, 0.25),
-      0 0 15px rgba(59, 130, 246, 0.15),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+    background: transparent !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none;
     transition: all 0.2s ease;
   }
 
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .code-cmd-btn-glass:hover {
-    background: rgba(59, 130, 246, 0.3) !important;
-    transform: translateY(-1px);
-    box-shadow:
-      0 8px 30px rgba(59, 130, 246, 0.35),
-      0 0 25px rgba(59, 130, 246, 0.2),
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+    background: rgba(249, 115, 22, 0.08) !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+    transform: none;
+    box-shadow: none;
   }
 
   /* Premium sidebar buttons (pro mode - monochrome) */
@@ -1292,24 +1300,28 @@
       0 0 0 4px rgba(77, 200, 255, 0.08) !important;
   }
 
-  /* Default dark mode chat input - ghostly outline for visibility */
+  /* Editorial dark mode chat input — sharp, no glass, orange accent */
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass {
-    background: rgba(0, 0, 0, 0.8) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.25) !important; /* Soft sky blue outline */
-    border-radius: 1.5rem !important;
-    box-shadow:
-      0 0 20px rgba(56, 189, 248, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    background: #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass:focus-within {
-    border-color: rgba(56, 189, 248, 0.4) !important;
-    box-shadow:
-      0 0 30px rgba(56, 189, 248, 0.15),
-      0 0 0 3px rgba(56, 189, 248, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(249, 115, 22, 0.4) !important;
+    box-shadow: none !important;
+  }
+
+  /* Editorial dark mode: glass-morphism → sharp, no blur */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .glass-morphism {
+    background: #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
   }
 
   /* Send button glow animation */

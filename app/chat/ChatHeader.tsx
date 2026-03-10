@@ -33,12 +33,19 @@ export function ChatHeader({
   const { theme } = useTheme();
 
   return (
-    <header className="glass-morphism border-b border-white/10 py-0.5 px-1 md:p-3" role="banner">
+    <header
+      className={`border-b py-0.5 px-1 md:p-3 ${
+        theme === 'dark'
+          ? 'bg-background border-border'
+          : 'glass-morphism border-white/10'
+      }`}
+      role="banner"
+    >
       <div className="flex items-center justify-between relative">
         <div className="flex items-center gap-1">
           <button
             onClick={onToggleSidebar}
-            className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
+            className="p-1.5 hover:opacity-70 transition-opacity"
             aria-label="Toggle sidebar"
           >
             <svg
@@ -59,7 +66,11 @@ export function ChatHeader({
           {/* Connectors Link */}
           <a
             href="/settings?tab=connectors"
-            className="flex rounded-lg px-1.5 md:px-3 py-1 md:py-1.5 text-sm hover:bg-white/10 items-center gap-1 transition-colors"
+            className={`flex px-1.5 md:px-3 py-1 md:py-1.5 items-center gap-1 transition-all ${
+              theme === 'dark'
+                ? 'font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent'
+                : 'rounded-lg text-sm hover:bg-white/10'
+            }`}
             title="Connect 150+ apps"
           >
             <svg
@@ -75,14 +86,24 @@ export function ChatHeader({
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               />
             </svg>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
-              NEW
-            </span>
+            {theme === 'dark' ? (
+              <span className="text-[9px] font-mono uppercase tracking-widest border border-accent/30 px-1.5 py-0.5 text-accent">
+                NEW
+              </span>
+            ) : (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold">
+                NEW
+              </span>
+            )}
           </a>
 
           {/* Logo / site name (only when chat active) */}
           {currentChatId &&
-            (theme === 'light' ? (
+            (theme === 'dark' ? (
+              <h1 className="font-bebas text-lg md:text-xl tracking-tight hidden sm:block text-foreground">
+                JCIL<span className="text-accent">.AI</span>
+              </h1>
+            ) : theme === 'light' ? (
               <h1 className="text-base md:text-xl font-normal hidden sm:block">
                 <span className="text-text-primary">jcil.</span>
                 <span className="text-primary">ai</span>
@@ -98,7 +119,7 @@ export function ChatHeader({
             ) : (
               <h1 className="text-base md:text-xl font-semibold hidden sm:block">
                 <span className="text-white">JCIL</span>
-                <span className="text-blue-500">.ai</span>
+                <span className="text-primary">.ai</span>
               </h1>
             ))}
         </div>
@@ -106,7 +127,7 @@ export function ChatHeader({
         {/* New Chat Button - Mobile Only, Centered */}
         <button
           onClick={onNewChat}
-          className="absolute left-1/2 -translate-x-1/2 md:hidden rounded-full p-1.5 hover:bg-white/10 transition-colors flex items-center justify-center"
+          className="absolute left-1/2 -translate-x-1/2 md:hidden p-1.5 hover:opacity-70 transition-opacity flex items-center justify-center"
           aria-label="New chat"
           title="Start new chat"
         >
@@ -127,7 +148,11 @@ export function ChatHeader({
           {/* Profile Button */}
           <button
             onClick={onOpenProfile}
-            className="rounded-lg px-1 py-0.5 md:px-3 md:py-1.5 text-xs md:text-sm hover:bg-white/10 flex items-center justify-center gap-0.5 focus:outline-none"
+            className={`px-1 py-0.5 md:px-3 md:py-1.5 flex items-center justify-center gap-0.5 focus:outline-none transition-all ${
+              theme === 'dark'
+                ? 'font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground'
+                : 'rounded-lg text-xs md:text-sm hover:bg-white/10'
+            }`}
             aria-label="User Profile"
           >
             <svg

@@ -22,6 +22,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
     // Display names
     if (next === 'pro') return 'Refined';
     if (next === 'ocean') return 'Ocean';
+    if (next === 'dark') return 'Editorial';
     return next.charAt(0).toUpperCase() + next.slice(1);
   };
 
@@ -36,7 +37,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       title={`Switch to ${nextTheme} mode`}
     >
       {theme === 'dark' ? (
-        // Moon icon - currently dark
+        // Grid icon - currently editorial
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -44,7 +45,10 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           viewBox="0 0 24 24"
           strokeWidth={2}
         >
-          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
         </svg>
       ) : theme === 'light' ? (
         // Sun icon - currently light

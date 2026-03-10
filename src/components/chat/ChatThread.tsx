@@ -27,6 +27,7 @@ import { ThreadSkeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
 import { SuggestedFollowups } from './SuggestedFollowups';
+import { ScrambleText } from '@/app/components/landing-v2/ScrambleText';
 import type { ActionPreviewData } from './ActionPreviewCard';
 
 interface ChatThreadProps {
@@ -177,6 +178,11 @@ export function ChatThread({
                   <span className="text-primary">ai</span>
                 </h1>
               )
+            ) : theme === 'dark' ? (
+              /* Editorial dark mode: ScrambleText decode animation */
+              <h1 className="font-bebas text-5xl md:text-7xl tracking-tight text-foreground">
+                <ScrambleText text="JCIL.AI" duration={1.2} delayMs={200} className="inline-block" />
+              </h1>
             ) : mainLogo ? (
               mainLogo.startsWith('data:video/') ? (
                 <video
@@ -204,10 +210,20 @@ export function ChatThread({
             )}
           </div>
 
-          {/* Simple time-based greeting */}
-          <p className="text-base md:text-lg text-text-secondary">
-            How can we help you {getTimeGreeting()}?
-          </p>
+          {/* Greeting with decode effect in editorial mode */}
+          {theme === 'dark' ? (
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
+              <ScrambleText
+                text={`How can we help you ${getTimeGreeting()}?`}
+                duration={0.8}
+                delayMs={800}
+              />
+            </p>
+          ) : (
+            <p className="text-base md:text-lg text-text-secondary">
+              How can we help you {getTimeGreeting()}?
+            </p>
+          )}
         </div>
 
         {/* Bottom spacer - balances top spacer to center logo */}
