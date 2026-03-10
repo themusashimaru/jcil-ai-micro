@@ -42,10 +42,10 @@ import dynamic from 'next/dynamic';
 
 const SectionLoading = () => (
   <div className="animate-pulse space-y-4 p-4" aria-busy="true" aria-label="Loading section">
-    <div className="h-6 w-48 rounded bg-glass" />
-    <div className="h-4 w-full rounded bg-glass opacity-60" />
-    <div className="h-4 w-3/4 rounded bg-glass opacity-40" />
-    <div className="h-32 rounded bg-glass opacity-30" />
+    <div className="h-6 w-48 bg-border/20" />
+    <div className="h-4 w-full bg-border/20 opacity-60" />
+    <div className="h-4 w-3/4 bg-border/20 opacity-40" />
+    <div className="h-32 bg-border/20 opacity-30" />
   </div>
 );
 
@@ -88,28 +88,26 @@ type TabId =
 interface Tab {
   id: TabId;
   label: string;
-  icon: string;
+  tag: string;
 }
 
 const TABS: Tab[] = [
-  { id: 'membership', label: 'Membership', icon: '💳' },
-  { id: 'usage', label: 'Usage & Metrics', icon: '📊' },
-  { id: 'account', label: 'Account', icon: '👤' },
-  { id: 'connectors', label: 'Connectors', icon: '🔗' },
-  { id: 'byok', label: 'BYOK API Keys', icon: '🔑' },
-  { id: 'memory', label: 'AI Memory', icon: '🧠' },
-  { id: 'support', label: 'Support', icon: '💬' },
-  { id: 'preferences', label: 'Preferences', icon: '⚙️' },
-  { id: 'privacy', label: 'Data & Privacy', icon: '🔒' },
+  { id: 'membership', label: 'Membership', tag: 'PLAN' },
+  { id: 'usage', label: 'Usage & Metrics', tag: 'DATA' },
+  { id: 'account', label: 'Account', tag: 'USER' },
+  { id: 'connectors', label: 'Connectors', tag: 'APPS' },
+  { id: 'byok', label: 'BYOK API Keys', tag: 'KEYS' },
+  { id: 'memory', label: 'AI Memory', tag: 'MEM' },
+  { id: 'support', label: 'Support', tag: 'HELP' },
+  { id: 'preferences', label: 'Preferences', tag: 'PREFS' },
+  { id: 'privacy', label: 'Data & Privacy', tag: 'PRIV' },
 ];
 
-// Wrapper component to handle suspense for useSearchParams
 function SettingsContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabId>('membership');
   const [exporting, setExporting] = useState(false);
 
-  // Handle tab from URL query param (e.g., /settings?tab=connectors)
   useEffect(() => {
     const tabParam = searchParams.get('tab');
     if (tabParam && TABS.some((t) => t.id === tabParam)) {
@@ -126,7 +124,6 @@ function SettingsContent() {
         throw new Error('Failed to export data');
       }
 
-      // Get the blob and create download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -145,55 +142,46 @@ function SettingsContent() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8 bg-background">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
-        {/* Header with navigation buttons */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Settings</h1>
-          <div className="flex flex-wrap gap-2">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
+          <div>
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Account</span>
+            <h1 className="mt-2 font-bebas text-3xl md:text-5xl tracking-tight text-foreground">SETTINGS</h1>
+          </div>
+          <div className="flex flex-wrap gap-3">
             <Link
               href="/code-lab"
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-theme rounded-lg font-medium transition-colors text-sm sm:text-base text-text-primary"
+              className="flex items-center gap-2 border border-border/40 px-4 py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
               Code Lab
             </Link>
             <Link
               href="/chat"
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base btn-primary bg-primary text-background"
+              className="flex items-center gap-2 border border-accent bg-accent/10 px-4 py-2 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                />
-              </svg>
               Chat
             </Link>
           </div>
         </div>
 
         {/* Tabs Navigation */}
-        <div className="mb-8 flex flex-wrap gap-2 border-b border-theme">
+        <div className="mb-8 flex flex-wrap gap-1 border-b border-border/30">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-3 font-semibold transition relative ${activeTab === tab.id ? 'text-primary' : 'text-text-primary opacity-85'}`}
+              className={`relative flex items-center gap-2 px-4 py-3 font-mono text-xs uppercase tracking-widest transition-all ${
+                activeTab === tab.id
+                  ? 'text-accent'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span className="text-[9px] opacity-60">{tab.tag}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
               {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-px bg-accent" />
               )}
             </button>
           ))}
@@ -204,8 +192,8 @@ function SettingsContent() {
           {activeTab === 'membership' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2 text-text-primary">Membership & Billing</h2>
-                <p className="text-text-secondary">
+                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">MEMBERSHIP & BILLING</h2>
+                <p className="font-mono text-xs text-muted-foreground">
                   Manage your subscription, view current plan, and upgrade or downgrade.
                 </p>
               </div>
@@ -216,8 +204,8 @@ function SettingsContent() {
           {activeTab === 'usage' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2 text-text-primary">Usage & Metrics</h2>
-                <p className="text-text-secondary">
+                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">USAGE & METRICS</h2>
+                <p className="font-mono text-xs text-muted-foreground">
                   Track your daily message and image usage across all features.
                 </p>
               </div>
@@ -228,8 +216,8 @@ function SettingsContent() {
           {activeTab === 'account' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2 text-text-primary">Account Settings</h2>
-                <p className="text-text-secondary">Manage your email address and password.</p>
+                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">ACCOUNT</h2>
+                <p className="font-mono text-xs text-muted-foreground">Manage your email address and password.</p>
               </div>
               <AccountSection />
             </div>
@@ -246,8 +234,8 @@ function SettingsContent() {
           {activeTab === 'preferences' && (
             <div>
               <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2 text-text-primary">Preferences</h2>
-                <p className="text-text-secondary">
+                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">PREFERENCES</h2>
+                <p className="font-mono text-xs text-muted-foreground">
                   Customize your AI experience — theme, tone, document styling, and custom
                   instructions.
                 </p>
@@ -257,9 +245,9 @@ function SettingsContent() {
           )}
 
           {activeTab === 'privacy' && (
-            <section className="glass-morphism rounded-2xl p-6">
-              <h2 className="mb-4 text-xl font-semibold text-text-primary">Data & Privacy</h2>
-              <p className="mb-6 text-text-secondary">
+            <section className="border border-border/40 bg-card/50 p-6 md:p-8">
+              <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">DATA & PRIVACY</h2>
+              <p className="font-mono text-xs text-muted-foreground mb-6">
                 Export all your conversations and account data.
               </p>
               <div className="space-y-4">
@@ -267,13 +255,12 @@ function SettingsContent() {
                   <button
                     onClick={handleExportData}
                     disabled={exporting}
-                    className="rounded-lg px-6 py-3 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 btn-primary bg-primary text-background"
+                    className="border border-accent bg-accent/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {exporting ? 'Exporting...' : 'Export My Data'}
                   </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Download all your conversations, messages, and account info as a CSV file (opens
-                    in Excel)
+                  <p className="font-mono text-[10px] text-muted-foreground mt-2">
+                    Download all your conversations, messages, and account info as a CSV file
                   </p>
                 </div>
               </div>
@@ -285,7 +272,6 @@ function SettingsContent() {
   );
 }
 
-// Main page component with Suspense boundary for useSearchParams
 export default function SettingsPage() {
   return (
     <Suspense
@@ -295,8 +281,8 @@ export default function SettingsPage() {
           aria-busy="true"
         >
           <div className="text-center" role="status" aria-label="Loading settings">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4 border-primary"></div>
-            <p className="text-text-secondary">Loading settings...</p>
+            <div className="animate-spin h-6 w-6 border-b border-accent mx-auto mb-4" />
+            <p className="font-mono text-xs text-muted-foreground">Loading settings...</p>
           </div>
         </div>
       }

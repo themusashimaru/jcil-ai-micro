@@ -3,7 +3,7 @@
  *
  * PURPOSE:
  * - Reusable component for all tool launcher pages
- * - Displays tool icon, title, description
+ * - Displays tool title, description
  * - Renders dynamic form based on tool configuration
  * - Submits form and opens new chat with tool context
  *
@@ -11,25 +11,13 @@
  * - Form validation before submission
  * - Creates new chat with tool parameters as initial prompt
  * - Redirects to chat page with prefilled context
- * - Glassmorphism styling matching app theme
- *
- * TODO:
- * - [ ] Add form validation with error messages
- * - [ ] Add save as template functionality
- * - [ ] Add recent tool uses
- * - [ ] Add keyboard shortcuts
- *
- * TEST PLAN:
- * - Verify form fields render correctly
- * - Test form submission creates chat
- * - Check validation prevents empty submissions
- * - Verify mobile responsive layout
  */
 
 'use client';
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export interface ToolField {
   name: string;
@@ -56,6 +44,9 @@ interface ToolLauncherProps {
   config: ToolConfig;
 }
 
+const inputBase =
+  'w-full px-4 py-3 bg-card/50 border border-border/40 font-mono text-sm text-foreground placeholder-muted-foreground/40 focus:outline-none focus:border-accent/60 transition-colors';
+
 export function ToolLauncher({ config }: ToolLauncherProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -69,11 +60,8 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Build prompt from form data
     const prompt = buildPromptFromFormData(config, formData);
 
-    // TODO: Create new chat with API
-    // For now, redirect to chat with query params
     const params = new URLSearchParams({
       tool: config.id,
       prompt: prompt,
@@ -83,34 +71,37 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
   };
 
   return (
-    <div className="min-h-screen bg-black p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="glass-morphism rounded-2xl p-6 md:p-8 mb-6">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="text-5xl flex-shrink-0">{config.icon}</div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white mb-2">{config.title}</h1>
-              <p className="text-white/70">{config.description}</p>
-            </div>
+        <div className="mb-8">
+          <Link href="/capabilities" className="font-mono text-[10px] text-muted-foreground hover:text-accent transition-colors uppercase tracking-widest">
+            &larr; All Tools
+          </Link>
+        </div>
+
+        <div className="border border-border/40 bg-card/50 p-6 md:p-8 mb-6">
+          <div className="mb-4">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">{config.id}</span>
+            <h1 className="mt-2 font-bebas text-3xl md:text-4xl tracking-tight text-foreground">{config.title.toUpperCase()}</h1>
+            <p className="mt-2 font-mono text-xs text-muted-foreground leading-relaxed">{config.description}</p>
           </div>
 
           {/* Examples */}
           {config.examples && config.examples.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-white/10">
-              <p className="text-sm font-medium text-white/50 mb-2">Example uses:</p>
+            <div className="mt-6 pt-4 border-t border-border/30">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-3">Example uses</p>
               <div className="flex flex-wrap gap-2">
                 {config.examples.map((example) => (
                   <button
                     key={example}
                     onClick={() => {
-                      // Prefill first field with example
                       const firstField = config.fields[0];
                       if (firstField) {
                         handleInputChange(firstField.name, example);
                       }
                     }}
-                    className="px-3 py-1.5 text-sm bg-white/5 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                    className="border border-border/30 px-3 py-1.5 font-mono text-[10px] text-muted-foreground hover:text-accent hover:border-accent/30 transition-all"
                   >
                     {example}
                   </button>
@@ -121,13 +112,13 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="glass-morphism rounded-2xl p-6 md:p-8">
+        <form onSubmit={handleSubmit} className="border border-border/40 bg-card/50 p-6 md:p-8">
           <div className="space-y-6">
             {config.fields.map((field) => (
               <div key={field.name}>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block font-mono text-xs text-foreground mb-2 uppercase tracking-widest">
                   {field.label}
-                  {field.required && <span className="text-red-400 ml-1">*</span>}
+                  {field.required && <span className="text-accent ml-1">*</span>}
                 </label>
 
                 {field.type === 'textarea' ? (
@@ -138,7 +129,7 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
                     placeholder={field.placeholder}
                     required={field.required}
                     rows={field.rows || 4}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className={`${inputBase} resize-none`}
                   />
                 ) : field.type === 'select' ? (
                   <select
@@ -146,11 +137,11 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
                     value={formData[field.name] || ''}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
                     required={field.required}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={inputBase}
                   >
                     <option value="">Select...</option>
                     {field.options?.map((option) => (
-                      <option key={option.value} value={option.value} className="bg-black">
+                      <option key={option.value} value={option.value} className="bg-background">
                         {option.label}
                       </option>
                     ))}
@@ -165,7 +156,7 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
                     required={field.required}
                     min={field.min}
                     max={field.max}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={inputBase}
                   />
                 ) : field.type === 'file' ? (
                   <input
@@ -178,7 +169,7 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
                       }
                     }}
                     required={field.required}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-500 file:text-white file:cursor-pointer hover:file:bg-blue-600"
+                    className={`${inputBase} file:mr-4 file:py-1 file:px-3 file:border file:border-accent/30 file:bg-accent/10 file:text-accent file:font-mono file:text-[10px] file:uppercase file:tracking-widest file:cursor-pointer`}
                   />
                 ) : (
                   <input
@@ -188,26 +179,26 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
                     placeholder={field.placeholder}
                     required={field.required}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={inputBase}
                   />
                 )}
               </div>
             ))}
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <div className="mt-8 flex gap-3">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+              className="flex-1 border border-accent bg-accent/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Starting...' : `Start ${config.title}`}
             </button>
             <button
               type="button"
               onClick={() => router.push('/chat')}
-              className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
+              className="border border-border/40 px-6 py-3 font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
             >
               Cancel
             </button>
@@ -216,12 +207,12 @@ export function ToolLauncher({ config }: ToolLauncherProps) {
 
         {/* Back Link */}
         <div className="mt-6 text-center">
-          <button
-            onClick={() => router.push('/chat')}
-            className="text-white/50 hover:text-white/70 text-sm transition-colors"
+          <Link
+            href="/chat"
+            className="font-mono text-[10px] text-muted-foreground hover:text-accent transition-colors uppercase tracking-widest"
           >
-            ← Back to Chat
-          </button>
+            &larr; Back to Chat
+          </Link>
         </div>
       </div>
     </div>

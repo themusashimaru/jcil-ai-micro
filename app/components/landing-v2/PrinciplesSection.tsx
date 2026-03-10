@@ -41,7 +41,7 @@ const principles = [
       { text: "YOUR DATA, ", highlight: false },
       { text: "PROTECTED", highlight: true },
     ],
-    description: "Your data is never used for training. End-to-end encryption. GDPR-compliant deletion. We exist to serve you, not exploit you.",
+    description: "Your data is never used for training. End-to-end encryption. Full data export and deletion on request. We exist to serve you, not exploit you.",
     align: "right" as const,
   },
 ];
