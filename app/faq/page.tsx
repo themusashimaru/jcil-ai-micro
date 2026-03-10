@@ -1,16 +1,7 @@
-/**
- * FAQ PAGE
- *
- * Common questions with accurate, verified answers
- * Interactive accordion with shared header/footer
- */
-
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
-import LandingHeader from '../components/landing/LandingHeader';
-import LandingFooter from '../components/landing/LandingFooter';
 
 const faqs = [
   {
@@ -99,18 +90,18 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-white/10">
+    <div className="border-b border-border/30">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-5 text-left group"
       >
-        <span className="text-lg font-medium text-white group-hover:text-purple-400 transition pr-4">
+        <span className="font-mono text-sm text-foreground group-hover:text-accent transition-colors pr-4">
           {question}
         </span>
         <span
-          className={`text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </span>
@@ -120,7 +111,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           isOpen ? 'max-h-96 pb-5' : 'max-h-0'
         }`}
       >
-        <p className="text-slate-400 leading-relaxed">{answer}</p>
+        <p className="font-mono text-xs text-muted-foreground leading-relaxed">{answer}</p>
       </div>
     </div>
   );
@@ -128,62 +119,75 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 
 export default function FAQPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      <LandingHeader />
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
+      {/* Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-sm bg-background/80 border-b border-border/30">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-4">
+          <nav className="flex items-center justify-between">
+            <Link href="/" className="font-bebas text-2xl tracking-tight">
+              <span className="text-accent">JCIL</span>
+              <span className="text-muted-foreground">.AI</span>
+            </Link>
+            <Link href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+              &larr; Back to Home
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-16">
+        {/* Hero */}
+        <div className="mb-16">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Support</span>
+          <h1 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">FAQ</h1>
+          <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
+            Common questions, direct answers.
+          </p>
         </div>
 
-        <div className="container mx-auto px-4 relative">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-6 text-5xl sm:text-6xl font-bold text-white">FAQ</h1>
-            <p className="text-xl text-slate-400">Common questions, direct answers.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Content */}
-      <section className="pb-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl">
-            {faqs.map((section) => (
-              <div key={section.category} className="mb-12">
-                <h2 className="mb-6 text-sm font-semibold uppercase tracking-wider text-purple-400">
-                  {section.category}
-                </h2>
-                <div className="bg-slate-900/50 rounded-2xl border border-white/10 overflow-hidden">
-                  <div className="px-6">
-                    {section.questions.map((faq) => (
-                      <FAQItem key={faq.q} question={faq.q} answer={faq.a} />
-                    ))}
-                  </div>
+        {/* FAQ Content */}
+        <div className="max-w-3xl">
+          {faqs.map((section) => (
+            <div key={section.category} className="mb-12">
+              <h2 className="mb-6 font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+                {section.category}
+              </h2>
+              <div className="border border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+                <div className="px-6">
+                  {section.questions.map((faq) => (
+                    <FAQItem key={faq.q} question={faq.q} answer={faq.a} />
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      </section>
 
-      {/* CTA */}
-      <section className="py-16 border-t border-white/10">
-        <div className="container mx-auto px-4 text-center">
-          <div className="mx-auto max-w-xl">
-            <h2 className="mb-4 text-2xl font-bold text-white">Still have questions?</h2>
-            <p className="mb-6 text-slate-400">Reach out directly.</p>
+        {/* CTA */}
+        <div className="mt-16 pt-16 border-t border-border/30">
+          <div className="max-w-xl">
+            <h2 className="font-bebas text-3xl tracking-tight text-foreground mb-4">STILL HAVE QUESTIONS?</h2>
+            <p className="font-mono text-xs text-muted-foreground mb-6">Reach out directly.</p>
             <Link
               href="/contact"
-              className="inline-block rounded-xl bg-slate-800 border border-slate-700 px-8 py-3 font-semibold text-white hover:bg-slate-700 transition"
+              className="inline-block border border-accent bg-accent/10 px-8 py-4 font-mono text-sm uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
             >
               Contact Us
             </Link>
           </div>
         </div>
-      </section>
+      </main>
 
-      <LandingFooter />
-    </main>
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-border/30 py-8">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 text-center">
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+            &copy; {new Date().getFullYear()} JCIL.AI. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

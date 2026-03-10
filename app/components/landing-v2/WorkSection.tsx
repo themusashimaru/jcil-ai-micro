@@ -142,7 +142,7 @@ function WorkCard({
         </h3>
       </div>
       <div className="relative z-10">
-        <p className={cn("font-mono text-xs text-muted-foreground leading-relaxed transition-all duration-500 max-w-[280px]", isActive ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")}>
+        <p className="font-mono text-xs text-muted-foreground leading-relaxed max-w-[280px]">
           {experiment.description}
         </p>
       </div>

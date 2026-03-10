@@ -4,8 +4,6 @@ import { useRef, useState, useEffect } from "react";
 import { cn } from "./utils";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { IntegrationLogosCarousel } from "./IntegrationLogos";
-
 gsap.registerPlugin(ScrollTrigger);
 
 const signals = [
@@ -90,10 +88,6 @@ export function SignalsSection() {
         <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
           Powered by Composio. Automate workflows across 67+ apps — from Slack to Salesforce, GitHub to Google Suite. SOC 2 compliant.
         </p>
-      </div>
-
-      <div className="mb-16 -ml-6 md:-ml-28 w-screen">
-        <IntegrationLogosCarousel />
       </div>
 
       <div

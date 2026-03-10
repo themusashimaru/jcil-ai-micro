@@ -1,71 +1,77 @@
-/**
- * CONTACT PAGE
- *
- * Secure contact form with shared header/footer
- * Connects to admin inbox via support tickets API
- */
-
 import Link from 'next/link';
 import ContactForm from '@/components/contact-form';
-import LandingHeader from '../components/landing/LandingHeader';
-import LandingFooter from '../components/landing/LandingFooter';
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      <LandingHeader />
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px]" />
+      {/* Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-sm bg-background/80 border-b border-border/30">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-4">
+          <nav className="flex items-center justify-between">
+            <Link href="/" className="font-bebas text-2xl tracking-tight">
+              <span className="text-accent">JCIL</span>
+              <span className="text-muted-foreground">.AI</span>
+            </Link>
+            <Link href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+              &larr; Back to Home
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-16">
+        {/* Hero */}
+        <div className="mb-16">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Connect</span>
+          <h1 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">CONTACT</h1>
+          <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
+            Questions, feedback, or partnership inquiries.
+          </p>
         </div>
 
-        <div className="container mx-auto px-4 relative">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="mb-6 text-5xl sm:text-6xl font-bold text-white">Contact</h1>
-            <p className="text-xl text-slate-400">Questions, feedback, or partnership inquiries.</p>
+        {/* Contact Form */}
+        <div className="max-w-2xl">
+          <div className="border border-border/40 bg-card/50 backdrop-blur-sm p-8">
+            <ContactForm />
+          </div>
+
+          {/* Quick Links */}
+          <div className="mt-8 border border-border/40 bg-card/50 backdrop-blur-sm p-6">
+            <h3 className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground text-center">Quick Links</h3>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                href="/faq"
+                className="border border-border/40 px-4 py-2 font-mono text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
+              >
+                FAQ
+              </Link>
+              <Link
+                href="/privacy"
+                className="border border-border/40 px-4 py-2 font-mono text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="border border-border/40 px-4 py-2 font-mono text-xs text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
+              >
+                Terms of Service
+              </Link>
+            </div>
           </div>
         </div>
-      </section>
+      </main>
 
-      {/* Contact Form */}
-      <section className="pb-24">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-2xl">
-            <div className="bg-slate-900/50 rounded-2xl p-8 border border-white/10">
-              <ContactForm />
-            </div>
-
-            {/* Quick Links */}
-            <div className="mt-8 bg-slate-900/30 rounded-2xl p-6 border border-white/10">
-              <h3 className="mb-4 text-lg font-semibold text-center text-white">Quick Links</h3>
-              <div className="flex flex-wrap justify-center gap-4">
-                <Link
-                  href="/faq"
-                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition"
-                >
-                  FAQ
-                </Link>
-                <Link
-                  href="/about"
-                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition"
-                >
-                  About Us
-                </Link>
-                <Link
-                  href="/docs"
-                  className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-300 hover:bg-white/10 hover:text-white transition"
-                >
-                  Documentation
-                </Link>
-              </div>
-            </div>
-          </div>
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-border/30 py-8">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 text-center">
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+            &copy; {new Date().getFullYear()} JCIL.AI. All rights reserved.
+          </p>
         </div>
-      </section>
-
-      <LandingFooter />
-    </main>
+      </footer>
+    </div>
   );
 }

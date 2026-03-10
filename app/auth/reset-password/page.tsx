@@ -15,14 +15,12 @@ function ResetPasswordForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Check if we have the required token/code
   const hasToken = searchParams.get('code') || searchParams.get('token');
   const errorParam = searchParams.get('error');
   const errorCode = searchParams.get('error_code');
   const errorDescription = searchParams.get('error_description');
 
   useEffect(() => {
-    // Check for Supabase error parameters first
     if (errorParam) {
       if (errorCode === 'otp_expired') {
         setError('This password reset link has expired. Please request a new one.');
@@ -40,7 +38,6 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (!password || !confirmPassword) {
       setError('Please fill in all fields');
       return;
@@ -60,8 +57,6 @@ function ResetPasswordForm() {
       setLoading(true);
       await updatePassword(password);
       setSuccess(true);
-
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push('/login?message=Password updated successfully. Please sign in.');
       }, 2000);
@@ -73,35 +68,22 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black p-4">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-900/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-900/30 rounded-full blur-3xl" />
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
         <div className="w-full max-w-md relative z-10">
-          <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-700/50 text-center">
-            <div className="w-16 h-16 bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
+          <div className="border border-border/40 bg-card/50 backdrop-blur-sm p-6 sm:p-8 text-center">
+            <div className="w-16 h-16 border border-accent/40 bg-accent/10 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Password Updated!</h2>
-            <p className="text-slate-400 mb-6">
+            <h2 className="font-bebas text-3xl tracking-tight text-foreground mb-2">PASSWORD UPDATED</h2>
+            <p className="font-mono text-xs text-muted-foreground mb-6">
               Your password has been successfully updated. Redirecting to login...
             </p>
             <Link
               href="/login"
-              className="inline-block bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-lg px-6 py-3 font-medium hover:shadow-lg transition-all"
+              className="inline-block border border-accent bg-accent/10 px-6 py-3 font-mono text-sm uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
             >
               Go to Login
             </Link>
@@ -111,42 +93,36 @@ function ResetPasswordForm() {
     );
   }
 
+  const inputClass = "w-full px-4 py-3 bg-background border border-border/40 font-mono text-sm text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-accent transition-colors";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4">
-      {/* Decorative Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-900/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-slate-900/30 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
 
       <div className="w-full max-w-md relative z-10">
-        {/* Card */}
-        <div className="bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-700/50">
+        <div className="border border-border/40 bg-card/50 backdrop-blur-sm p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Reset Password</h1>
-            <p className="text-slate-400">Enter your new password below</p>
+            <h1 className="font-bebas text-3xl sm:text-4xl tracking-tight text-foreground mb-2">RESET PASSWORD</h1>
+            <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Enter your new password below</p>
           </div>
 
-          {/* Error Message */}
+          {/* Error */}
           {error && (
-            <div className="mb-6 p-4 bg-red-900/30 border border-red-800/50 rounded-lg">
-              <p className="text-red-400 text-sm mb-3">{error}</p>
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30">
+              <p className="font-mono text-xs text-red-400 mb-3">{error}</p>
               {(errorParam || !hasToken) && (
-                <Link
-                  href="/forgot-password"
-                  className="inline-block text-sm text-red-400 hover:text-red-300 font-medium underline"
-                >
+                <Link href="/forgot-password" className="inline-block font-mono text-xs text-accent hover:text-accent/80 underline">
                   Request a new password reset link
                 </Link>
               )}
             </div>
           )}
 
-          {/* Reset Form */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+              <label htmlFor="password" className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
                 New Password
               </label>
               <input
@@ -155,7 +131,7 @@ function ResetPasswordForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter new password"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
+                className={inputClass}
                 disabled={loading || !hasToken || !!errorParam}
                 required
                 minLength={8}
@@ -163,10 +139,7 @@ function ResetPasswordForm() {
             </div>
 
             <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-slate-300 mb-2"
-              >
+              <label htmlFor="confirmPassword" className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
                 Confirm New Password
               </label>
               <input
@@ -175,50 +148,37 @@ function ResetPasswordForm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
+                className={inputClass}
                 disabled={loading || !hasToken || !!errorParam}
                 required
                 minLength={8}
               />
             </div>
 
-            {/* Password Strength Indicator */}
             {(password || confirmPassword) && (
               <div className="-mt-2">
-                <PasswordStrengthIndicator
-                  password={password}
-                  confirmPassword={confirmPassword}
-                  showMatchStatus={true}
-                />
+                <PasswordStrengthIndicator password={password} confirmPassword={confirmPassword} showMatchStatus={true} />
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading || !hasToken}
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-lg px-4 py-3 font-medium hover:shadow-lg hover:shadow-amber-600/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full border border-accent bg-accent/10 px-4 py-3 font-mono text-sm uppercase tracking-widest text-accent hover:bg-accent/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Updating...' : 'Update Password'}
             </button>
           </form>
 
-          {/* Back to Login */}
-          <p className="text-center text-slate-400 text-sm mt-6">
+          <p className="text-center font-mono text-xs text-muted-foreground mt-6">
             Remember your password?{' '}
-            <Link
-              href="/login"
-              className="text-amber-400 hover:text-amber-300 font-medium transition-colors"
-            >
-              Sign in
-            </Link>
+            <Link href="/login" className="text-accent hover:text-accent/80 transition-colors">Sign in</Link>
           </p>
         </div>
 
-        {/* Back to Home */}
         <div className="text-center mt-6">
-          <Link href="/" className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-            Back to home
+          <Link href="/" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+            &larr; Back to home
           </Link>
         </div>
       </div>
@@ -230,8 +190,8 @@ export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-black">
-          <div className="text-slate-400">Loading...</div>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Loading...</div>
         </div>
       }
     >
