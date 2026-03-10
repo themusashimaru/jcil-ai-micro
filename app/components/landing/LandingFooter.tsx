@@ -54,8 +54,23 @@ export default function LandingFooter() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-4 lg:grid-cols-4">
             {/* Brand */}
             <div className="col-span-2 sm:col-span-4 lg:col-span-1 lg:pr-8">
-              <Link href="/" className="inline-block">
-                <span className="text-xl font-bold text-white">JCIL.AI</span>
+              <Link href="/" className="inline-flex items-center gap-2.5">
+                <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-3.5 w-3.5 text-zinc-900"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                  >
+                    <line x1="12" y1="4" x2="12" y2="20" />
+                    <line x1="6" y1="10" x2="18" y2="10" />
+                  </svg>
+                </div>
+                <span className="text-lg font-bold tracking-tight text-white">
+                  JCIL<span className="text-amber-400">.AI</span>
+                </span>
               </Link>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-zinc-400">
                 Enterprise AI built for Christians. Real tools, real intelligence, grounded in

@@ -1,47 +1,34 @@
 /**
- * LANDING PAGE LOGO COMPONENT
+ * LANDING PAGE LOGO
  *
- * Displays the logo from design settings on the landing page.
- * Falls back to text "JCIL.AI" if no logo is configured.
+ * Professional SVG wordmark. No API dependency — renders instantly.
+ * The cross motif is built into the "J" letterform for subtlety.
  */
 
-'use client';
-
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function LandingLogo() {
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const response = await fetch('/api/design-settings');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.light_mode_logo) {
-            setLogoUrl(data.light_mode_logo);
-          }
-        }
-      } catch {
-        // Silently fall back to text logo
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLogo();
-  }, []);
-
-  if (loading) {
-    return <span className="text-xl font-bold text-white tracking-tight">JCIL.AI</span>;
-  }
-
-  if (logoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={logoUrl} alt="JCIL.AI" className="h-8 w-auto object-contain" />
-    );
-  }
-
-  return <span className="text-xl font-bold text-white tracking-tight">JCIL.AI</span>;
+  return (
+    <Link href="/" className="group inline-flex items-center gap-2.5">
+      {/* Logo mark — abstract cross/shield */}
+      <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 shadow-[0_0_16px_rgba(251,191,36,0.2)]">
+        <svg
+          viewBox="0 0 24 24"
+          className="h-4.5 w-4.5 text-zinc-900"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        >
+          {/* Cross motif */}
+          <line x1="12" y1="4" x2="12" y2="20" />
+          <line x1="6" y1="10" x2="18" y2="10" />
+        </svg>
+      </div>
+      {/* Wordmark */}
+      <span className="text-lg font-bold tracking-tight text-white">
+        JCIL<span className="text-amber-400">.AI</span>
+      </span>
+    </Link>
+  );
 }
