@@ -216,7 +216,7 @@ function LoginForm() {
               <div className="w-full border-t border-border/30" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-3 bg-card/50 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">or continue with</span>
+              <span className="px-3 bg-background font-mono text-[10px] uppercase tracking-widest text-muted-foreground">or continue with</span>
             </div>
           </div>
 

@@ -23,85 +23,28 @@ interface CodeLabClientProps {
  */
 function CodeLabErrorFallback() {
   return (
-    <div className="code-lab-error">
-      <div className="error-content">
-        <div className="error-icon">⚠️</div>
-        <h2>Code Lab encountered an error</h2>
-        <p>Something went wrong. Your work has been auto-saved.</p>
-        <div className="error-actions">
-          <button onClick={() => window.location.reload()} className="retry-btn primary">
+    <div className="flex items-center justify-center min-h-screen bg-background p-8">
+      <div className="border border-border/40 bg-card/50 p-8 max-w-md text-center">
+        <div className="text-4xl mb-6">&#x26A0;&#xFE0F;</div>
+        <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">CODE LAB ERROR</h2>
+        <p className="font-mono text-xs text-muted-foreground mb-6 leading-relaxed">
+          Something went wrong. Your work has been auto-saved.
+        </p>
+        <div className="flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={() => window.location.reload()}
+            className="border border-accent bg-accent/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
+          >
             Reload Code Lab
           </button>
-          <button onClick={() => (window.location.href = '/chat')} className="retry-btn secondary">
+          <button
+            onClick={() => (window.location.href = '/chat')}
+            className="border border-border/40 px-6 py-3 font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-all"
+          >
             Go to Chat
           </button>
         </div>
       </div>
-      <style jsx>{`
-        .code-lab-error {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-          padding: 2rem;
-        }
-        .error-content {
-          background: white;
-          border-radius: 16px;
-          padding: 3rem;
-          text-align: center;
-          max-width: 480px;
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-        .error-icon {
-          font-size: 4rem;
-          margin-bottom: 1.5rem;
-        }
-        .error-content h2 {
-          color: #1f2937;
-          font-size: 1.5rem;
-          font-weight: 700;
-          margin: 0 0 0.75rem;
-        }
-        .error-content p {
-          color: #6b7280;
-          font-size: 1rem;
-          margin: 0 0 2rem;
-          line-height: 1.6;
-        }
-        .error-actions {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-        .retry-btn {
-          padding: 0.875rem 1.5rem;
-          border: none;
-          border-radius: 10px;
-          font-size: 0.9375rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          min-width: 160px;
-        }
-        .retry-btn.primary {
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-          color: white;
-        }
-        .retry-btn.primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
-        }
-        .retry-btn.secondary {
-          background: #f3f4f6;
-          color: #374151;
-        }
-        .retry-btn.secondary:hover {
-          background: #e5e7eb;
-        }
-      `}</style>
     </div>
   );
 }
@@ -112,9 +55,7 @@ export function CodeLabClient({ userId }: CodeLabClientProps) {
       <ErrorBoundary
         fallback={<CodeLabErrorFallback />}
         onError={(error, errorInfo) => {
-          // Log to monitoring (Sentry, etc.)
           console.error('[CodeLab Error]', error, errorInfo);
-          // Could also send to error tracking service here
         }}
       >
         <ToastProvider>
