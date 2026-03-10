@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-
-# Pre-commit hook for JCIL.AI
-# Runs lint-staged for code quality checks on staged files
-
-pnpm exec lint-staged
