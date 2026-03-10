@@ -10,6 +10,7 @@
 import Image from 'next/image';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { ScrambleTextOnHover } from '@/app/components/landing-v2/ScrambleText';
 
 interface ChatHeaderProps {
   currentChatId: string | null;
@@ -19,6 +20,11 @@ interface ChatHeaderProps {
   onToggleSidebar: () => void;
   onNewChat: () => void;
   onOpenProfile: () => void;
+}
+
+/** Whether theme uses editorial styling */
+function isEditorialTheme(theme: string): boolean {
+  return theme === 'dark' || theme === 'editorial';
 }
 
 export function ChatHeader({
@@ -31,11 +37,12 @@ export function ChatHeader({
   onOpenProfile,
 }: ChatHeaderProps) {
   const { theme } = useTheme();
+  const editorial = isEditorialTheme(theme);
 
   return (
     <header
       className={`border-b py-0.5 px-1 md:p-3 ${
-        theme === 'dark'
+        editorial
           ? 'bg-background border-border'
           : 'glass-morphism border-white/10'
       }`}
@@ -67,7 +74,7 @@ export function ChatHeader({
           <a
             href="/settings?tab=connectors"
             className={`flex px-1.5 md:px-3 py-1 md:py-1.5 items-center gap-1 transition-all ${
-              theme === 'dark'
+              editorial
                 ? 'font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent'
                 : 'rounded-lg text-sm hover:bg-white/10'
             }`}
@@ -86,7 +93,7 @@ export function ChatHeader({
                 d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
               />
             </svg>
-            {theme === 'dark' ? (
+            {editorial ? (
               <span className="text-[9px] font-mono uppercase tracking-widest border border-accent/30 px-1.5 py-0.5 text-accent">
                 NEW
               </span>
@@ -99,7 +106,12 @@ export function ChatHeader({
 
           {/* Logo / site name (only when chat active) */}
           {currentChatId &&
-            (theme === 'dark' ? (
+            (theme === 'editorial' ? (
+              <h1 className="font-bebas text-lg md:text-xl tracking-tight hidden sm:block text-foreground">
+                <ScrambleTextOnHover text="JCIL" className="inline" />
+                <span className="text-accent">.AI</span>
+              </h1>
+            ) : theme === 'dark' ? (
               <h1 className="font-bebas text-lg md:text-xl tracking-tight hidden sm:block text-foreground">
                 JCIL<span className="text-accent">.AI</span>
               </h1>
@@ -149,7 +161,7 @@ export function ChatHeader({
           <button
             onClick={onOpenProfile}
             className={`px-1 py-0.5 md:px-3 md:py-1.5 flex items-center justify-center gap-0.5 focus:outline-none transition-all ${
-              theme === 'dark'
+              editorial
                 ? 'font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground'
                 : 'rounded-lg text-xs md:text-sm hover:bg-white/10'
             }`}
@@ -168,7 +180,15 @@ export function ChatHeader({
                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
               />
             </svg>
-            {hasProfile ? profileName : 'Profile'}
+            {editorial ? (
+              <ScrambleTextOnHover
+                text={hasProfile ? profileName : 'Profile'}
+                className="inline"
+                duration={0.3}
+              />
+            ) : (
+              hasProfile ? profileName : 'Profile'
+            )}
           </button>
         </div>
       </div>

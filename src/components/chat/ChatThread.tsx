@@ -28,6 +28,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
 import { SuggestedFollowups } from './SuggestedFollowups';
 import { ScrambleText } from '@/app/components/landing-v2/ScrambleText';
+import { SplitFlapText, SplitFlapAudioProvider } from '@/app/components/landing-v2/SplitFlapText';
+import { AnimatedNoise } from '@/app/components/landing-v2/AnimatedNoise';
 import type { ActionPreviewData } from './ActionPreviewCard';
 
 interface ChatThreadProps {
@@ -152,6 +154,81 @@ export function ChatThread({
   // Clean welcome screen - logo centered, carousel at bottom
   // Only show if no messages (strategy mode adds messages before chat is created)
   if (messages.length === 0) {
+    // Editorial theme — full landing page experience
+    if (theme === 'editorial') {
+      return (
+        <div className="flex flex-col flex-1 min-h-0 relative overflow-hidden">
+          {/* Grid background */}
+          <div className="editorial-grid-bg" aria-hidden="true" />
+          {/* Noise overlay */}
+          <AnimatedNoise opacity={0.03} />
+
+          {/* Top spacer */}
+          <div className="flex-1" />
+
+          {/* Section label */}
+          <div className="text-center mb-6 relative z-10">
+            <span className="editorial-section-label">01 / CHAT</span>
+          </div>
+
+          {/* SplitFlap logo — scaled for chat */}
+          <div className="flex justify-center mb-6 relative z-10">
+            <SplitFlapAudioProvider>
+              <div className="transform scale-[0.35] md:scale-[0.45] origin-center -my-16 md:-my-12">
+                <SplitFlapText text="JCIL.AI" speed={60} />
+              </div>
+            </SplitFlapAudioProvider>
+          </div>
+
+          {/* Accent bar */}
+          <div className="w-32 mx-auto editorial-accent-bar mb-6 relative z-10" />
+
+          {/* Greeting with decode */}
+          <div className="text-center mb-8 relative z-10">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+              <ScrambleText
+                text={`How can we help you ${getTimeGreeting()}?`}
+                duration={0.8}
+                delayMs={1800}
+              />
+            </p>
+          </div>
+
+          {/* Stats bar — like landing page hero */}
+          <div className="flex justify-center gap-8 md:gap-12 mb-8 relative z-10">
+            <div className="text-center">
+              <div className="font-bebas text-2xl md:text-3xl text-accent">
+                <ScrambleText text="51" duration={0.6} delayMs={2200} className="inline-block" />
+              </div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Tools</div>
+            </div>
+            <div className="text-center">
+              <div className="font-bebas text-2xl md:text-3xl text-accent">
+                <ScrambleText text="67+" duration={0.6} delayMs={2400} className="inline-block" />
+              </div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Connections</div>
+            </div>
+            <div className="text-center">
+              <div className="font-bebas text-2xl md:text-3xl text-foreground">
+                <ScrambleText text="AI" duration={0.4} delayMs={2600} className="inline-block" />
+              </div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Powered</div>
+            </div>
+          </div>
+
+          {/* Bottom spacer */}
+          <div className="flex-1" />
+
+          {/* Editorial carousel */}
+          {onCarouselSelect && (
+            <div className="w-full px-1 pb-2 relative z-10">
+              <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col flex-1 min-h-0 p-4">
         {/* Top spacer - pushes logo to center */}
@@ -179,7 +256,7 @@ export function ChatThread({
                 </h1>
               )
             ) : theme === 'dark' ? (
-              /* Editorial dark mode: ScrambleText decode animation */
+              /* Dark mode: ScrambleText decode animation */
               <h1 className="font-bebas text-5xl md:text-7xl tracking-tight text-foreground">
                 <ScrambleText text="JCIL.AI" duration={1.2} delayMs={200} className="inline-block" />
               </h1>
@@ -210,7 +287,7 @@ export function ChatThread({
             )}
           </div>
 
-          {/* Greeting with decode effect in editorial mode */}
+          {/* Greeting with decode effect in dark mode */}
           {theme === 'dark' ? (
             <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
               <ScrambleText
@@ -242,12 +319,20 @@ export function ChatThread({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs relative"
       role="region"
       aria-label="Conversation"
     >
       {/* Third animated orb (purple) */}
       <div className="chat-bg-orb-tertiary" />
+
+      {/* Editorial grid + noise in message view */}
+      {theme === 'editorial' && (
+        <>
+          <div className="editorial-grid-bg" aria-hidden="true" />
+          <AnimatedNoise opacity={0.02} />
+        </>
+      )}
 
       <div
         className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10"

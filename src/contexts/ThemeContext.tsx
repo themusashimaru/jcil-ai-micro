@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-type Theme = 'dark' | 'light' | 'ocean' | 'pro';
+type Theme = 'dark' | 'light' | 'ocean' | 'pro' | 'editorial';
 
 interface ThemeContextType {
   theme: Theme;
@@ -16,7 +16,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // All themes available to every user
-const ALL_THEMES: Theme[] = ['pro', 'light', 'dark', 'ocean'];
+const ALL_THEMES: Theme[] = ['pro', 'light', 'dark', 'editorial', 'ocean'];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('pro'); // Default to baby blue/refined for users
@@ -84,7 +84,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     // Remove all theme classes first
-    document.documentElement.classList.remove('light-mode', 'ocean-mode', 'pro-mode');
+    document.documentElement.classList.remove('light-mode', 'ocean-mode', 'pro-mode', 'editorial-mode');
     // Add appropriate class
     if (theme === 'light') {
       document.documentElement.classList.add('light-mode');
@@ -92,6 +92,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.add('ocean-mode');
     } else if (theme === 'pro') {
       document.documentElement.classList.add('pro-mode');
+    } else if (theme === 'editorial') {
+      document.documentElement.classList.add('editorial-mode');
     }
   }, [theme]);
 

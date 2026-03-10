@@ -1529,6 +1529,284 @@
   }
 }
 
+/* ========================================
+ * EDITORIAL THEME — Full landing page experience in chat
+ * Grid bg, noise, SplitFlap, ScrambleText, sharp editorial everything
+ * Inherits dark/editorial base through :not() selectors
+ * ======================================== */
+:root.editorial-mode {
+  --background: #000000;
+  --foreground: #ffffff;
+  --glass-bg: rgba(0, 0, 0, 0.98);
+  --glass-border: rgba(249, 115, 22, 0.12);
+  --glass-shadow: none;
+
+  --primary: #f97316;
+  --primary-hover: rgba(249, 115, 22, 0.15);
+  --primary-glow: rgba(249, 115, 22, 0.5);
+  --avatar-bg: rgba(249, 115, 22, 0.3);
+  --button-disabled-bg: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --surface: #000000;
+  --surface-elevated: #0a0a0a;
+  --border: rgba(249, 115, 22, 0.12);
+
+  /* Chat — transparent with orange accent borders */
+  --chat-input-bg: #000000;
+  --chat-user-bubble-bg: transparent;
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: rgba(249, 115, 22, 0.2);
+
+  /* Carousel — editorial dark with orange */
+  --carousel-card-bg: #0a0a0a;
+  --carousel-card-disabled-bg: rgba(10, 10, 10, 0.5);
+  --carousel-card-border: rgba(249, 115, 22, 0.12);
+  --carousel-card-hover-border: rgba(249, 115, 22, 0.4);
+  --carousel-icon-bg: rgba(249, 115, 22, 0.08);
+  --carousel-icon-color: #f97316;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: #6b7280;
+
+  /* Shadcn tokens */
+  --accent: #f97316;
+  --accent-foreground: #000000;
+  --muted-foreground: #6b7280;
+  --card: #0a0a0a;
+  --card-foreground: #ffffff;
+
+  /* Sidebar — editorial */
+  --sidebar-bg: #000000;
+  --sidebar-hover: rgba(249, 115, 22, 0.06);
+}
+
+/* Editorial chat grid background overlay */
+:root.editorial-mode .editorial-grid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+}
+
+/* Editorial chat bubbles — sharp, minimal, mono typography */
+:root.editorial-mode .chat-bubble {
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.15) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble::before,
+:root.editorial-mode .chat-bubble.user-bubble::after {
+  display: none !important;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble:hover {
+  transform: none;
+  border-color: rgba(249, 115, 22, 0.35) !important;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.05) !important;
+}
+
+:root.editorial-mode .chat-bubble-tail::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Editorial glass-morphism override — sharp, no blur */
+:root.editorial-mode .glass-morphism {
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Editorial chat input — sharp with orange glow on focus */
+:root.editorial-mode .chat-input-glass {
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.editorial-mode .chat-input-glass:focus-within {
+  border-color: rgba(249, 115, 22, 0.5) !important;
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.08) !important;
+}
+
+/* Editorial sidebar buttons — orange accent, sharp */
+:root.editorial-mode .sidebar-btn-glass {
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(249, 115, 22, 0.2) !important;
+  border-radius: 0 !important;
+  color: #f97316 !important;
+  box-shadow: none;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.2s ease;
+}
+
+:root.editorial-mode .sidebar-btn-glass:hover {
+  background: rgba(249, 115, 22, 0.08) !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  transform: none;
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.06) !important;
+}
+
+/* Editorial code command button */
+:root.editorial-mode .code-cmd-btn-glass {
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+:root.editorial-mode .code-cmd-btn-glass:hover {
+  background: rgba(249, 115, 22, 0.06) !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Editorial carousel cards — sharp, editorial micro-type */
+:root.editorial-mode .carousel-card {
+  border-radius: 0 !important;
+  border-color: rgba(249, 115, 22, 0.12) !important;
+  transition: all 0.3s ease;
+}
+
+:root.editorial-mode .carousel-card:not(:disabled):hover {
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.06) !important;
+  filter: none !important;
+}
+
+/* Editorial sidebar — sharp, mono typography */
+:root.editorial-mode aside[role="navigation"] {
+  border-radius: 0 !important;
+}
+
+:root.editorial-mode aside[role="navigation"] h2,
+:root.editorial-mode aside[role="navigation"] h3 {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted-foreground);
+}
+
+:root.editorial-mode aside[role="navigation"] button {
+  border-radius: 0 !important;
+}
+
+:root.editorial-mode aside[role="navigation"] input {
+  border-radius: 0 !important;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 11px;
+}
+
+:root.editorial-mode aside[role="navigation"] .new-chat-btn {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  border-radius: 0 !important;
+}
+
+/* Editorial scrollbar — thin orange accent */
+:root.editorial-mode ::-webkit-scrollbar {
+  width: 4px;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.2);
+  border-radius: 0;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+/* Editorial section label utility */
+.editorial-section-label {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--muted-foreground);
+}
+
+/* Editorial accent bar — animated underline */
+.editorial-accent-bar {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.4), transparent);
+  animation: editorial-pulse 4s ease-in-out infinite;
+}
+
+@keyframes editorial-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Editorial corner accent decoration */
+.editorial-corner-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid rgba(249, 115, 22, 0.3);
+  border-right: 1px solid rgba(249, 115, 22, 0.3);
+  pointer-events: none;
+}
+
+.editorial-corner-accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+  border-left: 1px solid rgba(249, 115, 22, 0.3);
+  pointer-events: none;
+}
+
 /* ============================================================
    LANDING V2 — Editorial / brutalist design styles
    ============================================================ */

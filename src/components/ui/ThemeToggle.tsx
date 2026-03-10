@@ -15,14 +15,15 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
 
   // Get next theme name for aria-label
   const getNextTheme = () => {
-    const themes = ['pro', 'light', 'dark', 'ocean'];
+    const themes = ['pro', 'light', 'dark', 'editorial', 'ocean'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     const next = themes[nextIndex];
     // Display names
     if (next === 'pro') return 'Refined';
     if (next === 'ocean') return 'Ocean';
-    if (next === 'dark') return 'Editorial';
+    if (next === 'dark') return 'Dark';
+    if (next === 'editorial') return 'Editorial';
     return next.charAt(0).toUpperCase() + next.slice(1);
   };
 
@@ -36,8 +37,8 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       aria-label={`Switch to ${nextTheme} mode`}
       title={`Switch to ${nextTheme} mode`}
     >
-      {theme === 'dark' ? (
-        // Grid icon - currently editorial
+      {theme === 'editorial' ? (
+        // Broadcast/signal icon - editorial landing page theme
         <svg
           className="h-4 w-4 md:h-5 md:w-5"
           fill="none"
@@ -45,10 +46,22 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
           viewBox="0 0 24 24"
           strokeWidth={2}
         >
-          <rect x="3" y="3" width="7" height="7" />
-          <rect x="14" y="3" width="7" height="7" />
-          <rect x="3" y="14" width="7" height="7" />
-          <rect x="14" y="14" width="7" height="7" />
+          <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+          <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+          <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+          <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+          <circle cx="12" cy="12" r="2" />
+        </svg>
+      ) : theme === 'dark' ? (
+        // Moon icon - dark mode
+        <svg
+          className="h-4 w-4 md:h-5 md:w-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+        >
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
       ) : theme === 'light' ? (
         // Sun icon - currently light

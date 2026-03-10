@@ -4,11 +4,14 @@
  * PURPOSE:
  * - Render the bottom action buttons: Code Lab, Admin Panel, Settings, Logout
  * - Code Lab and Admin Panel are admin-only
+ * - Editorial theme uses mono font, sharp borders, accent colors
  *
  * Extracted from ChatSidebar.tsx to reduce component size.
  */
 
 'use client';
+
+import { useTheme } from '@/contexts/ThemeContext';
 
 export interface ChatSidebarFooterProps {
   isAdmin: boolean;
@@ -17,13 +20,28 @@ export interface ChatSidebarFooterProps {
 }
 
 export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatSidebarFooterProps) {
+  const { theme } = useTheme();
+  const editorial = theme === 'editorial';
+
+  const btnClass = editorial
+    ? 'w-full px-3 py-2 text-left flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors'
+    : 'w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary';
+
+  const logoutClass = editorial
+    ? 'w-full px-3 py-2 text-left flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-red-500/70 hover:text-red-400 transition-colors disabled:opacity-50'
+    : 'w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-red-500 disabled:opacity-50';
+
   return (
-    <div className="p-3 space-y-2 border-t border-theme">
+    <div className={`p-3 space-y-2 border-t ${editorial ? 'border-accent/12' : 'border-theme'}`}>
+      {editorial && (
+        <div className="editorial-section-label mb-2 px-1">02 / NAVIGATE</div>
+      )}
+
       {/* Code Lab (Admin only) */}
       {isAdmin && (
         <button
           onClick={() => (window.location.href = '/code-lab')}
-          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary"
+          className={btnClass}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -40,7 +58,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
       {isAdmin && (
         <button
           onClick={() => (window.location.href = '/admin')}
-          className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary"
+          className={btnClass}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -55,7 +73,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
       )}
       <button
         onClick={() => (window.location.href = '/settings')}
-        className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-text-primary"
+        className={btnClass}
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -76,7 +94,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
       <button
         onClick={handleLogout}
         disabled={isLoggingOut}
-        className="w-full rounded-lg px-3 py-2 text-sm text-left flex items-center gap-2 text-red-500 disabled:opacity-50"
+        className={logoutClass}
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
