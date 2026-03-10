@@ -1,68 +1,23 @@
-/**
- * JCIL.AI HOMEPAGE
- *
- * Clean, professional landing page.
- * Inspired by Anthropic's approach: clear hierarchy, generous whitespace.
- * All metrics and claims are verified and accurate.
- */
+import { HeroSection } from "@/components/hero-section"
+import { SignalsSection } from "@/components/signals-section"
+import { WorkSection } from "@/components/work-section"
+import { PrinciplesSection } from "@/components/principles-section"
+import { ColophonSection } from "@/components/colophon-section"
+import { SideNav } from "@/components/side-nav"
 
-import LandingHeader from './components/landing/LandingHeader';
-import LandingFooter from './components/landing/LandingFooter';
-import HeroSection from './components/landing/HeroSection';
-import TrustBar from './components/landing/TrustBar';
-import ProductsSection from './components/landing/ProductsSection';
-import CapabilitiesHighlight from './components/landing/CapabilitiesHighlight';
-import PowerFeatures from './components/landing/PowerFeatures';
-import ToolsShowcase from './components/landing/ToolsShowcase';
-import AcademicShowcase from './components/landing/AcademicShowcase';
-import AgentsSection from './components/landing/AgentsSection';
-import ComparisonSection from './components/landing/ComparisonSection';
-import ValuesSection from './components/landing/ValuesSection';
-import HowItWorks from './components/landing/HowItWorks';
-import UseCases from './components/landing/UseCases';
-import PricingSection from './components/PricingSection';
-import FinalCTA from './components/landing/FinalCTA';
-import IntegrationsShowcase from './components/landing/IntegrationsShowcase';
-
-export default function HomePage() {
+export default function Page() {
   return (
-    <main id="main-content" className="min-h-screen bg-zinc-950 text-white">
-      <LandingHeader transparent />
+    <main className="relative min-h-screen">
+      <SideNav />
+      <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
 
-      <HeroSection />
-
-      <TrustBar />
-
-      <IntegrationsShowcase />
-
-      <ProductsSection />
-
-      <CapabilitiesHighlight />
-
-      <PowerFeatures />
-
-      <ToolsShowcase />
-
-      <AcademicShowcase />
-
-      <AgentsSection />
-
-      <ComparisonSection />
-
-      <ValuesSection />
-
-      <HowItWorks />
-
-      <UseCases />
-
-      {/* Pricing */}
-      <div id="pricing">
-        <PricingSection />
+      <div className="relative z-10">
+        <HeroSection />
+        <SignalsSection />
+        <WorkSection />
+        <PrinciplesSection />
+        <ColophonSection />
       </div>
-
-      <FinalCTA />
-
-      <LandingFooter />
     </main>
-  );
+  )
 }
