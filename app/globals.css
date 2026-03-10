@@ -1,138 +1,1839 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+/* Landing page v2 fonts — loaded from Google Fonts CDN at runtime */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-@custom-variant dark (&:is(.dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Custom editorial design tokens - monochrome with orange accent */
-:root {
-  --background: oklch(0.08 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.1 0 0);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.95 0 0);
-  --primary-foreground: oklch(0.08 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.85 0 0);
-  --muted: oklch(0.25 0 0);
-  --muted-foreground: oklch(0.55 0 0);
-  --accent: oklch(0.7 0.2 45);
-  --accent-foreground: oklch(0.08 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.25 0 0);
-  --input: oklch(0.2 0 0);
-  --ring: oklch(0.7 0.2 45);
-  --radius: 0rem;
-  --sidebar: oklch(0.1 0 0);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.7 0.2 45);
-  --sidebar-primary-foreground: oklch(0.08 0 0);
-  --sidebar-accent: oklch(0.15 0 0);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.25 0 0);
-  --sidebar-ring: oklch(0.7 0.2 45);
+/* ============================================================
+   ACCESSIBILITY — Skip link, focus-visible, reduced motion
+   ============================================================ */
+
+/* Skip-to-content link — visually hidden until focused */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 99999;
+  padding: 1rem 1.5rem;
+  background: var(--primary, #38bdf8);
+  color: #000;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
 }
 
-@theme inline {
-  /* Updated font-sans and font-mono to use IBM Plex */
-  --font-sans: "IBM Plex Sans", "IBM Plex Sans Fallback", sans-serif;
-  --font-mono: "IBM Plex Mono", "IBM Plex Mono Fallback", monospace;
-  --font-display: "Bebas Neue", "Bebas Neue Fallback", sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  html {
-    overflow-x: hidden;
-    max-width: 100vw;
-    /* Apply scrollbar styles to html element */
-    scrollbar-width: thin;
-    scrollbar-color: hsl(0, 0%, 24%) hsl(0, 0%, 8%);
-  }
-  body {
-    @apply bg-background text-foreground;
-    overflow-x: hidden;
-    max-width: 100vw;
-    scrollbar-width: thin;
-    scrollbar-color: hsl(0, 0%, 24%) hsl(0, 0%, 8%);
-  }
-  /* Webkit scrollbar styling for html and body */
-  html::-webkit-scrollbar,
-  body::-webkit-scrollbar {
-    width: 10px;
-  }
-  html::-webkit-scrollbar-track,
-  body::-webkit-scrollbar-track {
-    background: hsl(0, 0%, 8%);
-  }
-  html::-webkit-scrollbar-thumb,
-  body::-webkit-scrollbar-thumb {
-    background: hsl(0, 0%, 24%);
-    border-radius: 0px;
-  }
-  html::-webkit-scrollbar-thumb:hover,
-  body::-webkit-scrollbar-thumb:hover {
-    background: hsl(0, 0%, 32%);
-  }
-}
-
-/* Custom noise texture overlay */
-.noise-overlay {
+.skip-to-content:focus {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1000;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  width: auto;
+  height: auto;
+  overflow: visible;
 }
 
-/* Grid background pattern */
+/* Global focus-visible outline for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--primary, #38bdf8);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse/touch — only show for keyboard */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark / Editorial theme (default) — matches landing page aesthetic */
+:root {
+  --font-bebas: 'Bebas Neue', Impact, sans-serif;
+  --font-ibm-plex-mono: 'IBM Plex Mono', monospace;
+  --background: #000000;
+  --foreground: #ffffff;
+  --glass-bg: rgba(0, 0, 0, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: rgba(0, 0, 0, 0.5);
+
+  /* Editorial colors — orange accent matching landing page */
+  --primary: #f97316; /* Orange-500 — editorial accent */
+  --primary-hover: rgba(249, 115, 22, 0.12);
+  --primary-glow: rgba(249, 115, 22, 0.4);
+  --avatar-bg: rgba(249, 115, 22, 0.25);
+  --button-disabled-bg: #333333;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af; /* Gray-400 */
+  --text-muted: #6b7280; /* Gray-500 */
+  --surface: #000000;
+  --surface-elevated: #111111;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Chat-specific editorial colors */
+  --chat-input-bg: #000000;
+  --chat-user-bubble-bg: transparent;
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: rgba(249, 115, 22, 0.3);
+
+  /* Carousel — editorial dark */
+  --carousel-card-bg: #111111;
+  --carousel-card-disabled-bg: rgba(17, 17, 17, 0.5);
+  --carousel-card-border: rgba(255, 255, 255, 0.08);
+  --carousel-card-hover-border: rgba(249, 115, 22, 0.3);
+  --carousel-icon-bg: rgba(249, 115, 22, 0.1);
+  --carousel-icon-color: #f97316;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: #9ca3af;
+
+  /* Landing v2 design tokens (shadcn-compatible for v0 components) */
+  --accent: #f97316; /* Orange-500 — editorial accent */
+  --accent-foreground: #000000;
+  --muted-foreground: #9ca3af; /* Gray-400 */
+  --card: #111111;
+  --card-foreground: #ffffff;
+}
+
+/* Light theme */
+:root.light-mode {
+  --background: #ffffff; /* Pure white for transparent logo compatibility */
+  --foreground: #000000;
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+
+  /* Light theme colors */
+  --primary: #1e3a5f; /* Navy blue for accents */
+  --primary-hover: rgba(30, 58, 95, 0.1);
+  --primary-glow: rgba(30, 58, 95, 0.4);
+  --avatar-bg: rgba(30, 58, 95, 0.25); /* Brighter for avatars/indicators */
+  --button-disabled-bg: #9ca3af; /* Muted gray when disabled */
+  --text-primary: #1a1a1a; /* Near black for text */
+  --text-secondary: #4b5563; /* Gray-600 */
+  --text-muted: #6b7280; /* Gray-500 */
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --border: rgba(0, 0, 0, 0.15);
+
+  /* Chat-specific light mode colors */
+  --chat-input-bg: #f5f5f5; /* Light gray input box - visible against white background */
+  --chat-input-border: #1e3a5f; /* Navy border for visibility */
+  --chat-user-bubble-bg: transparent; /* No bubble for user messages */
+  --chat-user-bubble-text: #1e3a5f; /* Dark navy text for user messages */
+  --chat-ai-bubble-bg: rgba(255, 255, 255, 0.35);
+  --chat-ai-bubble-text: #1a1a1a;
+  --chat-ai-bubble-border: rgba(255, 255, 255, 0.5);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --chat-user-bubble-shadow: 0 8px 32px rgba(30, 58, 95, 0.15);
+
+  /* Carousel - navy blue in light mode (matches send button) */
+  --carousel-card-bg: #1e3a5f;
+  --carousel-card-disabled-bg: rgba(30, 58, 95, 0.5);
+  --carousel-card-border: rgba(30, 58, 95, 0.3);
+  --carousel-card-hover-border: rgba(30, 58, 95, 0.5);
+  --carousel-icon-bg: rgba(255, 255, 255, 0.15);
+  --carousel-icon-color: #ffffff;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: rgba(255, 255, 255, 0.7);
+}
+
+/* Ocean theme - Ultra deep navy blue glassmorphism */
+:root.ocean-mode {
+  --background: #030810; /* Ultra deep navy - almost black with blue tint */
+  --foreground: #ffffff;
+  --glass-bg: rgba(8, 18, 35, 0.9);
+  --glass-border: rgba(80, 160, 255, 0.12);
+  --glass-shadow: rgba(0, 10, 30, 0.6);
+
+  /* Ocean theme colors - Rich deep navy with electric cyan accents */
+  --primary: #4dc8ff; /* Electric cyan accent */
+  --primary-hover: rgba(77, 200, 255, 0.12);
+  --primary-glow: rgba(77, 200, 255, 0.4);
+  --avatar-bg: rgba(77, 200, 255, 0.35); /* Brighter for avatars/indicators */
+  --button-disabled-bg: #3d5a80; /* Muted blue-gray when disabled */
+  --text-primary: #e8f4ff; /* Crisp white with subtle blue tint */
+  --text-secondary: #8ab4d8; /* Soft blue-gray */
+  --text-muted: #5a7a9a; /* Muted blue */
+  --surface: #050c18; /* Deep navy surface */
+  --surface-elevated: #0a1424; /* Slightly elevated surface */
+  --border: rgba(80, 160, 255, 0.15);
+
+  /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
+  --chat-input-bg: #030810; /* Matches background for seamless blend */
+  --chat-user-bubble-bg: transparent; /* No bubble for user messages */
+  --chat-user-bubble-text: #e8f4ff; /* Light blue-white text */
+  --chat-ai-bubble-bg: rgba(12, 28, 50, 0.75);
+  --chat-ai-bubble-text: #e8f4ff;
+  --chat-ai-bubble-border: rgba(77, 200, 255, 0.2);
+  --chat-ai-bubble-shadow: 0 8px 32px rgba(0, 20, 60, 0.4);
+  --chat-user-bubble-shadow: none;
+
+  /* Ocean-specific gradient accents */
+  --ocean-gradient-start: #030810;
+  --ocean-gradient-mid: #081020;
+  --ocean-gradient-end: #0d1a30;
+  --ocean-glow: rgba(77, 200, 255, 0.5);
+}
+
+/* ========================================
+ * PRO THEME - "Refined"
+ * Coding Lab inspired dark aesthetic
+ * True dark gray/black backgrounds (no blue tint)
+ * Clean, minimal, professional design
+ * ======================================== */
+:root.pro-mode {
+  /* Code Lab exact colors - dark gray background, black elements, white text */
+  --background: #1a1a1a; /* Dark gray background */
+  --foreground: #ffffff;
+  --glass-bg: rgba(26, 26, 26, 0.98);
+  --glass-border: rgba(68, 68, 68, 0.5);
+  --glass-shadow: rgba(0, 0, 0, 0.4);
+
+  /* Monochrome - no color accents, just black/white/gray */
+  --primary: #ffffff; /* White accent */
+  --primary-hover: rgba(255, 255, 255, 0.1);
+  --primary-glow: rgba(255, 255, 255, 0.3);
+  --avatar-bg: rgba(255, 255, 255, 0.2); /* White for avatars/indicators */
+  --button-disabled-bg: #333333; /* Dark gray when disabled */
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+  --text-muted: #666666;
+  --surface: #1a1a1a;
+  --surface-elevated: #000000; /* Black for elevated elements */
+  --border: #444444;
+
+  /* Chat styling - black input and bubbles on dark gray background */
+  --chat-input-bg: #000000; /* Black input box */
+  --chat-user-bubble-bg: #000000; /* Black user bubbles */
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: transparent;
+  --chat-ai-bubble-shadow: none;
+  --chat-user-bubble-shadow: none;
+
+  /* Pro-specific styling - monochrome */
+  --pro-code-bg: #000000;
+  --pro-code-border: #444444;
+  --pro-accent: #ffffff;
+  --pro-accent-light: #cccccc;
+  --pro-highlight: rgba(255, 255, 255, 0.1);
+
+  /* Sidebar styling */
+  --sidebar-bg: #1a1a1a;
+  --sidebar-hover: #333333;
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .glass-morphism {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 var(--glass-shadow);
+  }
+
+  .chat-bubble {
+    @apply rounded-2xl p-3 md:p-4 text-base leading-relaxed;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    .chat-bubble {
+      font-size: 16px;
+    }
+  }
+
+  /* User message bubble - True glassmorphism (20-30% opacity like Apple requires) */
+  .chat-bubble.user-bubble {
+    background: rgba(30, 58, 95, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 32px rgba(30, 58, 95, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.3);
+    /* Glass-like edge effect - visible border like a piece of glass */
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.35);
+    border-bottom-color: rgba(30, 58, 95, 0.2);
+    border-right-color: rgba(30, 58, 95, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Inner highlight for glass depth */
+  .chat-bubble.user-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* AI message bubble - Frosted white glass effect */
+  .chat-bubble.ai-bubble {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.1);
+    /* Glass-like edge effect */
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    border-top-color: rgba(255, 255, 255, 0.7);
+    border-left-color: rgba(255, 255, 255, 0.6);
+    border-bottom-color: rgba(30, 58, 95, 0.08);
+    border-right-color: rgba(30, 58, 95, 0.06);
+    position: relative;
+    overflow: hidden; /* Ensure content respects rounded corners */
+  }
+
+  /* Inner highlight for glass depth on AI bubble */
+  .chat-bubble.ai-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Note: ::after outer glow removed - was causing sharp corner artifacts in all themes */
+
+  /* Hover lift effect for both bubbles */
+  :root.light-mode .chat-bubble.user-bubble:hover,
+  :root.light-mode .chat-bubble.ai-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 16px 48px rgba(30, 58, 95, 0.2),
+      0 4px 16px rgba(30, 58, 95, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  :root.light-mode .chat-bubble.user-bubble:hover {
+    background: transparent !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  :root.light-mode .chat-bubble.ai-bubble:hover {
+    background: rgba(255, 255, 255, 0.45);
+  }
+
+  /* ========================================
+   * EDITORIAL DARK MODE — Sharp, no glass
+   * Matches landing page editorial aesthetic
+   * ======================================== */
+
+  /* Editorial: User bubble — sharp border, no glass, no rounded */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::before,
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble::after {
+    display: none !important;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble.user-bubble:hover {
+    transform: none;
+    border-color: rgba(249, 115, 22, 0.2) !important;
+    box-shadow: none !important;
+  }
+
+  /* Editorial: All bubbles — sharp corners */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble {
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Editorial: Hide triangle tails */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+  }
+
+  /* ========================================
+   * OCEAN THEME - Ultra Deep Navy Glassmorphism
+   * Premium dark sea inspired with electric cyan
+   * ======================================== */
+
+  /* Ocean mode - User bubble: Frosted deep sea glass */
+  :root.ocean-mode .chat-bubble.user-bubble {
+    background: linear-gradient(
+      135deg,
+      rgba(8, 25, 45, 0.85) 0%,
+      rgba(15, 40, 70, 0.75) 50%,
+      rgba(8, 25, 45, 0.85) 100%
+    ) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 20px rgba(0, 180, 216, 0.08),
+      inset 0 0.5px 0 rgba(0, 180, 216, 0.15),
+      inset 0 -0.5px 0 rgba(0, 0, 0, 0.3) !important;
+    border: 1.5px solid rgba(0, 180, 216, 0.2) !important;
+    border-top-color: rgba(0, 180, 216, 0.3) !important;
+    border-left-color: rgba(0, 180, 216, 0.25) !important;
+    border-bottom-color: rgba(0, 0, 0, 0.3) !important;
+    border-right-color: rgba(0, 0, 0, 0.25) !important;
+    overflow: hidden;
+  }
+
+  :root.ocean-mode .chat-bubble.user-bubble::before,
+  :root.ocean-mode .chat-bubble.user-bubble::after {
+    display: none !important;
+  }
+
+  :root.ocean-mode .chat-bubble.user-bubble:hover {
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.5),
+      0 0 30px rgba(0, 180, 216, 0.12),
+      inset 0 0.5px 0 rgba(0, 180, 216, 0.2) !important;
+  }
+
+  /* Ocean mode - AI bubble: Premium deep navy frosted glass */
+  :root.ocean-mode .chat-bubble.ai-bubble {
+    background: linear-gradient(135deg, rgba(10, 25, 50, 0.85) 0%, rgba(8, 20, 40, 0.75) 100%);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(77, 200, 255, 0.15);
+    border-top-color: rgba(77, 200, 255, 0.25);
+    border-left-color: rgba(77, 200, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(0, 15, 40, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 0 40px rgba(77, 200, 255, 0.04);
+    overflow: hidden; /* Ensure content respects rounded corners */
+  }
+
+  :root.ocean-mode .chat-bubble.ai-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(77, 200, 255, 0.06), transparent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Hide the outer glow effect in ocean mode - causes sharp corner artifacts */
+  :root.ocean-mode .chat-bubble.ai-bubble::after {
+    display: none !important;
+  }
+
+  /* Ocean mode hover effects */
+  :root.ocean-mode .chat-bubble.ai-bubble:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(15, 35, 65, 0.9) 0%, rgba(12, 28, 55, 0.8) 100%);
+    box-shadow:
+      0 16px 48px rgba(0, 20, 50, 0.6),
+      0 0 50px rgba(77, 200, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Ocean mode rounded corners */
+  :root.ocean-mode .chat-bubble {
+    border-radius: 1rem !important;
+  }
+
+  /* Hide triangle tails in ocean mode for clean look */
+  :root.ocean-mode .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+  }
+
+  /* ========================================
+   * PRO MODE - "Refined" Theme Styling
+   * Claude-inspired dark charcoal aesthetic
+   * Forest green accents - unique identity
+   * Clean, minimal, professional design
+   * ======================================== */
+
+  /* Pro mode - User bubble: Black container on dark gray background */
+  :root.pro-mode .chat-bubble.user-bubble {
+    background: #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid #444444 !important;
+    border-radius: 1.25rem !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    overflow: hidden;
+  }
+
+  :root.pro-mode .chat-bubble.user-bubble::before,
+  :root.pro-mode .chat-bubble.user-bubble::after {
+    display: none !important;
+  }
+
+  /* Pro mode - subtle hover effect */
+  :root.pro-mode .chat-bubble.user-bubble:hover {
+    transform: none !important;
+    background: #1a1a1a !important;
+    box-shadow: none !important;
+  }
+
+  /* Pro mode typography - clean reading experience */
+  :root.pro-mode .chat-bubble {
+    border-radius: 1.25rem !important;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    :root.pro-mode .chat-bubble {
+      font-size: 16px;
+    }
+  }
+
+  /* Hide triangle tails in pro mode for clean look */
+  :root.pro-mode .chat-bubble-tail::after {
+    display: none !important;
+    content: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Pro mode AI message - clean flow on dark background */
+  :root.pro-mode .ai-message-clean {
+    background: transparent;
+    color: #ffffff;
+    line-height: 1.6;
+  }
+
+  /* Pro mode code blocks - dark styling matching coding lab */
+  :root.pro-mode pre,
+  :root.pro-mode code {
+    background: #000000 !important;
+    border: 1px solid #333333 !important;
+    color: #ffffff !important;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  }
+
+  :root.pro-mode pre {
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  :root.pro-mode code {
+    padding: 0.15em 0.4em;
+    border-radius: 0.375rem;
+    font-size: 0.9em;
+  }
+
+  /* Pro mode inline code - subtle gray */
+  :root.pro-mode p code,
+  :root.pro-mode li code {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border: none !important;
+  }
+
+  /* Pro mode links - white */
+  :root.pro-mode a {
+    color: #ffffff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: all 0.2s ease;
+  }
+
+  :root.pro-mode a:hover {
+    color: #cccccc;
+  }
+
+  /* Pro mode headings - light text on dark */
+  :root.pro-mode h1,
+  :root.pro-mode h2,
+  :root.pro-mode h3,
+  :root.pro-mode h4 {
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  /* Pro mode blockquotes - white left border */
+  :root.pro-mode blockquote {
+    border-left: 3px solid #666666;
+    padding-left: 1rem;
+    margin-left: 0;
+    color: #aaaaaa;
+    font-style: italic;
+  }
+
+  /* Pro mode lists - refined spacing */
+  :root.pro-mode ul,
+  :root.pro-mode ol {
+    padding-left: 1.5rem;
+  }
+
+  :root.pro-mode li {
+    margin-bottom: 0.5rem;
+  }
+
+  :root.pro-mode li::marker {
+    color: #888888;
+  }
+
+  /* Pro mode horizontal rules - subtle divider */
+  :root.pro-mode hr {
+    border: none;
+    height: 1px;
+    background: #444444;
+    margin: 2rem 0;
+  }
+
+  /* Pro mode selection - white highlight */
+  :root.pro-mode ::selection {
+    background: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+  }
+
+  /* Pro mode chat input - black box on dark gray background */
+  :root.pro-mode .chat-input-glass {
+    background: #000000 !important;
+    border: 1px solid #444444 !important;
+    border-radius: 1.5rem !important;
+    box-shadow: none !important;
+  }
+
+  :root.pro-mode .chat-input-glass:focus-within {
+    border-color: #666666 !important;
+    box-shadow: none !important;
+  }
+
+  /* Pro mode glass-morphism - dark gray for sidebar distinction */
+  :root.pro-mode .glass-morphism {
+    background: #242424 !important;
+    border: 1px solid #444444 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Pro mode scrollbar - matching coding lab */
+  :root.pro-mode ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 4px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-thumb {
+    background: #444444;
+    border-radius: 4px;
+  }
+
+  :root.pro-mode ::-webkit-scrollbar-thumb:hover {
+    background: #555555;
+  }
+
+  /* Pro mode page background - dark gray */
+  :root.pro-mode body {
+    background: #1a1a1a !important;
+  }
+
+  /* Pro mode header/nav styling - dark gray */
+  :root.pro-mode header,
+  :root.pro-mode nav {
+    background: #1a1a1a !important;
+    border-color: #444444 !important;
+  }
+
+  /* Pro mode avatar styling - white/gray */
+  :root.pro-mode .rounded-full[style*='--primary'] {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #ffffff !important;
+  }
+
+  /* Pro mode loading dots - white */
+  :root.pro-mode .animate-bounce {
+    background-color: #ffffff !important;
+  }
+
+  /* Pro mode focus - no visible outline for clean look */
+  :root.pro-mode textarea:focus-visible,
+  :root.pro-mode input:focus-visible {
+    outline: none !important;
+  }
+
+  /* Pro mode tables - dark styling matching coding lab */
+  :root.pro-mode table {
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #333333;
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  :root.pro-mode th {
+    background: #1a1a1a;
+    color: #ffffff;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #333333;
+  }
+
+  :root.pro-mode td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #1a1a1a;
+    color: #aaaaaa;
+  }
+
+  :root.pro-mode tr:last-child td {
+    border-bottom: none;
+  }
+
+  :root.pro-mode tr:hover td {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* Pro mode buttons - black with white text */
+  :root.pro-mode button.bg-blue-500,
+  :root.pro-mode button.bg-blue-600,
+  :root.pro-mode [class*='bg-blue-'] {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+
+  :root.pro-mode button.bg-blue-500:hover,
+  :root.pro-mode button.bg-blue-600:hover,
+  :root.pro-mode [class*='bg-blue-']:hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode primary colored elements */
+  :root.pro-mode [style*='--primary'] {
+    color: #ffffff !important;
+  }
+
+  /* Pro mode sidebar - dark styling matching coding lab */
+  :root.pro-mode aside,
+  :root.pro-mode [class*='sidebar'] {
+    background: #1a1a1a !important;
+    color: #ffffff !important;
+  }
+
+  :root.pro-mode aside button,
+  :root.pro-mode [class*='sidebar'] button {
+    color: #ffffff !important;
+  }
+
+  :root.pro-mode aside a,
+  :root.pro-mode [class*='sidebar'] a {
+    color: #ffffff !important;
+  }
+
+  /* Pro mode New Chat button - black with white text */
+  :root.pro-mode button[style*='--primary'][style*='--background'] {
+    color: #ffffff !important;
+    background-color: #000000 !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode button[style*='--primary'][style*='--background']:hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode - buttons with primary background (btn-primary class) */
+  :root.pro-mode .btn-primary {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode .btn-primary:hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode - all buttons/links using var(--primary) background (exclude send button) */
+  :root.pro-mode [style*='backgroundColor'][style*='--primary']:not(.send-btn),
+  :root.pro-mode [style*='background-color'][style*='--primary']:not(.send-btn) {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode [style*='backgroundColor'][style*='--primary']:not(.send-btn):hover,
+  :root.pro-mode [style*='background-color'][style*='--primary']:not(.send-btn):hover {
+    background-color: #333333 !important;
+  }
+
+  /* Pro mode - fix buttons with text-white class and primary background (exclude send button) */
+  :root.pro-mode button.text-white[style*='--primary']:not(.send-btn),
+  :root.pro-mode a.text-white[style*='--primary']:not(.send-btn) {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode button.text-white[style*='--primary']:not(.send-btn):hover,
+  :root.pro-mode a.text-white[style*='--primary']:not(.send-btn):hover {
+    background-color: #333333 !important;
+  }
+
+  /* New Chat button - theme-aware text color */
+  .new-chat-btn {
+    color: var(--background);
+  }
+
+  /* Pro mode New Chat button - black background with white text */
+  :root.pro-mode .new-chat-btn {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #444444 !important;
+  }
+
+  :root.pro-mode .new-chat-btn:hover {
+    background-color: #333333 !important;
+  }
+
+  :root.ocean-mode .new-chat-btn {
+    color: #030810 !important;
+  }
+
+  /* Send button styling - exclude from general primary button overrides */
+  /* Pro mode send button - disabled state blends in, enabled state stands out */
+  :root.pro-mode .send-btn-disabled {
+    background-color: #333333 !important;
+    color: #666666 !important;
+  }
+
+  :root.pro-mode .send-btn-enabled {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  :root.pro-mode .send-btn-enabled:hover {
+    background-color: #e0e0e0 !important;
+  }
+
+  /* AI Message - Clean, no bubble, flows into background */
+  .ai-message-clean {
+    @apply rounded-lg p-3 md:p-4 text-base leading-relaxed;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  @media (min-width: 768px) {
+    .ai-message-clean {
+      font-size: 16px;
+    }
+  }
+
+  .chat-bubble-tail {
+    position: relative;
+  }
+
+  .chat-bubble-tail::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+  }
+
+  /* Hide triangle tails in light mode for clean glassmorphism look */
+  :root.light-mode .chat-bubble-tail::after {
+    display: none !important; /* Clean rounded corners only - no triangle pointers */
+    content: none !important;
+    visibility: hidden !important;
+  }
+
+  .chat-bubble-tail.left::after {
+    left: -10px;
+    border-right-color: transparent; /* Hidden by default */
+  }
+
+  :root:not(.light-mode):not(.ocean-mode) .chat-bubble-tail.left::after {
+    border-right-color: transparent;
+  }
+
+  .chat-bubble-tail.right::after {
+    display: none; /* Remove triangle for user messages */
+  }
+
+  /* Ensure smooth rounded corners in light mode - no visible edges */
+  :root.light-mode .chat-bubble {
+    border-radius: 1rem !important; /* Consistent rounded corners */
+  }
+
+  /* Light mode: User bubble gets the nice frosted glass styling */
+  :root.light-mode .chat-bubble.user-bubble {
+    background: rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.06),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -0.5px 0 rgba(30, 58, 95, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    overflow: hidden;
+  }
+
+  :root.light-mode .chat-bubble.user-bubble::before,
+  :root.light-mode .chat-bubble.user-bubble::after {
+    display: none !important;
+  }
+
+  /* Premium animated floating orbs background (light mode only) */
+  .chat-bg-orbs {
+    position: relative;
+    overflow-x: hidden; /* Only hide horizontal overflow, allow vertical scroll */
+  }
+
+  /* Light mode: Ensure orbs don't interfere with scroll area */
+  :root.light-mode .chat-bg-orbs {
+    /* Removed contain: paint as it was interfering with scroll behavior */
+  }
+
+  .chat-bg-orbs::before,
+  .chat-bg-orbs::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(60px);
+  }
+
+  /* Primary orb - Navy blue, top right */
+  :root.light-mode .chat-bg-orbs::before {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(
+      circle,
+      rgba(30, 58, 95, 0.15) 0%,
+      rgba(30, 58, 95, 0.05) 50%,
+      transparent 70%
+    );
+    top: -10%;
+    right: -15%;
+    opacity: 1;
+    animation: float-orb-1 20s ease-in-out infinite;
+  }
+
+  /* Secondary orb - Cyan/teal, bottom left */
+  :root.light-mode .chat-bg-orbs::after {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(
+      circle,
+      rgba(77, 200, 255, 0.12) 0%,
+      rgba(100, 180, 255, 0.04) 50%,
+      transparent 70%
+    );
+    bottom: -20%;
+    left: -20%;
+    opacity: 1;
+    animation: float-orb-2 25s ease-in-out infinite;
+  }
+
+  /* Third orb via extra element */
+  .chat-bg-orb-tertiary {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(147, 51, 234, 0.08) 0%,
+      rgba(139, 92, 246, 0.03) 50%,
+      transparent 70%
+    );
+    top: 40%;
+    right: 10%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    filter: blur(50px);
+    animation: float-orb-3 30s ease-in-out infinite;
+  }
+
+  :root.light-mode .chat-bg-orb-tertiary {
+    opacity: 1;
+  }
+
+  @keyframes float-orb-1 {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(-40px, 60px) scale(1.15);
+    }
+    50% {
+      transform: translate(30px, -30px) scale(0.9);
+    }
+    75% {
+      transform: translate(-20px, 40px) scale(1.1);
+    }
+  }
+
+  @keyframes float-orb-2 {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(60px, -50px) scale(1.12);
+    }
+    66% {
+      transform: translate(-40px, 30px) scale(0.88);
+    }
+  }
+
+  @keyframes float-orb-3 {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1) rotate(0deg);
+    }
+    25% {
+      transform: translate(-50px, -40px) scale(1.2) rotate(90deg);
+    }
+    50% {
+      transform: translate(30px, 50px) scale(0.85) rotate(180deg);
+    }
+    75% {
+      transform: translate(40px, -20px) scale(1.1) rotate(270deg);
+    }
+  }
+
+  /* Message entrance animation */
+  .message-enter {
+    animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes messageSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Editorial sidebar buttons (dark mode — sharp, orange accent) */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .sidebar-btn-glass {
+    background: transparent !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(249, 115, 22, 0.3) !important;
+    color: #f97316 !important;
+    box-shadow: none;
+    transition: all 0.2s ease;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .sidebar-btn-glass:hover {
+    background: rgba(249, 115, 22, 0.1) !important;
+    border-color: rgba(249, 115, 22, 0.5) !important;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Code Command button (dark mode — editorial) */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .code-cmd-btn-glass {
+    background: transparent !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none;
+    transition: all 0.2s ease;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .code-cmd-btn-glass:hover {
+    background: rgba(249, 115, 22, 0.08) !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Premium sidebar buttons (pro mode - monochrome) */
+  :root.pro-mode .sidebar-btn-glass {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #444444 !important;
+    color: #ffffff !important;
+    box-shadow: none;
+    transition: all 0.2s ease;
+  }
+
+  :root.pro-mode .sidebar-btn-glass:hover {
+    background: #333333 !important;
+    border-color: #555555 !important;
+  }
+
+  /* Code Command button (pro mode - monochrome) */
+  :root.pro-mode .code-cmd-btn-glass {
+    background: #000000 !important;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid #444444 !important;
+    box-shadow: none;
+    transition: all 0.2s ease;
+  }
+
+  :root.pro-mode .code-cmd-btn-glass:hover {
+    background: #333333 !important;
+    border-color: #555555 !important;
+  }
+
+  :root.pro-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #ffffff !important;
+  }
+
+  :root.pro-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #aaaaaa !important;
+  }
+
+  /* Premium glassmorphic sidebar buttons (ocean mode - cyan glow) */
+  :root.ocean-mode .sidebar-btn-glass {
+    background: rgba(77, 200, 255, 0.12) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(77, 200, 255, 0.25) !important;
+    border-top-color: rgba(77, 200, 255, 0.4);
+    border-left-color: rgba(77, 200, 255, 0.3);
+    color: #4dc8ff !important;
+    box-shadow:
+      0 4px 20px rgba(77, 200, 255, 0.15),
+      0 0 15px rgba(77, 200, 255, 0.08),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  :root.ocean-mode .sidebar-btn-glass:hover {
+    background: rgba(77, 200, 255, 0.2) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 30px rgba(77, 200, 255, 0.25),
+      0 0 25px rgba(77, 200, 255, 0.12),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  /* Code Command button glass style (ocean mode - cyan glow) */
+  :root.ocean-mode .code-cmd-btn-glass {
+    background: rgba(77, 200, 255, 0.15) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(77, 200, 255, 0.3) !important;
+    border-top-color: rgba(77, 200, 255, 0.5);
+    border-left-color: rgba(77, 200, 255, 0.4);
+    box-shadow:
+      0 4px 20px rgba(77, 200, 255, 0.2),
+      0 0 15px rgba(77, 200, 255, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+  }
+
+  :root.ocean-mode .code-cmd-btn-glass:hover {
+    background: rgba(77, 200, 255, 0.25) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 30px rgba(77, 200, 255, 0.3),
+      0 0 25px rgba(77, 200, 255, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  :root.ocean-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #4dc8ff !important;
+  }
+
+  :root.ocean-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #6dd8ff !important;
+  }
+
+  /* Premium glassmorphic sidebar buttons (light mode) */
+  :root.light-mode .sidebar-btn-glass {
+    background: rgba(30, 58, 95, 0.2) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    color: var(--primary) !important;
+    box-shadow:
+      0 4px 16px rgba(30, 58, 95, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  :root.light-mode .sidebar-btn-glass:hover {
+    background: rgba(30, 58, 95, 0.28) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(30, 58, 95, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  /* Code Command button glass style (light mode) */
+  :root.light-mode .code-cmd-btn-glass {
+    background: rgba(59, 130, 246, 0.2) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 255, 255, 0.3) !important;
+    border-top-color: rgba(255, 255, 255, 0.5);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 4px 16px rgba(59, 130, 246, 0.1),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+  }
+
+  :root.light-mode .code-cmd-btn-glass:hover {
+    background: rgba(59, 130, 246, 0.28) !important;
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(59, 130, 246, 0.15),
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  :root.light-mode .code-cmd-btn-glass .code-cmd-title {
+    color: #1e40af !important;
+  }
+
+  :root.light-mode .code-cmd-btn-glass .code-cmd-subtitle {
+    color: #3b82f6 !important;
+  }
+
+  /* Premium glassmorphic input area (light mode) - visible light gray with navy outline */
+  :root.light-mode .chat-input-glass {
+    background: #f5f5f5 !important; /* Light gray - visible against white background */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1px solid rgba(30, 58, 95, 0.35) !important; /* Thin navy outline for visibility */
+    border-radius: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(30, 58, 95, 0.08) !important;
+  }
+
+  :root.light-mode .chat-input-glass:focus-within {
+    border-color: rgba(30, 58, 95, 0.5) !important;
+    box-shadow:
+      0 4px 16px rgba(30, 58, 95, 0.12),
+      0 0 0 3px rgba(30, 58, 95, 0.08) !important;
+  }
+
+  /* Premium glassmorphic input area (ocean mode) */
+  :root.ocean-mode .chat-input-glass {
+    background: rgba(3, 8, 16, 0.95) !important; /* Match deep navy background #030810 */
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(77, 200, 255, 0.2) !important;
+    border-top-color: rgba(77, 200, 255, 0.3);
+    border-left-color: rgba(77, 200, 255, 0.25);
+    border-bottom-color: rgba(77, 200, 255, 0.15);
+    border-right-color: rgba(77, 200, 255, 0.12);
+    box-shadow:
+      0 4px 20px rgba(0, 15, 40, 0.4),
+      0 2px 8px rgba(0, 10, 30, 0.3),
+      inset 0 1px 0 rgba(77, 200, 255, 0.1) !important;
+  }
+
+  :root.ocean-mode .chat-input-glass:focus-within {
+    border-color: rgba(77, 200, 255, 0.35);
+    box-shadow:
+      0 12px 48px rgba(0, 20, 50, 0.5),
+      0 4px 12px rgba(0, 15, 40, 0.35),
+      inset 0 1px 0 rgba(77, 200, 255, 0.15),
+      0 0 0 4px rgba(77, 200, 255, 0.08) !important;
+  }
+
+  /* Editorial dark mode chat input — sharp, no glass, orange accent */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass {
+    background: #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .chat-input-glass:focus-within {
+    border-color: rgba(249, 115, 22, 0.4) !important;
+    box-shadow: none !important;
+  }
+
+  /* Editorial dark mode: glass-morphism → sharp, no blur */
+  :root:not(.light-mode):not(.ocean-mode):not(.pro-mode) .glass-morphism {
+    background: #000000 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+  }
+
+  /* Send button glow animation */
+  .send-button-glow {
+    box-shadow:
+      0 0 8px var(--primary),
+      0 0 15px var(--primary-glow);
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow:
+        0 0 8px var(--primary),
+        0 0 15px var(--primary-glow);
+    }
+    50% {
+      box-shadow:
+        0 0 20px var(--primary),
+        0 0 30px var(--primary-glow);
+    }
+  }
+
+  /* Carousel card hover effects */
+  .carousel-card:not(:disabled):hover {
+    border-color: var(--carousel-card-hover-border) !important;
+    filter: brightness(1.1);
+  }
+
+  /* Living glow aura for input box */
+  .living-glow-aura {
+    background: linear-gradient(90deg, var(--primary), var(--primary), var(--primary));
+    background-size: 200% 100%;
+    animation: living-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes living-glow {
+    0%,
+    100% {
+      opacity: 0.3;
+      background-position: 0% 50%;
+    }
+    25% {
+      opacity: 0.5;
+    }
+    50% {
+      opacity: 0.4;
+      background-position: 100% 50%;
+    }
+    75% {
+      opacity: 0.6;
+    }
+  }
+
+  /* PWA Animations */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Mobile-first touch optimizations */
+  @media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets on mobile - only for nav/button-like links, NOT inline text links */
+    button,
+    a[role='button'],
+    nav a,
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Disable tap highlight on buttons (but keep links clickable) */
+    button,
+    [role='button'] {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      outline: none;
+    }
+
+    /* Disable text selection for better UX */
+    .no-select {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+  }
+
+  /* Ensure links are always clickable */
+  a {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  /* Disable tap highlight globally for interactive elements */
+  button,
+  a,
+  [role='button'],
+  .tap-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe area insets for notched devices */
+  @supports (padding: env(safe-area-inset-top)) {
+    .safe-area-top {
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-area-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .safe-area-left {
+      padding-left: env(safe-area-inset-left);
+    }
+
+    .safe-area-right {
+      padding-right: env(safe-area-inset-right);
+    }
+
+    .pb-safe {
+      padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Smooth scrolling for mobile */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Hide scrollbar while allowing scroll */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Fade in animation for demos */
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Blinking cursor animation for typing indicator */
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+}
+
+/* ========================================
+ * EDITORIAL THEME — Full landing page experience in chat
+ * Grid bg, noise, SplitFlap, ScrambleText, sharp editorial everything
+ * Inherits dark/editorial base through :not() selectors
+ * ======================================== */
+:root.editorial-mode {
+  --background: #000000;
+  --foreground: #ffffff;
+  --glass-bg: rgba(0, 0, 0, 0.98);
+  --glass-border: rgba(249, 115, 22, 0.12);
+  --glass-shadow: none;
+
+  --primary: #f97316;
+  --primary-hover: rgba(249, 115, 22, 0.15);
+  --primary-glow: rgba(249, 115, 22, 0.5);
+  --avatar-bg: rgba(249, 115, 22, 0.3);
+  --button-disabled-bg: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --surface: #000000;
+  --surface-elevated: #0a0a0a;
+  --border: rgba(249, 115, 22, 0.12);
+
+  /* Chat — transparent with orange accent borders */
+  --chat-input-bg: #000000;
+  --chat-user-bubble-bg: transparent;
+  --chat-user-bubble-text: #ffffff;
+  --chat-ai-bubble-bg: transparent;
+  --chat-ai-bubble-text: #ffffff;
+  --chat-ai-bubble-border: rgba(249, 115, 22, 0.2);
+
+  /* Carousel — editorial dark with orange */
+  --carousel-card-bg: #0a0a0a;
+  --carousel-card-disabled-bg: rgba(10, 10, 10, 0.5);
+  --carousel-card-border: rgba(249, 115, 22, 0.12);
+  --carousel-card-hover-border: rgba(249, 115, 22, 0.4);
+  --carousel-icon-bg: rgba(249, 115, 22, 0.08);
+  --carousel-icon-color: #f97316;
+  --carousel-text: #ffffff;
+  --carousel-text-muted: #6b7280;
+
+  /* Shadcn tokens */
+  --accent: #f97316;
+  --accent-foreground: #000000;
+  --muted-foreground: #6b7280;
+  --card: #0a0a0a;
+  --card-foreground: #ffffff;
+
+  /* Sidebar — editorial */
+  --sidebar-bg: #000000;
+  --sidebar-hover: rgba(249, 115, 22, 0.06);
+}
+
+/* Editorial chat grid background overlay */
+:root.editorial-mode .editorial-grid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(249, 115, 22, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(249, 115, 22, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  z-index: 0;
+}
+
+/* Editorial chat bubbles — sharp, minimal, mono typography */
+:root.editorial-mode .chat-bubble {
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.15) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble::before,
+:root.editorial-mode .chat-bubble.user-bubble::after {
+  display: none !important;
+}
+
+:root.editorial-mode .chat-bubble.user-bubble:hover {
+  transform: none;
+  border-color: rgba(249, 115, 22, 0.35) !important;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.05) !important;
+}
+
+:root.editorial-mode .chat-bubble-tail::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Editorial glass-morphism override — sharp, no blur */
+:root.editorial-mode .glass-morphism {
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Editorial chat input — sharp with orange glow on focus */
+:root.editorial-mode .chat-input-glass {
+  background: #000000 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.editorial-mode .chat-input-glass:focus-within {
+  border-color: rgba(249, 115, 22, 0.5) !important;
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.08) !important;
+}
+
+/* Editorial sidebar buttons — orange accent, sharp */
+:root.editorial-mode .sidebar-btn-glass {
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(249, 115, 22, 0.2) !important;
+  border-radius: 0 !important;
+  color: #f97316 !important;
+  box-shadow: none;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.2s ease;
+}
+
+:root.editorial-mode .sidebar-btn-glass:hover {
+  background: rgba(249, 115, 22, 0.08) !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  transform: none;
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.06) !important;
+}
+
+/* Editorial code command button */
+:root.editorial-mode .code-cmd-btn-glass {
+  background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(249, 115, 22, 0.12) !important;
+  border-radius: 0 !important;
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+:root.editorial-mode .code-cmd-btn-glass:hover {
+  background: rgba(249, 115, 22, 0.06) !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Editorial carousel cards — sharp, editorial micro-type */
+:root.editorial-mode .carousel-card {
+  border-radius: 0 !important;
+  border-color: rgba(249, 115, 22, 0.12) !important;
+  transition: all 0.3s ease;
+}
+
+:root.editorial-mode .carousel-card:not(:disabled):hover {
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.06) !important;
+  filter: none !important;
+}
+
+/* Editorial sidebar — sharp, mono typography */
+:root.editorial-mode aside[role="navigation"] {
+  border-radius: 0 !important;
+}
+
+:root.editorial-mode aside[role="navigation"] h2,
+:root.editorial-mode aside[role="navigation"] h3 {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--muted-foreground);
+}
+
+:root.editorial-mode aside[role="navigation"] button {
+  border-radius: 0 !important;
+}
+
+:root.editorial-mode aside[role="navigation"] input {
+  border-radius: 0 !important;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 11px;
+}
+
+:root.editorial-mode aside[role="navigation"] .new-chat-btn {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  border-radius: 0 !important;
+}
+
+/* Editorial scrollbar — thin orange accent */
+:root.editorial-mode ::-webkit-scrollbar {
+  width: 4px;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-thumb {
+  background: rgba(249, 115, 22, 0.2);
+  border-radius: 0;
+}
+
+:root.editorial-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(249, 115, 22, 0.4);
+}
+
+/* Editorial section label utility */
+.editorial-section-label {
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--muted-foreground);
+}
+
+/* Editorial accent bar — animated underline */
+.editorial-accent-bar {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.4), transparent);
+  animation: editorial-pulse 4s ease-in-out infinite;
+}
+
+@keyframes editorial-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* Editorial corner accent decoration */
+.editorial-corner-accent::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid rgba(249, 115, 22, 0.3);
+  border-right: 1px solid rgba(249, 115, 22, 0.3);
+  pointer-events: none;
+}
+
+.editorial-corner-accent::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+  border-left: 1px solid rgba(249, 115, 22, 0.3);
+  pointer-events: none;
+}
+
+/* ============================================================
+   LANDING V2 — Editorial / brutalist design styles
+   ============================================================ */
+
+/* Subtle grid background */
 .grid-bg {
-  background-image: linear-gradient(to right, oklch(0.2 0 0) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.2 0 0) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
-/* Custom selection color */
-::selection {
-  background: oklch(0.7 0.2 45);
-  color: oklch(0.08 0 0);
+/* Noise texture overlay */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Hide scrollbar for horizontal scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

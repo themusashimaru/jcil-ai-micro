@@ -1,0 +1,97 @@
+/**
+ * REDIS CLIENT (Upstash)
+ * PURPOSE: Rate limiting, caching, queues
+ * Graceful fallback - if Redis not configured, functions return null/true
+ */
+
+import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logger';
+
+const log = logger('Redis');
+
+// Check if Redis is configured
+const isRedisConfigured = !!(
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+);
+
+// Only create client if configured
+export const redis = isRedisConfigured
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
+
+/**
+ * Get a cached value by key
+ * Returns null if not found, not configured, or on error
+ */
+export async function cacheGet<T>(key: string): Promise<T | null> {
+  if (!redis) return null;
+
+  try {
+    const value = await redis.get<T>(key);
+    return value;
+  } catch (error) {
+    log.warn('Cache get error', error as Error);
+    return null;
+  }
+}
+
+/**
+ * Set a cached value with TTL (time-to-live in seconds)
+ * Fails silently if not configured or on error
+ */
+export async function cacheSet<T>(key: string, value: T, ttlSeconds: number): Promise<boolean> {
+  if (!redis) return false;
+
+  try {
+    await redis.set(key, value, { ex: ttlSeconds });
+    return true;
+  } catch (error) {
+    log.warn('Cache set error', error as Error);
+    return false;
+  }
+}
+
+/**
+ * Delete a cached value by key
+ * Fails silently if not configured or on error
+ */
+export async function cacheDelete(key: string): Promise<boolean> {
+  if (!redis) return false;
+
+  try {
+    await redis.del(key);
+    return true;
+  } catch (error) {
+    log.warn('Cache delete error', error as Error);
+    return false;
+  }
+}
+
+/**
+ * Delete all cached values matching a pattern
+ * Useful for invalidating related caches
+ */
+export async function cacheDeletePattern(pattern: string): Promise<boolean> {
+  if (!redis) return false;
+
+  try {
+    const keys = await redis.keys(pattern);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+    return true;
+  } catch (error) {
+    log.warn('Cache delete pattern error', error as Error);
+    return false;
+  }
+}
+
+/**
+ * Check if Redis is available and configured
+ */
+export function isRedisAvailable(): boolean {
+  return isRedisConfigured;
+}

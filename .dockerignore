@@ -1,0 +1,51 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+.next
+out
+dist
+build
+
+# Dev files
+.git
+.gitignore
+*.md
+LICENSE
+CLAUDE.md
+TASK_TRACKER.md
+PROJECT_STATUS.md
+APP_ASSESSMENT_AND_RECOMMENDATIONS.md
+CTO_ASSESSMENT_REPORT.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Tests
+coverage
+playwright-report
+test-results
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+vitest.config.ts
+playwright.config.ts
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Misc
+.DS_Store
+*.tgz
+npm-debug.log*

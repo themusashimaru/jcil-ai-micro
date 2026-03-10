@@ -1,0 +1,1226 @@
+openapi: 3.1.0
+info:
+  title: JCIL.AI API
+  description: |
+    JCIL.AI Enterprise AI Platform API
+
+    This API provides access to JCIL.AI's AI-powered features including:
+    - Chat conversations with Claude AI
+    - Document generation and processing
+    - Code Lab for development assistance
+    - User management and authentication
+    - Admin operations
+
+    ## Authentication
+    All authenticated endpoints require a valid Supabase session token passed via cookies.
+
+    ## Rate Limiting
+    - Free tier: 25 messages per month
+    - Pro tier: 1000 messages per month
+    - Unlimited tier: Unlimited messages
+
+    ## AI Provider
+    JCIL.AI exclusively uses Anthropic's Claude models (Haiku 4.5, Sonnet 4) for all AI operations.
+
+  version: 1.0.0
+  contact:
+    name: JCIL.AI Support
+    email: support@jcil.ai
+  license:
+    name: Proprietary
+    url: https://jcil.ai/terms
+
+servers:
+  - url: https://jcil.ai/api
+    description: Production server
+  - url: http://localhost:3000/api
+    description: Development server
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Authentication
+    description: User authentication operations
+  - name: Chat
+    description: AI chat conversation operations
+  - name: Conversations
+    description: Conversation management
+  - name: Documents
+    description: Document generation and management
+  - name: Code Lab
+    description: Development assistance and code execution
+  - name: User
+    description: User profile and settings
+  - name: Admin
+    description: Administrative operations (requires admin role)
+  - name: Billing
+    description: Subscription and payment operations
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns the health status of the system and its components
+      operationId: getHealth
+      parameters:
+        - name: detailed
+          in: query
+          description: Include detailed component health checks
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: Healthy system
+                  value:
+                    status: healthy
+                    timestamp: "2025-01-08T12:00:00Z"
+                    version: "1.0.0"
+                    uptime: 86400
+                degraded:
+                  summary: Degraded system
+                  value:
+                    status: degraded
+                    timestamp: "2025-01-08T12:00:00Z"
+                    version: "1.0.0"
+                    uptime: 86400
+                    checks:
+                      database:
+                        status: healthy
+                        latency: 15
+                      cache:
+                        status: degraded
+                        error: "Connection timeout"
+                      ai:
+                        status: healthy
+                        latency: 250
+    head:
+      tags:
+        - Health
+      summary: Health check ping
+      description: Quick health check for uptime monitoring
+      operationId: pingHealth
+      responses:
+        '200':
+          description: System is up
+
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth callback
+      description: Handles OAuth provider callbacks (Google, GitHub)
+      operationId: authCallback
+      parameters:
+        - name: code
+          in: query
+          description: OAuth authorization code
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to application
+        '400':
+          description: Invalid callback
+
+  /auth/signout:
+    post:
+      tags:
+        - Authentication
+      summary: Sign out
+      description: Signs out the current user and invalidates the session
+      operationId: signOut
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully signed out
+        '401':
+          description: Not authenticated
+
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Send chat message
+      description: |
+        Sends a message to Claude AI and receives a streaming response.
+        Uses Server-Sent Events for real-time streaming.
+      operationId: sendChat
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Streaming response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          description: Not authenticated
+        '402':
+          description: Usage limit exceeded
+        '429':
+          description: Rate limited
+        '500':
+          description: AI service error
+
+  /chat/generate-title:
+    post:
+      tags:
+        - Chat
+      summary: Generate conversation title
+      description: Uses AI to generate a title for a conversation based on its content
+      operationId: generateTitle
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - conversationId
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Generated title
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title:
+                    type: string
+        '401':
+          description: Not authenticated
+
+  /conversations:
+    get:
+      tags:
+        - Conversations
+      summary: List conversations
+      description: Returns all conversations for the authenticated user
+      operationId: listConversations
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: folderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+        '401':
+          description: Not authenticated
+    post:
+      tags:
+        - Conversations
+      summary: Create conversation
+      description: Creates a new conversation
+      operationId: createConversation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                folderId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          description: Not authenticated
+
+  /conversations/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Conversations
+      summary: Get conversation
+      description: Returns a specific conversation with its messages
+      operationId: getConversation
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationWithMessages'
+        '401':
+          description: Not authenticated
+        '404':
+          description: Conversation not found
+    patch:
+      tags:
+        - Conversations
+      summary: Update conversation
+      description: Updates conversation properties
+      operationId: updateConversation
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                folderId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Updated conversation
+        '401':
+          description: Not authenticated
+        '404':
+          description: Conversation not found
+    delete:
+      tags:
+        - Conversations
+      summary: Delete conversation
+      description: Deletes a conversation and all its messages
+      operationId: deleteConversation
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Conversation deleted
+        '401':
+          description: Not authenticated
+        '404':
+          description: Conversation not found
+
+  /conversations/{id}/messages:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Conversations
+      summary: List messages
+      description: Returns all messages in a conversation
+      operationId: listMessages
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Not authenticated
+        '404':
+          description: Conversation not found
+
+  /documents/generate:
+    post:
+      tags:
+        - Documents
+      summary: Generate document
+      description: Uses AI to generate a document based on a prompt
+      operationId: generateDocument
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prompt
+                - format
+              properties:
+                prompt:
+                  type: string
+                  description: Description of the document to generate
+                format:
+                  type: string
+                  enum: [pdf, docx, markdown]
+                template:
+                  type: string
+      responses:
+        '200':
+          description: Generated document
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  downloadUrl:
+                    type: string
+        '401':
+          description: Not authenticated
+        '402':
+          description: Usage limit exceeded
+
+  /documents/download:
+    get:
+      tags:
+        - Documents
+      summary: Download document
+      description: Downloads a generated document
+      operationId: downloadDocument
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Not authenticated
+        '404':
+          description: Document not found
+
+  /code-lab/sessions:
+    get:
+      tags:
+        - Code Lab
+      summary: List Code Lab sessions
+      description: Returns all Code Lab sessions for the authenticated user
+      operationId: listCodeLabSessions
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CodeLabSession'
+        '401':
+          description: Not authenticated
+    post:
+      tags:
+        - Code Lab
+      summary: Create Code Lab session
+      description: Creates a new Code Lab session
+      operationId: createCodeLabSession
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                language:
+                  type: string
+                  enum: [javascript, typescript, python, go, rust]
+      responses:
+        '201':
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeLabSession'
+        '401':
+          description: Not authenticated
+
+  /code-lab/sessions/{sessionId}:
+    parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Code Lab
+      summary: Get Code Lab session
+      description: Returns a specific Code Lab session
+      operationId: getCodeLabSession
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeLabSession'
+        '401':
+          description: Not authenticated
+        '404':
+          description: Session not found
+    delete:
+      tags:
+        - Code Lab
+      summary: Delete Code Lab session
+      description: Deletes a Code Lab session
+      operationId: deleteCodeLabSession
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Session deleted
+        '401':
+          description: Not authenticated
+        '404':
+          description: Session not found
+
+  /code-lab/chat:
+    post:
+      tags:
+        - Code Lab
+      summary: Code Lab chat
+      description: Sends a code-related question to AI
+      operationId: codeLabChat
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sessionId
+                - message
+              properties:
+                sessionId:
+                  type: string
+                  format: uuid
+                message:
+                  type: string
+                code:
+                  type: string
+                  description: Current code context
+      responses:
+        '200':
+          description: AI response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '401':
+          description: Not authenticated
+
+  /sandbox:
+    post:
+      tags:
+        - Code Lab
+      summary: Execute code in sandbox
+      description: Executes code in a secure sandbox environment (E2B)
+      operationId: executeCode
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - language
+              properties:
+                code:
+                  type: string
+                language:
+                  type: string
+                  enum: [javascript, typescript, python]
+      responses:
+        '200':
+          description: Execution result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  output:
+                    type: string
+                  error:
+                    type: string
+                  exitCode:
+                    type: integer
+        '401':
+          description: Not authenticated
+
+  /user/settings:
+    get:
+      tags:
+        - User
+      summary: Get user settings
+      description: Returns the authenticated user's settings
+      operationId: getUserSettings
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+        '401':
+          description: Not authenticated
+    patch:
+      tags:
+        - User
+      summary: Update user settings
+      description: Updates the authenticated user's settings
+      operationId: updateUserSettings
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+      responses:
+        '200':
+          description: Updated settings
+        '401':
+          description: Not authenticated
+
+  /user/subscription:
+    get:
+      tags:
+        - User
+        - Billing
+      summary: Get subscription status
+      description: Returns the user's current subscription status
+      operationId: getSubscription
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Not authenticated
+
+  /user/usage:
+    get:
+      tags:
+        - User
+      summary: Get usage statistics
+      description: Returns the user's current usage statistics
+      operationId: getUsage
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageStats'
+        '401':
+          description: Not authenticated
+
+  /user/export:
+    get:
+      tags:
+        - User
+      summary: Export user data
+      description: Exports all user data (GDPR compliance)
+      operationId: exportUserData
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User data export
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Not authenticated
+
+  /stripe/checkout:
+    post:
+      tags:
+        - Billing
+      summary: Create checkout session
+      description: Creates a Stripe checkout session for subscription
+      operationId: createCheckout
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - priceId
+              properties:
+                priceId:
+                  type: string
+                  description: Stripe price ID
+      responses:
+        '200':
+          description: Checkout session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        '401':
+          description: Not authenticated
+
+  /stripe/portal:
+    post:
+      tags:
+        - Billing
+      summary: Create billing portal session
+      description: Creates a Stripe billing portal session
+      operationId: createPortal
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Portal session
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri
+        '401':
+          description: Not authenticated
+
+  /stripe/webhook:
+    post:
+      tags:
+        - Billing
+      summary: Stripe webhook
+      description: Handles Stripe webhook events
+      operationId: stripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+        '400':
+          description: Invalid webhook
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: List users
+      description: Returns all users (admin only)
+      operationId: listUsers
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminUser'
+                  total:
+                    type: integer
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized (admin required)
+
+  /admin/users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Admin
+      summary: Get user details
+      description: Returns detailed user information (admin only)
+      operationId: getUser
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUser'
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized
+        '404':
+          description: User not found
+    patch:
+      tags:
+        - Admin
+      summary: Update user
+      description: Updates user properties (admin only)
+      operationId: updateUser
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  enum: [user, admin]
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: User updated
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized
+        '404':
+          description: User not found
+
+  /admin/earnings:
+    get:
+      tags:
+        - Admin
+      summary: Get earnings data
+      description: Returns platform earnings data (admin only)
+      operationId: getEarnings
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Earnings data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  breakdown:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not authorized
+
+  /features:
+    get:
+      tags:
+        - Health
+      summary: Get feature flags
+      description: Returns enabled features for the current user/environment
+      operationId: getFeatures
+      responses:
+        '200':
+          description: Feature flags
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: boolean
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Supabase session cookie
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        uptime:
+          type: number
+          description: Uptime in seconds
+        checks:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/ComponentHealth'
+            cache:
+              $ref: '#/components/schemas/ComponentHealth'
+            ai:
+              $ref: '#/components/schemas/ComponentHealth'
+
+    ComponentHealth:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        latency:
+          type: number
+          description: Response time in milliseconds
+        error:
+          type: string
+
+    ChatRequest:
+      type: object
+      required:
+        - conversationId
+        - message
+      properties:
+        conversationId:
+          type: string
+          format: uuid
+        message:
+          type: string
+          maxLength: 100000
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [image, file]
+              url:
+                type: string
+        model:
+          type: string
+          enum: [haiku-4.5, sonnet-4]
+          default: sonnet-4
+
+    Conversation:
+      type: object
+      required:
+        - id
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        folderId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ConversationWithMessages:
+      allOf:
+        - $ref: '#/components/schemas/Conversation'
+        - type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/Message'
+
+    Message:
+      type: object
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        attachments:
+          type: array
+          items:
+            type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    CodeLabSession:
+      type: object
+      required:
+        - id
+        - userId
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        language:
+          type: string
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              content:
+                type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserSettings:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark, system]
+        notifications:
+          type: boolean
+        language:
+          type: string
+
+    Subscription:
+      type: object
+      required:
+        - tier
+        - status
+      properties:
+        tier:
+          type: string
+          enum: [free, pro, unlimited]
+        status:
+          type: string
+          enum: [active, canceled, past_due]
+        currentPeriodEnd:
+          type: string
+          format: date-time
+        cancelAtPeriodEnd:
+          type: boolean
+
+    UsageStats:
+      type: object
+      required:
+        - messagesUsed
+        - messagesLimit
+      properties:
+        messagesUsed:
+          type: integer
+        messagesLimit:
+          type: integer
+        documentsGenerated:
+          type: integer
+        codeExecutions:
+          type: integer
+        periodStart:
+          type: string
+          format: date-time
+        periodEnd:
+          type: string
+          format: date-time
+
+    AdminUser:
+      type: object
+      required:
+        - id
+        - email
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, admin]
+        tier:
+          type: string
+          enum: [free, pro, unlimited]
+        isActive:
+          type: boolean
+        messagesUsed:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer

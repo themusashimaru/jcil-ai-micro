@@ -1,0 +1,17 @@
+# JCIL.AI Robots.txt
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://jcil.ai/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /settings
+
+# Allow specific API routes for SEO
+Allow: /api/og-image
+Allow: /api/manifest

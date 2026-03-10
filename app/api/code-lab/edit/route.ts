@@ -1,0 +1,332 @@
+/**
+ * SURGICAL EDIT API - LINE-BASED PRECISE EDITING
+ *
+ * Provides Claude Code-style surgical editing capabilities:
+ * - Line-number based edits
+ * - Multi-edit batching
+ * - Dry-run preview
+ * - Diff generation
+ *
+ * Uses ContainerManager (E2B) for file operations - same backend as Files API.
+ */
+
+import { NextRequest } from 'next/server';
+import { requireUser } from '@/lib/auth/user-guard';
+import {
+  surgicalEdit,
+  LineEdit,
+  formatDiffForDisplay,
+  generateUnifiedDiff,
+} from '@/lib/workspace/surgical-edit';
+import { successResponse, errors } from '@/lib/api/utils';
+import { getBackup, listBackups, restoreFromBackup } from '@/lib/workspace/backup-service';
+import { getContainerManager } from '@/lib/workspace/container';
+import { sanitizeFilePath } from '@/lib/workspace/security';
+import { rateLimiters } from '@/lib/security/rate-limit';
+import { logger } from '@/lib/logger';
+import { createClient } from '@/lib/supabase/server';
+
+const log = logger('SurgicalEditAPI');
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabase = any;
+
+// Helper to verify session ownership
+async function verifySessionOwnership(
+  supabase: AnySupabase,
+  sessionId: string,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await (supabase.from('code_lab_sessions') as AnySupabase)
+    .select('id')
+    .eq('id', sessionId)
+    .eq('user_id', userId)
+    .single();
+
+  return !error && !!data;
+}
+
+// Container-based file operations (matches Files API backend)
+async function readFileFromWorkspace(sessionId: string, filePath: string): Promise<string> {
+  const container = getContainerManager();
+  const safePath = sanitizeFilePath(filePath);
+  return await container.readFile(sessionId, safePath);
+}
+
+async function writeFileToWorkspace(
+  sessionId: string,
+  filePath: string,
+  content: string
+): Promise<void> {
+  const container = getContainerManager();
+  const safePath = sanitizeFilePath(filePath);
+  await container.writeFile(sessionId, safePath, content);
+}
+
+/**
+ * POST /api/code-lab/edit
+ *
+ * Apply surgical edits to a file
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Auth + CSRF protection (requireUser handles CSRF for POST)
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const body = await request.json();
+    const { dryRun = false } = body as { dryRun?: boolean };
+
+    // Rate limiting (skip for dry-run as it doesn't consume resources)
+    if (!dryRun) {
+      const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
+      if (!rateLimitResult.allowed) {
+        return errors.rateLimited(rateLimitResult.retryAfter);
+      }
+    }
+
+    const {
+      sessionId,
+      filePath,
+      edits,
+      format = 'json', // 'json' | 'diff' | 'unified'
+    } = body as {
+      sessionId: string;
+      filePath: string;
+      edits: LineEdit[];
+      dryRun?: boolean;
+      format?: 'json' | 'diff' | 'unified';
+    };
+
+    // Validate required fields
+    if (!sessionId) {
+      return errors.badRequest('Missing sessionId');
+    }
+    if (!filePath) {
+      return errors.badRequest('Missing filePath');
+    }
+    if (!edits || !Array.isArray(edits) || edits.length === 0) {
+      return errors.badRequest('Missing or empty edits array');
+    }
+
+    // Verify session ownership
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
+    if (!hasAccess) {
+      return errors.sessionAccessDenied();
+    }
+
+    // Use sessionId as the workspace identifier (matches Files API)
+    const effectiveWorkspaceId = sessionId;
+
+    log.info('Surgical edit request', {
+      userId: auth.user.id,
+      workspaceId: effectiveWorkspaceId,
+      filePath,
+      editCount: edits.length,
+      dryRun,
+    });
+
+    // Execute surgical edit
+    const result = await surgicalEdit(
+      {
+        filePath,
+        edits,
+        dryRun,
+        createBackup: true,
+        workspaceId: effectiveWorkspaceId,
+        userId: auth.user.id,
+        editDescription: `API edit: ${edits.length} change(s) to ${filePath}`,
+      },
+      (path) => readFileFromWorkspace(effectiveWorkspaceId, path),
+      (path, content) => writeFileToWorkspace(effectiveWorkspaceId, path, content)
+    );
+
+    // Format response based on requested format
+    if (format === 'diff' && result.success) {
+      return successResponse({
+        success: true,
+        diff: formatDiffForDisplay(result.diffs),
+        stats: {
+          linesAdded: result.linesAdded,
+          linesRemoved: result.linesRemoved,
+          linesModified: result.linesModified,
+        },
+      });
+    }
+
+    if (format === 'unified' && result.success && result.originalContent && result.newContent) {
+      return successResponse({
+        success: true,
+        unifiedDiff: generateUnifiedDiff(filePath, result.originalContent, result.newContent),
+        stats: {
+          linesAdded: result.linesAdded,
+          linesRemoved: result.linesRemoved,
+          linesModified: result.linesModified,
+        },
+      });
+    }
+
+    // Default JSON response
+    return successResponse(result);
+  } catch (error) {
+    log.error('Surgical edit API error', error as Error);
+    return errors.serverError('Internal server error');
+  }
+}
+
+/**
+ * GET /api/code-lab/edit
+ *
+ * Get information about the edit API, or list/get backups
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get('action');
+  const sessionId = searchParams.get('sessionId');
+  const backupId = searchParams.get('backupId');
+  const filePath = searchParams.get('filePath');
+
+  // List backups for a session/file
+  if (action === 'listBackups' && sessionId) {
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, sessionId, auth.user.id);
+    if (!hasAccess) {
+      return errors.sessionAccessDenied();
+    }
+
+    const backups = await listBackups(sessionId, filePath || undefined, 20);
+    return successResponse({ success: true, backups });
+  }
+
+  // Get a specific backup
+  if (action === 'getBackup' && backupId) {
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    const backup = await getBackup(backupId);
+    if (!backup) {
+      return errors.notFound('Backup');
+    }
+
+    // Verify user has access to this backup's workspace
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
+    if (!hasAccess) {
+      return errors.forbidden('Access denied');
+    }
+
+    return successResponse({ success: true, backup });
+  }
+
+  // Default: Return API info
+  return successResponse({
+    status: 'active',
+    version: '1.1.0',
+    capabilities: {
+      lineBasedEditing: true,
+      multiEdit: true,
+      dryRun: true,
+      diffPreview: true,
+      unifiedDiff: true,
+      backup: true,
+    },
+    usage: {
+      endpoint: 'POST /api/code-lab/edit',
+      body: {
+        sessionId: 'string (required) - Code Lab session ID',
+        filePath: 'string (required) - path to file within workspace',
+        edits: 'Array<{ startLine: number, endLine: number, newContent: string }>',
+        dryRun: 'boolean (optional) - preview without applying',
+        format: '"json" | "diff" | "unified" (optional) - response format',
+      },
+      example: {
+        sessionId: 'abc123',
+        filePath: 'src/index.ts',
+        edits: [{ startLine: 10, endLine: 12, newContent: '// Updated content\nconst x = 1;' }],
+        dryRun: true,
+      },
+      notes:
+        'Uses same E2B container backend as /api/code-lab/files. CSRF token required for non-dry-run requests.',
+    },
+  });
+}
+
+/**
+ * PUT /api/code-lab/edit
+ *
+ * Restore a file from backup
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    // Auth + CSRF protection
+    const auth = await requireUser(request);
+    if (!auth.authorized) {
+      return auth.response;
+    }
+
+    // Rate limiting
+    const rateLimitResult = await rateLimiters.codeLabEdit(auth.user.id);
+    if (!rateLimitResult.allowed) {
+      return errors.rateLimited(rateLimitResult.retryAfter);
+    }
+
+    const body = await request.json();
+    const { backupId } = body as { backupId: string };
+
+    if (!backupId) {
+      return errors.badRequest('Missing backupId');
+    }
+
+    // Get the backup to verify access
+    const backup = await getBackup(backupId);
+    if (!backup) {
+      return errors.notFound('Backup');
+    }
+
+    // Verify user has access to this backup's workspace
+    const supabase = await createClient();
+    const hasAccess = await verifySessionOwnership(supabase, backup.workspaceId, auth.user.id);
+    if (!hasAccess) {
+      return errors.forbidden('Access denied');
+    }
+
+    log.info('Restoring from backup', {
+      userId: auth.user.id,
+      backupId,
+      filePath: backup.filePath,
+      workspaceId: backup.workspaceId,
+    });
+
+    // Perform the restore
+    const result = await restoreFromBackup(backupId, async (workspaceId, filePath, content) => {
+      await writeFileToWorkspace(workspaceId, filePath, content);
+    });
+
+    if (!result.success) {
+      return errors.serverError(result.error);
+    }
+
+    return successResponse({
+      success: true,
+      message: `File ${backup.filePath} restored from backup`,
+      backup: {
+        id: backup.id,
+        filePath: backup.filePath,
+        createdAt: backup.createdAt,
+      },
+    });
+  } catch (error) {
+    log.error('Restore API error', error as Error);
+    return errors.serverError('Internal server error');
+  }
+}

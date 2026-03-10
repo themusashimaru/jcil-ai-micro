@@ -1,0 +1,152 @@
+/**
+ * WORKSPACE API - Individual Workspace Operations
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { untypedFrom, untypedRpc } from '@/lib/supabase/workspace-client';
+import { getContainerManager } from '@/lib/workspace/container';
+import { validateCSRF } from '@/lib/security/csrf';
+import { safeParseJSON } from '@/lib/security/validation';
+import { logger } from '@/lib/logger';
+
+const log = logger('WorkspaceAPI');
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+/**
+ * GET - Get workspace details
+ */
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Table created by workspace schema
+    const { data: workspace, error } = await untypedFrom(supabase, 'workspaces')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error || !workspace) {
+      return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+    }
+
+    // Get container status
+    const container = getContainerManager();
+    const containerStatus = await container.getStatus(id);
+
+    // Get workspace stats (custom RPC function from workspace schema)
+    const { data: stats } = await untypedRpc(supabase, 'get_workspace_stats', {
+      p_workspace_id: id,
+    });
+
+    return NextResponse.json({
+      workspace: { ...workspace, containerStatus, stats },
+    });
+  } catch (error) {
+    log.error('Failed to get workspace', error as Error);
+    return NextResponse.json({ error: 'Failed to get workspace' }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH - Update workspace
+ */
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const jsonResult = await safeParseJSON<{
+      name?: string;
+      config?: Record<string, unknown>;
+      status?: string;
+    }>(request);
+    if (!jsonResult.success) {
+      return NextResponse.json({ error: jsonResult.error }, { status: 400 });
+    }
+    const { name, config, status } = jsonResult.data;
+
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (name) updates.name = name;
+    if (config) updates.config = config;
+    if (status) updates.status = status;
+
+    const { data: workspace, error } = await untypedFrom(supabase, 'workspaces')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ workspace });
+  } catch (error) {
+    log.error('Failed to update workspace', error as Error);
+    return NextResponse.json({ error: 'Failed to update workspace' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE - Delete workspace and terminate container
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // CSRF Protection
+  const csrfCheck = validateCSRF(request);
+  if (!csrfCheck.valid) return csrfCheck.response!;
+
+  try {
+    const { id } = await params;
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Terminate container first
+    const container = getContainerManager();
+    await container.terminateContainer(id);
+
+    // Delete from database
+    const { error } = await supabase
+      .from('workspaces')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    log.error('Failed to delete workspace', error as Error);
+    return NextResponse.json({ error: 'Failed to delete workspace' }, { status: 500 });
+  }
+}

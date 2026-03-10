@@ -1,0 +1,124 @@
+/**
+ * SUPABASE SERVER-SIDE AUTH HELPERS
+ *
+ * PURPOSE:
+ * - Authentication utilities for Server Components
+ * - User session management on the server
+ * - Auth checks for protected routes
+ */
+
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import type { Database } from './types';
+import { logger } from '@/lib/logger';
+
+const log = logger('Auth');
+
+/**
+ * Create a Supabase client for server components
+ */
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Cookie operations may fail in Server Components
+            // This is expected behavior
+          }
+        },
+      },
+    }
+  );
+}
+
+/**
+ * Get the current user session on the server
+ */
+export async function getServerSession() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  if (error) {
+    return null;
+  }
+
+  return session;
+}
+
+/**
+ * Get the current user on the server
+ */
+export async function getServerUser() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    return null;
+  }
+
+  return user;
+}
+
+/**
+ * Check if user is authenticated (server-side)
+ */
+export async function isServerAuthenticated(): Promise<boolean> {
+  const session = await getServerSession();
+  return !!session;
+}
+
+/**
+ * Check if user is admin (server-side)
+ */
+export async function isServerAdmin(): Promise<boolean> {
+  try {
+    const user = await getServerUser();
+    if (!user || !user.id) {
+      log.debug('Admin check: No user or user ID found');
+      return false;
+    }
+
+    const supabase = await createServerSupabaseClient();
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id, user_id, email')
+      .eq('user_id', user.id)  // Check by user_id, not email (more secure)
+      .single();
+
+    // Explicitly handle error case
+    if (error) {
+      // PGRST116 means no rows returned, which is expected for non-admins
+      if (error.code !== 'PGRST116') {
+        log.error('Admin check database error', { code: error.code, message: error.message });
+      }
+      return false;
+    }
+
+    // Verify data exists and user_id matches
+    // Type assertion needed because TypeScript can't properly narrow the type
+    const adminData = data as { id: string; user_id: string; email: string } | null;
+
+    if (!adminData || adminData.user_id !== user.id) {
+      log.debug('Admin check: No admin record found');
+      return false;
+    }
+
+    log.debug('Admin access granted');
+    return true;
+  } catch (error) {
+    log.error('Admin check unexpected error', error as Error);
+    return false;
+  }
+}

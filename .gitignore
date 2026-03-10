@@ -1,7 +1,14 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+package-lock.json
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
 
 # next.js
 /.next/
@@ -10,14 +17,20 @@
 # production
 /build
 
+# misc
+.DS_Store
+*.pem
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
 
-# env files
-.env*
+# local env files
+.env*.local
+.env
+.env.production
 
 # vercel
 .vercel
@@ -25,3 +38,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+cache/
+
+# Capacitor - iOS build artifacts
+ios/App/Pods/
+ios/App/App.xcworkspace/xcuserdata/
+ios/App/App.xcodeproj/xcuserdata/
+ios/DerivedData/
+
+# Capacitor - Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties

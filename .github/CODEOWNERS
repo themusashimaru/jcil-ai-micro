@@ -1,0 +1,15 @@
+# Default owners for everything
+* @themusashimaru
+
+# Core infrastructure
+/app/api/** @themusashimaru
+/src/lib/** @themusashimaru
+/src/server/** @themusashimaru
+
+# Admin panel
+/app/admin/** @themusashimaru
+/app/api/admin/** @themusashimaru
+
+# Security & moderation
+/src/lib/moderation/** @themusashimaru
+/src/server/moderation.ts @themusashimaru

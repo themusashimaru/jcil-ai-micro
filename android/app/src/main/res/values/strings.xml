@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">JCIL AI</string>
+    <string name="title_activity_main">JCIL AI</string>
+    <string name="package_name">ai.jcil.app</string>
+    <string name="custom_url_scheme">ai.jcil.app</string>
+</resources>
