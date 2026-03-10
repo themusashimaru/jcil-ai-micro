@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 const signals = [
-  { date: "SOC 2", title: "GitHub", note: "Read repos, issues, PRs, and commit history. Full git integration." },
+  { date: "Git", title: "GitHub", note: "Read repos, issues, PRs, and commit history. Full git integration." },
   { date: "Real-time", title: "Slack", note: "Connect your workspace. Automate messages and workflows." },
   { date: "Payments", title: "Stripe", note: "Process payments, manage subscriptions, handle invoices." },
   { date: "Suite", title: "Google", note: "Drive, Docs, Sheets, Calendar, Gmail — full workspace access." },
@@ -86,7 +86,7 @@ export function SignalsSection() {
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">01 / Integrations</span>
         <h2 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">67+ CONNECTIONS</h2>
         <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
-          Powered by Composio. Automate workflows across 67+ apps — from Slack to Salesforce, GitHub to Google Suite. SOC 2 compliant.
+          Powered by Composio (SOC 2 certified). Automate workflows across 67+ apps — from Slack to Salesforce, GitHub to Google Suite.
         </p>
       </div>
 

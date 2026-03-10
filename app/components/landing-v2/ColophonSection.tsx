@@ -55,6 +55,8 @@ export function ColophonSection() {
           <ul className="space-y-2">
             <li><a href="/chat" className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200">Chat</a></li>
             <li><a href="/code-lab" className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200">Code Lab</a></li>
+            <li><a href="/capabilities" className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200">Capabilities</a></li>
+            <li><a href="/docs" className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200">Docs</a></li>
           </ul>
         </div>
 
@@ -99,9 +101,9 @@ export function ColophonSection() {
         <div className="col-span-1">
           <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Security</h4>
           <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">SOC 2 Compliant</li>
             <li className="font-mono text-xs text-foreground/80">AES-256 Encryption</li>
-            <li className="font-mono text-xs text-foreground/80">GDPR Ready</li>
+            <li className="font-mono text-xs text-foreground/80">Composio (SOC 2)</li>
+            <li className="font-mono text-xs text-foreground/80">Supabase RLS</li>
           </ul>
         </div>
       </div>
