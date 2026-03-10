@@ -1,9 +1,8 @@
 /**
  * LANDING HEADER
  *
- * Clean sticky header with glassmorphism.
- * Responsive with mobile drawer.
- * All links verified and functional.
+ * Clean sticky nav with glassmorphism and pill-shaped CTAs.
+ * Composio-inspired: minimal, transparent, responsive.
  */
 
 'use client';
@@ -12,24 +11,19 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import LandingLogo from '../LandingLogo';
 
-interface NavItem {
-  label: string;
-  href: string;
-}
-
-interface LandingHeaderProps {
-  transparent?: boolean;
-  ctaText?: string;
-  ctaHref?: string;
-}
-
-const navItems: NavItem[] = [
+const navItems = [
   { label: 'Products', href: '/#products' },
   { label: 'Code Lab', href: '/code-lab/about' },
   { label: 'Pricing', href: '/#pricing' },
   { label: 'Docs', href: '/docs' },
   { label: 'About', href: '/about' },
 ];
+
+interface LandingHeaderProps {
+  transparent?: boolean;
+  ctaText?: string;
+  ctaHref?: string;
+}
 
 export default function LandingHeader({
   transparent = false,
@@ -40,46 +34,37 @@ export default function LandingHeader({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
   }, [isMobileMenuOpen]);
 
-  const headerBg =
+  const bg =
     transparent && !isScrolled
       ? 'bg-transparent'
-      : 'bg-black/90 backdrop-blur-xl border-b border-white/5';
+      : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06]';
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg}`}>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <nav className="flex h-16 items-center justify-between lg:h-18" aria-label="Main navigation">
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <LandingLogo />
-            </Link>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${bg}`}>
+        <div className="mx-auto max-w-6xl px-6">
+          <nav className="flex h-16 items-center justify-between" aria-label="Main navigation">
+            <LandingLogo />
 
-            {/* Desktop Navigation */}
+            {/* Desktop nav */}
             <div className="hidden lg:flex lg:items-center lg:gap-1">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="px-4 py-2 text-sm font-medium text-slate-400 transition-colors rounded-lg hover:bg-white/5 hover:text-white"
+                  className="rounded-full px-4 py-2 text-sm text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white"
                 >
                   {item.label}
                 </Link>
@@ -90,85 +75,101 @@ export default function LandingHeader({
             <div className="hidden lg:flex lg:items-center lg:gap-3">
               <Link
                 href="/login"
-                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm text-zinc-400 transition-colors hover:text-white"
               >
                 Sign in
               </Link>
               <Link
                 href={ctaHref}
-                className="rounded-lg bg-white px-5 py-2 text-sm font-semibold text-black hover:bg-slate-100 transition-all"
+                className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-900 transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                style={{ color: '#18181b' }}
               >
                 {ctaText}
               </Link>
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile burger */}
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white"
+              className="lg:hidden rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
               aria-label="Open menu"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3.75 9h16.5m-16.5 6.75h16.5"
+                />
               </svg>
             </button>
           </nav>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-
-          <div className="absolute right-0 top-0 h-full w-full max-w-sm bg-black/95 backdrop-blur-xl border-l border-white/10 shadow-2xl" role="dialog" aria-label="Mobile navigation menu">
+          <div
+            className="absolute right-0 top-0 h-full w-full max-w-sm bg-zinc-950/95 backdrop-blur-xl border-l border-white/[0.06]"
+            role="dialog"
+            aria-label="Mobile menu"
+          >
             <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
                 <LandingLogo />
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  className="rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
                   aria-label="Close menu"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              {/* Navigation */}
               <nav className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-1">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center px-4 py-3.5 text-base font-medium rounded-xl text-slate-200 hover:text-white hover:bg-white/10 transition-all"
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center px-4 py-3.5 text-base text-zinc-300 rounded-xl hover:bg-white/[0.05] hover:text-white transition-all"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
               </nav>
 
-              {/* Footer CTAs */}
-              <div className="p-4 border-t border-white/10 space-y-3">
+              <div className="p-4 border-t border-white/[0.06] space-y-3">
                 <Link
                   href="/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full px-4 py-3.5 text-base font-medium text-slate-200 hover:text-white rounded-xl border border-white/15 hover:bg-white/10 transition-all"
+                  className="flex items-center justify-center w-full py-3.5 text-base text-zinc-300 rounded-full border border-white/[0.1] hover:bg-white/[0.05] transition-all"
                 >
                   Sign in
                 </Link>
                 <Link
                   href={ctaHref}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full px-4 py-3.5 text-base font-semibold text-black bg-white rounded-xl hover:bg-slate-100 transition-all"
+                  className="flex items-center justify-center w-full py-3.5 text-base font-semibold text-zinc-900 bg-white rounded-full transition-all"
+                  style={{ color: '#18181b' }}
                 >
                   {ctaText}
                 </Link>

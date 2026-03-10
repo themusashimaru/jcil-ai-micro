@@ -22,15 +22,18 @@ import HowItWorks from './components/landing/HowItWorks';
 import UseCases from './components/landing/UseCases';
 import PricingSection from './components/PricingSection';
 import FinalCTA from './components/landing/FinalCTA';
+import IntegrationsShowcase from './components/landing/IntegrationsShowcase';
 
 export default function HomePage() {
   return (
-    <main id="main-content" className="min-h-screen bg-black text-white">
+    <main id="main-content" className="min-h-screen bg-zinc-950 text-white">
       <LandingHeader transparent />
 
       <HeroSection />
 
       <TrustBar />
+
+      <IntegrationsShowcase />
 
       <ProductsSection />
 
@@ -53,7 +56,7 @@ export default function HomePage() {
       <UseCases />
 
       {/* Pricing */}
-      <div id="pricing" className="bg-black">
+      <div id="pricing">
         <PricingSection />
       </div>
 

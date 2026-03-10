@@ -324,18 +324,18 @@ export default function IntegrationsShowcase() {
       {/* Animated Brand Marquee */}
       <div className="relative mb-16">
         {/* Gradient masks */}
-        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
 
         {/* Scrolling row */}
         <div className="flex animate-marquee gap-8">
           {[...MARQUEE_BRANDS, ...MARQUEE_BRANDS].map((brand, i) => (
             <div
               key={`${brand.name}-${i}`}
-              className="flex items-center gap-3 shrink-0 bg-slate-900/50 rounded-xl px-5 py-3 border border-slate-800 hover:border-purple-500/30 transition-all"
+              className="flex items-center gap-3 shrink-0 bg-zinc-900/50 rounded-xl px-5 py-3 border border-zinc-800 hover:border-purple-500/30 transition-all"
             >
               <div className={brand.color}>{brand.icon}</div>
-              <span className="text-sm font-medium text-slate-300 whitespace-nowrap">
+              <span className="text-sm font-medium text-zinc-300 whitespace-nowrap">
                 {brand.name}
               </span>
             </div>
@@ -352,7 +352,7 @@ export default function IntegrationsShowcase() {
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeCategory === cat
                 ? 'bg-purple-600 text-white'
-                : 'bg-slate-900/50 text-slate-400 hover:text-white border border-slate-800 hover:border-purple-500/30'
+                : 'bg-zinc-900/50 text-zinc-400 hover:text-white border border-zinc-800 hover:border-purple-500/30'
             }`}
           >
             {cat}
@@ -370,10 +370,10 @@ export default function IntegrationsShowcase() {
         {filtered.map((integration, i) => (
           <div
             key={`${integration.name}-${i}`}
-            className="group flex items-center gap-2.5 bg-slate-900/50 rounded-xl px-3 py-3 border border-slate-800 hover:border-purple-500/30 hover:bg-slate-800/50 transition-all"
+            className="group flex items-center gap-2.5 bg-zinc-900/50 rounded-xl px-3 py-3 border border-zinc-800 hover:border-purple-500/30 hover:bg-zinc-800/50 transition-all"
           >
             <div className="shrink-0">{integration.icon}</div>
-            <span className="text-sm text-slate-300 group-hover:text-white transition-colors truncate">
+            <span className="text-sm text-zinc-300 group-hover:text-white transition-colors truncate">
               {integration.name}
             </span>
           </div>
@@ -382,7 +382,7 @@ export default function IntegrationsShowcase() {
 
       {/* Bottom stat */}
       <div className="text-center">
-        <p className="text-slate-500 text-sm">
+        <p className="text-zinc-500 text-sm">
           Powered by <span className="text-purple-400 font-semibold">Composio</span> &mdash; the
           leading integration platform for AI agents. All 67+ integrations are real,
           production-ready, and available today.
