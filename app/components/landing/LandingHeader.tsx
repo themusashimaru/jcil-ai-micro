@@ -1,8 +1,8 @@
 /**
  * LANDING HEADER
  *
- * Clean sticky nav with glassmorphism and pill-shaped CTAs.
- * Composio-inspired: minimal, transparent, responsive.
+ * Premium sticky nav with glassmorphism.
+ * Full-screen mobile menu with staggered animations and gradient accents.
  */
 
 'use client';
@@ -12,11 +12,11 @@ import { useState, useEffect } from 'react';
 import LandingLogo from '../LandingLogo';
 
 const navItems = [
-  { label: 'Products', href: '/#products' },
-  { label: 'Code Lab', href: '/code-lab/about' },
-  { label: 'Pricing', href: '/#pricing' },
-  { label: 'Docs', href: '/docs' },
-  { label: 'About', href: '/about' },
+  { label: 'Products', href: '/#products', description: 'Chat & Code Lab' },
+  { label: 'Features', href: '/#features', description: '51 real AI tools' },
+  { label: 'Code Lab', href: '/code-lab/about', description: 'Full AI IDE' },
+  { label: 'Pricing', href: '/#pricing', description: 'Plans & BYOK' },
+  { label: 'About', href: '/about', description: 'Our mission' },
 ];
 
 interface LandingHeaderProps {
@@ -49,7 +49,7 @@ export default function LandingHeader({
   const bg =
     transparent && !isScrolled
       ? 'bg-transparent'
-      : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06]';
+      : 'bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06] shadow-[0_1px_24px_rgba(0,0,0,0.4)]';
 
   return (
     <>
@@ -58,13 +58,13 @@ export default function LandingHeader({
           <nav className="flex h-16 items-center justify-between" aria-label="Main navigation">
             <LandingLogo />
 
-            {/* Desktop nav */}
-            <div className="hidden lg:flex lg:items-center lg:gap-1">
+            {/* Desktop nav — pill-shaped container */}
+            <div className="hidden lg:flex lg:items-center lg:gap-0.5 rounded-full border border-white/[0.06] bg-white/[0.02] px-1.5 py-1">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-full px-4 py-2 text-sm text-zinc-400 transition-colors hover:bg-white/[0.05] hover:text-white"
+                  className="rounded-full px-4 py-1.5 text-[13px] font-medium text-zinc-400 transition-all hover:bg-white/[0.06] hover:text-white"
                 >
                   {item.label}
                 </Link>
@@ -81,18 +81,55 @@ export default function LandingHeader({
               </Link>
               <Link
                 href={ctaHref}
-                className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-zinc-900 transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                className="relative rounded-full bg-gradient-to-r from-amber-400 to-amber-500 px-5 py-2 text-sm font-semibold text-zinc-900 shadow-[0_0_20px_rgba(251,191,36,0.25)] transition-all hover:shadow-[0_0_30px_rgba(251,191,36,0.4)]"
                 style={{ color: '#18181b' }}
               >
                 {ctaText}
               </Link>
             </div>
 
-            {/* Mobile burger */}
+            {/* Mobile menu button — styled box with animated lines */}
             <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
-              aria-label="Open menu"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-400 transition-all hover:border-white/[0.15] hover:text-white"
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              <div className="flex h-4 w-5 flex-col items-center justify-center gap-[5px]">
+                <span
+                  className={`h-[1.5px] w-5 bg-current transition-all duration-300 ${isMobileMenuOpen ? 'translate-y-[3.25px] rotate-45' : ''}`}
+                />
+                <span
+                  className={`h-[1.5px] w-5 bg-current transition-all duration-300 ${isMobileMenuOpen ? '-translate-y-[3.25px] -rotate-45' : ''}`}
+                />
+              </div>
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Mobile menu — full-screen premium overlay */}
+      <div
+        className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ${
+          isMobileMenuOpen ? 'visible opacity-100' : 'invisible opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-zinc-950/95 backdrop-blur-2xl transition-opacity duration-500 ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Content */}
+        <div className="relative flex h-full flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pt-4">
+            <LandingLogo />
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-zinc-400 transition-all hover:text-white"
+              aria-label="Close menu"
             >
               <svg
                 className="h-5 w-5"
@@ -101,83 +138,88 @@ export default function LandingHeader({
                 stroke="currentColor"
                 strokeWidth={1.5}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 9h16.5m-16.5 6.75h16.5"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </nav>
-        </div>
-      </header>
+          </div>
 
-      {/* Mobile menu */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <div
-            className="absolute right-0 top-0 h-full w-full max-w-sm bg-zinc-950/95 backdrop-blur-xl border-l border-white/[0.06]"
+          {/* Decorative gradient orb */}
+          <div className="pointer-events-none absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/[0.06] blur-[120px]" />
+
+          {/* Nav items — large, with descriptions */}
+          <nav
+            className="relative flex-1 overflow-y-auto px-6 pt-12"
             role="dialog"
             aria-label="Mobile menu"
           >
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between p-5 border-b border-white/[0.06]">
-                <LandingLogo />
-                <button
+            <div className="space-y-1">
+              {navItems.map((item, i) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="rounded-full p-2 text-zinc-400 hover:bg-white/[0.05] hover:text-white transition-colors"
-                  aria-label="Close menu"
+                  className="group flex items-center justify-between rounded-2xl px-5 py-4 transition-all hover:bg-white/[0.04]"
+                  style={{
+                    animation: isMobileMenuOpen
+                      ? `fadeInUp 0.4s ease-out ${i * 50}ms both`
+                      : 'none',
+                  }}
                 >
+                  <div>
+                    <div className="text-lg font-medium text-white">{item.label}</div>
+                    <div className="mt-0.5 text-sm text-zinc-500">{item.description}</div>
+                  </div>
                   <svg
-                    className="h-5 w-5"
+                    className="h-4 w-4 text-zinc-600 transition-all group-hover:translate-x-1 group-hover:text-zinc-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    strokeWidth={1.5}
+                    strokeWidth={2}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
-                </button>
-              </div>
-
-              <nav className="flex-1 overflow-y-auto p-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center px-4 py-3.5 text-base text-zinc-300 rounded-xl hover:bg-white/[0.05] hover:text-white transition-all"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-
-              <div className="p-4 border-t border-white/[0.06] space-y-3">
-                <Link
-                  href="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full py-3.5 text-base text-zinc-300 rounded-full border border-white/[0.1] hover:bg-white/[0.05] transition-all"
-                >
-                  Sign in
                 </Link>
-                <Link
-                  href={ctaHref}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-center w-full py-3.5 text-base font-semibold text-zinc-900 bg-white rounded-full transition-all"
-                  style={{ color: '#18181b' }}
-                >
-                  {ctaText}
-                </Link>
-              </div>
+              ))}
             </div>
+
+            {/* Gradient divider */}
+            <div className="my-8 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
+            {/* Quick links */}
+            <div className="flex flex-wrap gap-3 px-2">
+              {['Docs', 'FAQ', 'Contact'].map((label) => (
+                <Link
+                  key={label}
+                  href={`/${label.toLowerCase()}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="rounded-full border border-white/[0.06] bg-white/[0.02] px-4 py-2 text-sm text-zinc-400 transition-all hover:border-white/[0.12] hover:text-white"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+
+          {/* Bottom CTAs */}
+          <div className="relative border-t border-white/[0.06] px-6 py-6 space-y-3">
+            <Link
+              href={ctaHref}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center w-full py-4 text-base font-semibold text-zinc-900 bg-gradient-to-r from-amber-400 to-amber-500 rounded-2xl shadow-[0_0_30px_rgba(251,191,36,0.2)] transition-all"
+              style={{ color: '#18181b' }}
+            >
+              {ctaText}
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-center w-full py-3.5 text-base text-zinc-400 rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all hover:bg-white/[0.04]"
+            >
+              Sign in
+            </Link>
           </div>
         </div>
-      )}
+      </div>
     </>
   );
 }

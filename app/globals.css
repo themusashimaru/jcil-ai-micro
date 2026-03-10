@@ -1492,6 +1492,66 @@
     }
   }
 
+  /* Hero entrance animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Gradient mesh animation for hero background */
+  @keyframes gradient-shift {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(10%, -5%) scale(1.05);
+    }
+    50% {
+      transform: translate(-5%, 10%) scale(0.95);
+    }
+    75% {
+      transform: translate(-10%, -10%) scale(1.02);
+    }
+  }
+
+  /* Floating animation for UI preview cards */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Logo bar scroll */
+  @keyframes scroll-logos {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Shimmer effect for premium buttons */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
   /* Blinking cursor animation for typing indicator */
   @keyframes blink {
     0%,
