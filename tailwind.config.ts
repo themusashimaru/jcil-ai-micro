@@ -34,10 +34,24 @@ const config: Config = {
         'text-muted': 'var(--text-muted)',
         'avatar-bg': 'var(--avatar-bg)',
         'btn-disabled': 'var(--button-disabled-bg)',
+        // Landing page v2 design tokens (shadcn-compatible)
+        accent: {
+          DEFAULT: 'var(--accent, var(--primary))',
+          foreground: 'var(--accent-foreground, #000000)',
+        },
+        'muted-foreground': 'var(--muted-foreground, var(--text-secondary))',
+        card: {
+          DEFAULT: 'var(--card, var(--surface-elevated))',
+          foreground: 'var(--card-foreground, var(--foreground))',
+        },
+        border: 'var(--border)',
       },
       borderColor: {
         DEFAULT: 'var(--border)',
         theme: 'var(--border)',
+      },
+      fontFamily: {
+        bebas: ['var(--font-bebas)', 'Impact', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',
