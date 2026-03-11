@@ -26,9 +26,13 @@ import { safeDecrypt } from '@/lib/security/crypto';
 
 const log = logger('CodeLabTasks');
 
-// Decrypt token - wrapper for backward compatibility (returns empty string on failure)
-function decryptToken(encryptedData: string): string {
-  return safeDecrypt(encryptedData) || '';
+// Decrypt token — returns null on failure so callers can handle it explicitly
+function decryptToken(encryptedData: string): string | null {
+  const result = safeDecrypt(encryptedData);
+  if (!result) {
+    log.error('Token decryption failed — check ENCRYPTION_KEY');
+  }
+  return result;
 }
 
 /**
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (userData?.github_token) {
-        githubToken = decryptToken(userData.github_token);
+        githubToken = decryptToken(userData.github_token) ?? undefined;
       }
     }
 

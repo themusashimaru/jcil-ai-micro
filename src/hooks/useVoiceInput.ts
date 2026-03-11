@@ -395,8 +395,14 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       try {
         const formData = new FormData();
 
-        // Convert to proper file format
-        const audioFile = new File([audioBlob], 'recording.webm', { type: audioBlob.type });
+        // Use correct file extension based on actual MIME type
+        // Whisper uses the extension to determine format — mismatch causes errors
+        const ext = audioBlob.type.includes('mp4')
+          ? 'mp4'
+          : audioBlob.type.includes('ogg')
+            ? 'ogg'
+            : 'webm';
+        const audioFile = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type });
         formData.append('file', audioFile);
 
         if (language) {

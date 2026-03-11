@@ -151,8 +151,13 @@ async function extractTable(
     return { success: false, error: 'Vision client not available' };
   }
 
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1;
+  if (!anthropicKey) {
+    return { success: false, error: 'Anthropic API key is not configured — table extraction unavailable' };
+  }
+
   try {
-    const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const client = new AnthropicClient({ apiKey: anthropicKey });
 
     const formatInstructions = {
       markdown: `Return the table as a properly formatted markdown table with | separators.

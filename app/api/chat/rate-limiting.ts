@@ -13,10 +13,20 @@ import { logger } from '@/lib/logger';
 
 const log = logger('ChatRateLimit');
 
-// Rate limits per hour
-const RATE_LIMIT_AUTHENTICATED = parseInt(process.env.RATE_LIMIT_AUTH || '120', 10);
-const RATE_LIMIT_ANONYMOUS = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
-const RATE_LIMIT_RESEARCH = parseInt(process.env.RATE_LIMIT_RESEARCH || '500', 10);
+// Rate limits per hour — validated to prevent NaN bypass
+function safeParseInt(value: string | undefined, defaultValue: number): number {
+  if (!value) return defaultValue;
+  const parsed = parseInt(value, 10);
+  if (isNaN(parsed) || parsed <= 0) {
+    log.warn('Invalid rate limit env value, using default', { value, defaultValue });
+    return defaultValue;
+  }
+  return parsed;
+}
+
+const RATE_LIMIT_AUTHENTICATED = safeParseInt(process.env.RATE_LIMIT_AUTH, 120);
+const RATE_LIMIT_ANONYMOUS = safeParseInt(process.env.RATE_LIMIT_ANON, 30);
+const RATE_LIMIT_RESEARCH = safeParseInt(process.env.RATE_LIMIT_RESEARCH, 500);
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // CHAT-016: Per-tool rate limiting for expensive operations

@@ -88,8 +88,30 @@ export async function POST(request: NextRequest) {
     });
 
     if (error instanceof OpenAI.APIError) {
+      const detail = error.message || 'Unknown API error';
+      log.error('OpenAI API error details', {
+        status: error.status,
+        message: detail,
+        code: error.code,
+        type: error.type,
+      });
+
+      // Surface actionable info based on error type
+      if (error.status === 401) {
+        return NextResponse.json(
+          { error: 'Transcription service not configured — contact admin' },
+          { status: 503 }
+        );
+      }
+      if (error.status === 429) {
+        return NextResponse.json(
+          { error: 'Transcription service busy — please try again in a moment' },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Transcription service error' },
+        { error: `Transcription failed: ${detail}` },
         { status: error.status || 500 }
       );
     }

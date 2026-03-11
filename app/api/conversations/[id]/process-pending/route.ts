@@ -148,9 +148,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         .eq('id', existingMessageId);
 
       if (updateError) {
-        log.error('[ProcessPending] Failed to update message:', {
+        log.error('[ProcessPending] Failed to update message — keeping pending request:', {
           error: updateError ?? 'Unknown error',
         });
+        // Don't delete the pending request if message save failed — allow retry
+        await supabaseAdmin
+          .from('pending_requests')
+          .update({ status: 'failed', completed_at: new Date().toISOString() })
+          .eq('id', pendingRequest.id);
+        return errors.serverError('Failed to save AI response');
       }
     } else {
       // Create new message
@@ -163,13 +169,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
       if (msgError) {
-        log.error('[ProcessPending] Failed to save message:', {
+        log.error('[ProcessPending] Failed to save message — keeping pending request:', {
           error: msgError ?? 'Unknown error',
         });
+        // Don't delete the pending request if message save failed — allow retry
+        await supabaseAdmin
+          .from('pending_requests')
+          .update({ status: 'failed', completed_at: new Date().toISOString() })
+          .eq('id', pendingRequest.id);
+        return errors.serverError('Failed to save AI response');
       }
     }
 
-    // Mark the pending request as completed and delete it
+    // Only delete pending request after successful message save
     await supabaseAdmin.from('pending_requests').delete().eq('id', pendingRequest.id);
 
     log.info('[ProcessPending] Successfully processed request:', pendingRequest.id);
