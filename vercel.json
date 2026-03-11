@@ -24,10 +24,6 @@
   },
   "crons": [
     {
-      "path": "/api/devotional/daily",
-      "schedule": "1 0 * * *"
-    },
-    {
       "path": "/api/cron/process-pending",
       "schedule": "* * * * *"
     },
