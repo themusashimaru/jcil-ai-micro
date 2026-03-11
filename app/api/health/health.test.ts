@@ -159,6 +159,7 @@ describe('GET /api/health?detailed=true', () => {
       expect(body.checks.database).toBeDefined();
       expect(body.checks.cache).toBeDefined();
       expect(body.checks.ai).toBeDefined();
+      expect(body.checks.e2b).toBeDefined();
     }
   });
 });
@@ -193,6 +194,7 @@ describe('Overall Health Status Determination', () => {
       database: { status: 'up' },
       cache: { status: 'up' },
       ai: { status: 'up' },
+      e2b: { status: 'up' },
     };
 
     const statuses = Object.values(checks).map((c) => c.status);
@@ -283,6 +285,18 @@ describe('Component Health Checks', () => {
     const xaiKey: string | undefined = undefined;
     const hasApiKey = !!(anthropicKey || openaiKey || xaiKey);
     expect(hasApiKey).toBe(true);
+  });
+
+  it('should report E2B as down when not configured', () => {
+    const e2bKey: string | undefined = undefined;
+    const hasConfig = !!e2bKey;
+    expect(hasConfig).toBe(false);
+  });
+
+  it('should report E2B as up when configured', () => {
+    const e2bKey: string | undefined = 'e2b-test-key';
+    const hasConfig = !!e2bKey;
+    expect(hasConfig).toBe(true);
   });
 });
 

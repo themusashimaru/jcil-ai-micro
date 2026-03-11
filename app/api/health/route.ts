@@ -20,6 +20,7 @@ interface HealthCheck {
     database?: ComponentHealth;
     cache?: ComponentHealth;
     ai?: ComponentHealth;
+    e2b?: ComponentHealth;
   };
 }
 
@@ -123,6 +124,18 @@ async function checkAI(): Promise<ComponentHealth> {
 }
 
 /**
+ * Check E2B sandbox service status
+ */
+function checkE2B(): ComponentHealth {
+  // Check if E2B is configured (we don't spin up a sandbox to avoid cost)
+  if (!process.env.E2B_API_KEY) {
+    return { status: 'down', message: 'E2B_API_KEY not configured — code execution unavailable' };
+  }
+
+  return { status: 'up', message: 'Configured' };
+}
+
+/**
  * Determine overall health status
  */
 function determineOverallStatus(checks: HealthCheck['checks']): HealthCheck['status'] {
@@ -198,8 +211,9 @@ export async function GET(request: NextRequest) {
 
   // Authenticated detailed health check (checks all services)
   const [database, cache, ai] = await Promise.all([checkDatabase(), checkCache(), checkAI()]);
+  const e2b = checkE2B();
 
-  const checks = { database, cache, ai };
+  const checks = { database, cache, ai, e2b };
   const status = determineOverallStatus(checks);
 
   const response: HealthCheck = {

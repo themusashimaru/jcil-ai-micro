@@ -21,7 +21,7 @@ interface CodeLabClientProps {
 /**
  * Code Lab-specific error fallback with recovery options
  */
-function CodeLabErrorFallback() {
+function CodeLabErrorFallback({ error }: { error?: Error | null }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-8">
       <div className="border border-border/40 bg-card/50 p-8 max-w-md text-center">
@@ -30,6 +30,11 @@ function CodeLabErrorFallback() {
         <p className="font-mono text-xs text-muted-foreground mb-6 leading-relaxed">
           Something went wrong. Your work has been auto-saved.
         </p>
+        {error && (
+          <pre className="font-mono text-[10px] text-left text-red-400/80 bg-red-950/20 border border-red-500/20 p-3 mb-6 max-h-32 overflow-auto whitespace-pre-wrap break-words">
+            {error.message || String(error)}
+          </pre>
+        )}
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={() => window.location.reload()}
@@ -53,7 +58,7 @@ export function CodeLabClient({ userId }: CodeLabClientProps) {
   return (
     <CodeLabThemeProvider>
       <ErrorBoundary
-        fallback={<CodeLabErrorFallback />}
+        fallbackRender={(error) => <CodeLabErrorFallback error={error} />}
         onError={(error, errorInfo) => {
           console.error('[CodeLab Error]', error, errorInfo);
         }}

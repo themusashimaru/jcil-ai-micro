@@ -51,11 +51,16 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
 
   // Initialize theme from localStorage or system
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored && ['light', 'dark', 'system'].includes(stored)) {
-      setThemeState(stored);
-      setResolvedTheme(resolveTheme(stored));
-    } else {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+      if (stored && ['light', 'dark', 'system'].includes(stored)) {
+        setThemeState(stored);
+        setResolvedTheme(resolveTheme(stored));
+      } else {
+        setResolvedTheme(getSystemTheme());
+      }
+    } catch {
+      // localStorage may be unavailable in private browsing
       setResolvedTheme(getSystemTheme());
     }
     setMounted(true);
@@ -89,7 +94,11 @@ export function CodeLabThemeProvider({ children }: { children: ReactNode }) {
     (newTheme: Theme) => {
       setThemeState(newTheme);
       setResolvedTheme(resolveTheme(newTheme));
-      localStorage.setItem(STORAGE_KEY, newTheme);
+      try {
+        localStorage.setItem(STORAGE_KEY, newTheme);
+      } catch {
+        // localStorage may be unavailable in private browsing
+      }
     },
     [resolveTheme]
   );
