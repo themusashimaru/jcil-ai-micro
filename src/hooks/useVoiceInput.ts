@@ -411,7 +411,8 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
         }
 
         const result = await response.json();
-        let transcript = result.text?.trim() || '';
+        // API returns { ok, data: { text } } via successResponse wrapper
+        let transcript = (result.data?.text ?? result.text ?? '').trim();
 
         // Sanitize transcription to remove problematic characters
         // This fixes issues with special characters from Whisper causing API errors
