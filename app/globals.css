@@ -702,10 +702,11 @@
     background-color: #ffffff !important;
   }
 
-  /* Pro mode focus - no visible outline for clean look */
+  /* Pro mode focus - subtle but visible outline for accessibility (WCAG 2.4.7) */
   :root.pro-mode textarea:focus-visible,
   :root.pro-mode input:focus-visible {
-    outline: none !important;
+    outline: 1px solid var(--pro-accent, rgba(255, 255, 255, 0.3)) !important;
+    outline-offset: 1px;
   }
 
   /* Pro mode tables - dark styling matching coding lab */
