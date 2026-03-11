@@ -10,9 +10,10 @@
 
 'use client';
 
-import { useState, useRef, useEffect, memo, KeyboardEvent, ChangeEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, memo, KeyboardEvent, ChangeEvent } from 'react';
 import type { Attachment, Message, GeneratedImage } from '@/app/chat/types';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useToastActions } from '@/components/ui/Toast';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { type CreativeMode } from './CreativeButton';
 import type { ProviderId } from '@/lib/ai/providers';
@@ -150,6 +151,14 @@ export const ChatComposer = memo(function ChatComposer({
   const lastInitialTextRef = useRef<string | undefined>(undefined);
 
   const { displayedText } = useTypewriterPlaceholder(isFocused, message);
+  const toast = useToastActions();
+
+  const handleVoiceError = useCallback(
+    (error: string) => {
+      toast.error(error);
+    },
+    [toast]
+  );
 
   const {
     isRecording,
@@ -158,7 +167,7 @@ export const ChatComposer = memo(function ChatComposer({
     isSupported: isVoiceSupported,
   } = useVoiceInput({
     onTranscript: (text) => setMessage((prev) => (prev ? `${prev} ${text}` : text)),
-    onError: (error) => console.error('[Voice] Transcription error:', error),
+    onError: handleVoiceError,
   });
 
   useEffect(() => {

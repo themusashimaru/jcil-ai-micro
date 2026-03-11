@@ -77,6 +77,15 @@ vi.mock('@/hooks/useVoiceInput', () => ({
   useVoiceInput: mockUseVoiceInput,
 }));
 
+vi.mock('@/components/ui/Toast', () => ({
+  useToastActions: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
+  }),
+}));
+
 vi.mock('@/contexts/CodeExecutionContext', () => ({
   useCodeExecutionOptional: mockUseCodeExecutionOptional,
 }));

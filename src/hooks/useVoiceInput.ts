@@ -362,7 +362,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       const recordingDuration = Date.now() - startTimeRef.current;
 
       if (recordingDuration < MIN_RECORDING_DURATION) {
-        setState((prev) => ({ ...prev, isProcessing: false }));
+        const msg = 'Recording too short — please hold the mic button longer.';
+        setState((prev) => ({ ...prev, isProcessing: false, error: msg }));
+        onError?.(msg);
         cleanup();
         return;
       }
@@ -371,7 +373,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       // WebM audio at ~100kbps = ~12.5KB/sec, so 2 seconds should be ~25KB minimum
       const MIN_BLOB_SIZE = 10000; // 10KB minimum
       if (audioBlob.size < MIN_BLOB_SIZE) {
-        setState((prev) => ({ ...prev, isProcessing: false }));
+        const msg = 'No audio captured — please check your microphone.';
+        setState((prev) => ({ ...prev, isProcessing: false, error: msg }));
+        onError?.(msg);
         cleanup();
         return;
       }
@@ -379,7 +383,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
       // CRITICAL: Only send to Whisper if we actually detected speech
       // This prevents hallucinations when the user doesn't speak
       if (!hasDetectedSpeechRef.current) {
-        setState((prev) => ({ ...prev, isProcessing: false }));
+        const msg = 'No speech detected — please speak louder or closer to the mic.';
+        setState((prev) => ({ ...prev, isProcessing: false, error: msg }));
+        onError?.(msg);
         cleanup();
         return;
       }
@@ -430,16 +436,23 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}) {
 
         // Filter out hallucinations
         if (isHallucination(transcript)) {
-          setState((prev) => ({ ...prev, transcript: '', isProcessing: false }));
+          const msg = 'Could not understand speech — please try again.';
+          setState((prev) => ({ ...prev, transcript: '', isProcessing: false, error: msg }));
+          onError?.(msg);
+          cleanup();
+          return;
+        }
+
+        if (!transcript) {
+          const msg = 'No speech recognized — please try again.';
+          setState((prev) => ({ ...prev, transcript: '', isProcessing: false, error: msg }));
+          onError?.(msg);
           cleanup();
           return;
         }
 
         setState((prev) => ({ ...prev, transcript, isProcessing: false }));
-
-        if (transcript) {
-          onTranscript?.(transcript);
-        }
+        onTranscript?.(transcript);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to transcribe audio';
         setState((prev) => ({ ...prev, error: errorMessage, isProcessing: false }));

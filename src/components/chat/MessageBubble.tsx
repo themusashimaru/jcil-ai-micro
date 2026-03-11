@@ -103,6 +103,19 @@ export const MessageBubble = memo(
           : message.content;
       // Strip hidden image reference links (e.g. [ref:https://...supabase.co/...])
       cleaned = cleaned.replace(/\n*\[ref:https?:\/\/[^\]]+\]/g, '').trim();
+
+      // Deduplicate: if the model echoed its thinking at the start of the text response,
+      // strip the duplicated portion. This happens with extended thinking when the model
+      // restates its reasoning before giving the actual answer.
+      if (thinkingParts.length > 0 && cleaned) {
+        for (const part of thinkingParts) {
+          const trimmedPart = part.trim();
+          if (trimmedPart && cleaned.startsWith(trimmedPart)) {
+            cleaned = cleaned.slice(trimmedPart.length).trim();
+          }
+        }
+      }
+
       return {
         thinkingContent: thinkingParts.join('\n\n'),
         displayContent: cleaned,
@@ -413,13 +426,24 @@ function ThinkingBlock({
     }
   }, [expanded, isStreaming, content]);
 
-  // Clean thinking content: strip any residual <thinking>/<\/thinking> tags
-  // and normalize excessive whitespace from token-by-token streaming
+  // Clean thinking content: strip residual tags, normalize whitespace,
+  // and deduplicate consecutive identical paragraphs (streaming artifact)
   const cleanedContent = useMemo(() => {
-    return content
+    const stripped = content
       .replace(/<\/?thinking>/g, '')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
+
+    // Deduplicate consecutive identical paragraphs — a streaming artifact
+    // where the same thinking text appears multiple times
+    const paragraphs = stripped.split(/\n\n+/);
+    const deduped: string[] = [];
+    for (const p of paragraphs) {
+      if (deduped.length === 0 || deduped[deduped.length - 1] !== p) {
+        deduped.push(p);
+      }
+    }
+    return deduped.join('\n\n');
   }, [content]);
 
   return (

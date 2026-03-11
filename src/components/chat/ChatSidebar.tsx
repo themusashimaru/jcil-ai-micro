@@ -91,7 +91,7 @@ export function ChatSidebar({
 
   // Strategy sessions state
   const [strategySessions, setStrategySessions] = useState<StrategySession[]>([]);
-  const [strategyCollapsed, setStrategyCollapsed] = useState(false);
+  const [strategyCollapsed, setStrategyCollapsed] = useState(true);
 
   // Fetch folders on mount
   const fetchFolders = useCallback(async () => {
