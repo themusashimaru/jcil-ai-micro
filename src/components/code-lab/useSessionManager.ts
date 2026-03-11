@@ -70,11 +70,17 @@ export function useSessionManager(): UseSessionManagerReturn {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setSessions((prev) => [data.session, ...prev]);
-        setCurrentSessionId(data.session.id);
+        const json = await response.json();
+        const session = json.data?.session ?? json.session;
+        if (!session?.id) {
+          log.error('Invalid session response', { json });
+          setError('Failed to create session');
+          return null;
+        }
+        setSessions((prev) => [session, ...prev]);
+        setCurrentSessionId(session.id);
         setMessages([]);
-        return data.session;
+        return session;
       }
     } catch (err) {
       log.error('Error creating session', err as Error);
@@ -87,8 +93,9 @@ export function useSessionManager(): UseSessionManagerReturn {
     try {
       const response = await fetch('/api/code-lab/sessions');
       if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || []);
+        const json = await response.json();
+        const sessions = json.data?.sessions ?? json.sessions ?? [];
+        setSessions(sessions);
         createSession();
       }
     } catch (err) {
@@ -116,8 +123,8 @@ export function useSessionManager(): UseSessionManagerReturn {
       }
 
       if (response.ok) {
-        const data = await response.json();
-        setMessages(data.messages || []);
+        const json = await response.json();
+        setMessages(json.data?.messages ?? json.messages ?? []);
       }
     } catch (err) {
       if (mountedRef.current && selectSessionRequestIdRef.current === requestId) {
@@ -162,8 +169,8 @@ export function useSessionManager(): UseSessionManagerReturn {
       try {
         const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
         if (response.ok) {
-          const data = await response.json();
-          exportMessages = data.messages || [];
+          const json = await response.json();
+          exportMessages = json.data?.messages ?? json.messages ?? [];
         }
       } catch (err) {
         log.error('Error fetching messages for export', err as Error);
