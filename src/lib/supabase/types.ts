@@ -950,10 +950,8 @@ export interface Database {
         Args: { p_user_id: string };
         Returns: Record<string, unknown>[];
       };
-      exec_sql: {
-        Args: { query: string };
-        Returns: unknown;
-      };
+      // exec_sql removed — arbitrary SQL execution is a security risk.
+      // Table creation should be done via proper migrations.
       increment_message_count: {
         Args: { user_id_param: string };
         Returns: void;

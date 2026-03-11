@@ -318,75 +318,19 @@ describe('POST /api/leads/submit', () => {
     expect(json.error).toMatch(/failed to save/i);
   });
 
-  it('handles table-not-exist error by creating table and retrying', async () => {
-    // First insert fails with table not found
+  it('returns 500 when table does not exist (42P01)', async () => {
+    // Insert fails with table not found — no dynamic table creation
     mockInsertSingle.mockReset();
     mockInsertSingle.mockResolvedValue({
       data: null,
       error: { code: '42P01', message: 'relation does not exist' },
-    });
-
-    // RPC for table creation succeeds
-    mockRpc.mockResolvedValue({ error: null });
-
-    // Set up retry insert to succeed (second call to mockFrom for website_leads)
-    // The retry doesn't call .select().single(), just .insert()
-    const retryInsert = vi.fn().mockResolvedValue({ error: null });
-    let insertCallCount = 0;
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'website_sessions') {
-        return { select: mockSelectFrom };
-      }
-      insertCallCount++;
-      if (insertCallCount <= 1) {
-        // First insert — fails
-        return { insert: mockInsert };
-      }
-      // Retry insert — succeeds
-      return { insert: retryInsert };
     });
 
     const { POST } = await import('./route');
     const res = await POST(makeRequest(VALID_BODY, { ip: '10.0.0.17' }));
 
-    expect(mockRpc).toHaveBeenCalledWith(
-      'exec_sql',
-      expect.objectContaining({ sql: expect.any(String) })
-    );
-    // Should return 201 on successful retry
-    expect(res.status).toBe(201);
-  });
-
-  it('returns 500 when table creation succeeds but retry insert fails', async () => {
-    // First insert fails with table not found
-    mockInsertSingle.mockReset();
-    mockInsertSingle.mockResolvedValue({
-      data: null,
-      error: { code: '42P01', message: 'relation does not exist' },
-    });
-
-    // RPC succeeds
-    mockRpc.mockResolvedValue({ error: null });
-
-    // Retry insert also fails
-    const retryInsert = vi.fn().mockResolvedValue({
-      error: { message: 'Still broken' },
-    });
-    let insertCallCount = 0;
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'website_sessions') {
-        return { select: mockSelectFrom };
-      }
-      insertCallCount++;
-      if (insertCallCount <= 1) {
-        return { insert: mockInsert };
-      }
-      return { insert: retryInsert };
-    });
-
-    const { POST } = await import('./route');
-    const res = await POST(makeRequest(VALID_BODY, { ip: '10.0.0.18' }));
-
+    // Should NOT call exec_sql (removed for security)
+    expect(mockRpc).not.toHaveBeenCalled();
     expect(res.status).toBe(500);
     const json = await res.json();
     expect(json.error).toMatch(/failed to save/i);

@@ -215,82 +215,10 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       log.error('[Leads API] Insert error:', { error: insertError ?? 'Unknown error' });
-
-      // If table doesn't exist, create it (first-time setup)
-      if (insertError.code === '42P01') { // Table doesn't exist
-        log.info('[Leads API] Creating website_leads table...');
-
-        // Create the table
-        const { error: createError } = await supabase.rpc('exec_sql', {
-          sql: `
-            CREATE TABLE IF NOT EXISTS website_leads (
-              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-              session_id UUID NOT NULL REFERENCES website_sessions(id) ON DELETE CASCADE,
-              user_id UUID NOT NULL,
-              business_name TEXT,
-              lead_name TEXT NOT NULL,
-              lead_email TEXT NOT NULL,
-              lead_phone TEXT,
-              message TEXT NOT NULL,
-              source TEXT DEFAULT 'contact_form',
-              ip_address TEXT,
-              status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'converted', 'archived')),
-              notes TEXT,
-              created_at TIMESTAMPTZ DEFAULT NOW(),
-              updated_at TIMESTAMPTZ DEFAULT NOW()
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_website_leads_user ON website_leads(user_id);
-            CREATE INDEX IF NOT EXISTS idx_website_leads_session ON website_leads(session_id);
-            CREATE INDEX IF NOT EXISTS idx_website_leads_status ON website_leads(status);
-
-            -- RLS: Users can only see their own leads
-            ALTER TABLE website_leads ENABLE ROW LEVEL SECURITY;
-
-            CREATE POLICY IF NOT EXISTS "Users can view own leads"
-              ON website_leads FOR SELECT
-              USING (auth.uid() = user_id);
-
-            CREATE POLICY IF NOT EXISTS "Service role can insert leads"
-              ON website_leads FOR INSERT
-              WITH CHECK (true);
-          `
-        });
-
-        if (createError) {
-          log.error('[Leads API] Failed to create table:', createError);
-          // Fall back to storing in a simple way
-        }
-
-        // Retry insert
-        const { error: retryError } = await supabase
-          .from('website_leads')
-          .insert({
-            session_id: sessionId,
-            user_id: session.user_id,
-            business_name: session.business_name,
-            lead_name: sanitize(name),
-            lead_email: sanitize(email),
-            lead_phone: phone ? sanitize(phone) : null,
-            message: sanitize(message),
-            source: source ? sanitize(source) : 'contact_form',
-            ip_address: ip,
-            status: 'new',
-          });
-
-        if (retryError) {
-          log.error('[Leads API] Retry insert failed:', retryError);
-          return NextResponse.json(
-            { error: 'Failed to save your message. Please try again.' },
-            { status: 500, headers: corsHeaders }
-          );
-        }
-      } else {
-        return NextResponse.json(
-          { error: 'Failed to save your message. Please try again.' },
-          { status: 500, headers: corsHeaders }
-        );
-      }
+      return NextResponse.json(
+        { error: 'Failed to save your message. Please try again.' },
+        { status: 500, headers: corsHeaders }
+      );
     }
 
     log.info(`[Leads API] Lead saved for ${session.business_name}: ${sanitize(name)} <${sanitize(email)}>`);
