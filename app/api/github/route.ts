@@ -5,9 +5,7 @@
  * Used by CodeCommand for file editing, commits, and PRs
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { NextRequest } from 'next/server';
 import {
   isGitHubConfigured,
   getAuthenticatedUser,
@@ -21,7 +19,7 @@ import {
   createPullRequest,
   searchCode,
 } from '@/lib/github/client';
-import { validateCSRF } from '@/lib/security/csrf';
+import { requireAdmin } from '@/lib/auth/admin-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
 
@@ -30,68 +28,11 @@ const log = logger('GitHubAPI');
 export const runtime = 'nodejs';
 
 /**
- * Check if user is admin
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function requireAdmin(
-  _request: NextRequest
-): Promise<{ isAdmin: boolean; userId?: string; error?: NextResponse }> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore errors in read-only contexts
-          }
-        },
-      },
-    }
-  );
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return {
-      isAdmin: false,
-      error: errors.unauthorized(),
-    };
-  }
-
-  const { data: adminUser } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!adminUser) {
-    return {
-      isAdmin: false,
-      error: errors.forbidden('Admin access required'),
-    };
-  }
-
-  return { isAdmin: true, userId: user.id };
-}
-
-/**
  * GET - Read operations
  */
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request);
-  if (!auth.isAdmin) return auth.error;
+  if (!auth.authorized) return auth.response;
 
   if (!isGitHubConfigured()) {
     return errors.serviceUnavailable('GitHub not configured. Set GITHUB_PAT in environment.');
@@ -186,12 +127,9 @@ export async function GET(request: NextRequest) {
  * POST - Write operations
  */
 export async function POST(request: NextRequest) {
-  // CSRF Protection for state-changing operations
-  const csrfCheck = validateCSRF(request);
-  if (!csrfCheck.valid) return csrfCheck.response!;
-
+  // requireAdmin includes CSRF protection for mutation methods
   const auth = await requireAdmin(request);
-  if (!auth.isAdmin) return auth.error;
+  if (!auth.authorized) return auth.response;
 
   if (!isGitHubConfigured()) {
     return errors.serviceUnavailable('GitHub not configured. Set GITHUB_PAT in environment.');

@@ -67,7 +67,12 @@ vi.mock('@/lib/api/utils', () => ({
     serviceUnavailable: vi.fn(
       (msg: string) => new Response(JSON.stringify({ ok: false, error: msg }), { status: 503 })
     ),
+    rateLimited: vi.fn(
+      () => new Response(JSON.stringify({ ok: false, error: 'Rate limited' }), { status: 429 })
+    ),
   },
+  checkRequestRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  rateLimits: { strict: { maxRequests: 5, windowMs: 60000 } },
 }));
 
 vi.mock('@/lib/security/validation', () => ({

@@ -138,7 +138,16 @@ vi.mock('@/lib/api/utils', () => ({
           headers: { 'Content-Type': 'application/json' },
         })
     ),
+    rateLimited: vi.fn(
+      () =>
+        new Response(JSON.stringify({ ok: false, error: 'Rate limited' }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' },
+        })
+    ),
   },
+  checkRequestRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+  rateLimits: { strict: { maxRequests: 5, windowMs: 60000 } },
 }));
 
 // Import after mocks

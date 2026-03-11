@@ -14,7 +14,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { successResponse, errors } from '@/lib/api/utils';
+import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { randomUUID } from 'crypto';
 import { requireUser } from '@/lib/auth/user-guard';
 import { safeParseJSON } from '@/lib/security/validation';
@@ -67,6 +67,13 @@ export async function POST(request: NextRequest) {
 
   const auth = await requireUser(request);
   if (!auth.authorized) return auth.response;
+  const { user } = auth;
+
+  // Rate limit AI generation (expensive operation)
+  const rateLimitResult = await checkRequestRateLimit(`create-image:${user.id}`, rateLimits.strict);
+  if (!rateLimitResult.allowed) {
+    return errors.rateLimited();
+  }
 
   try {
     // Parse request

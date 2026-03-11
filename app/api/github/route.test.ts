@@ -11,38 +11,10 @@ import { NextRequest } from 'next/server';
 // MOCKS
 // ========================================
 
-// Mock next/headers cookies
-const mockCookieGetAll = vi.fn().mockReturnValue([]);
-const mockCookieSet = vi.fn();
-vi.mock('next/headers', () => ({
-  cookies: () =>
-    Promise.resolve({
-      getAll: () => mockCookieGetAll(),
-      set: (...args: unknown[]) => mockCookieSet(...args),
-    }),
-}));
-
-// Mock Supabase SSR client
-const mockGetUser = vi.fn();
-const mockSupabaseFrom = vi.fn();
-const mockSupabaseSingle = vi.fn();
-
-vi.mock('@supabase/ssr', () => ({
-  createServerClient: () => ({
-    auth: {
-      getUser: () => mockGetUser(),
-    },
-    from: (table: string) => {
-      mockSupabaseFrom(table);
-      return {
-        select: () => ({
-          eq: () => ({
-            single: () => mockSupabaseSingle(),
-          }),
-        }),
-      };
-    },
-  }),
+// Mock admin guard
+const mockRequireAdmin = vi.fn();
+vi.mock('@/lib/auth/admin-guard', () => ({
+  requireAdmin: (...args: unknown[]) => mockRequireAdmin(...args),
 }));
 
 // Mock GitHub client
@@ -72,11 +44,7 @@ vi.mock('@/lib/github/client', () => ({
   searchCode: (...args: unknown[]) => mockSearchCode(...args),
 }));
 
-// Mock CSRF validation
-const mockValidateCSRF = vi.fn();
-vi.mock('@/lib/security/csrf', () => ({
-  validateCSRF: (...args: unknown[]) => mockValidateCSRF(...args),
-}));
+// CSRF is built into requireAdmin — no separate mock needed
 
 // Mock logger
 vi.mock('@/lib/logger', () => ({
@@ -115,12 +83,10 @@ function makePostRequest(body: Record<string, unknown>): NextRequest {
  * Configure mocks so the request passes auth (admin user).
  */
 function setupAdminAuth(): void {
-  mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-123' } },
-    error: null,
-  });
-  mockSupabaseSingle.mockResolvedValue({
-    data: { id: 'admin-row-1' },
+  mockRequireAdmin.mockResolvedValue({
+    authorized: true,
+    user: { id: 'user-123', email: 'admin@test.com' },
+    response: undefined,
   });
 }
 
@@ -128,9 +94,9 @@ function setupAdminAuth(): void {
  * Configure mocks so the request fails auth (no user).
  */
 function setupUnauthenticated(): void {
-  mockGetUser.mockResolvedValue({
-    data: { user: null },
-    error: { message: 'No session' },
+  mockRequireAdmin.mockResolvedValue({
+    authorized: false,
+    response: new Response(JSON.stringify({ ok: false, error: 'Unauthorized' }), { status: 401 }),
   });
 }
 
@@ -138,11 +104,10 @@ function setupUnauthenticated(): void {
  * Configure mocks so the user is authenticated but not admin.
  */
 function setupNonAdmin(): void {
-  mockGetUser.mockResolvedValue({
-    data: { user: { id: 'user-456' } },
-    error: null,
+  mockRequireAdmin.mockResolvedValue({
+    authorized: false,
+    response: new Response(JSON.stringify({ ok: false, error: 'Admin access required' }), { status: 403 }),
   });
-  mockSupabaseSingle.mockResolvedValue({ data: null });
 }
 
 async function parseJson(response: Response): Promise<Record<string, unknown>> {
@@ -156,8 +121,6 @@ async function parseJson(response: Response): Promise<Record<string, unknown>> {
 describe('GitHub API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default: CSRF passes
-    mockValidateCSRF.mockReturnValue({ valid: true });
     // Default: GitHub is configured
     mockIsGitHubConfigured.mockReturnValue(true);
   });
@@ -200,15 +163,14 @@ describe('GitHub API Route', () => {
   });
 
   // ----------------------------------------
-  // CSRF TESTS (POST only)
+  // CSRF TESTS (POST only — CSRF is built into requireAdmin)
   // ----------------------------------------
   describe('CSRF Protection', () => {
-    it('POST rejects when CSRF validation fails', async () => {
-      const csrfResponse = new Response(JSON.stringify({ error: 'CSRF failed' }), {
-        status: 403,
+    it('POST rejects when requireAdmin fails (includes CSRF check)', async () => {
+      mockRequireAdmin.mockResolvedValue({
+        authorized: false,
+        response: new Response(JSON.stringify({ error: 'CSRF validation failed' }), { status: 403 }),
       });
-      // Make it a NextResponse-like object
-      mockValidateCSRF.mockReturnValue({ valid: false, response: csrfResponse });
       const { POST } = await import('./route');
       const response = await POST(makePostRequest({ action: 'createBranch' }));
       expect(response!.status).toBe(403);
