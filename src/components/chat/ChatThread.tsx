@@ -384,15 +384,20 @@ export function ChatThread({
           );
         })}
 
-        {/* Intelligent typing indicator — one contextual message until stream starts */}
-        {isStreaming && (
-          <>
-            <span className="sr-only" role="status">
-              AI is responding
-            </span>
-            <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
-          </>
-        )}
+        {/* Intelligent typing indicator — only show before first content arrives */}
+        {isStreaming && (() => {
+          const lastMsg = messages[messages.length - 1];
+          const hasContent = lastMsg?.role === 'assistant' && lastMsg.content && lastMsg.content.length > 0;
+          if (hasContent) return null;
+          return (
+            <>
+              <span className="sr-only" role="status">
+                AI is responding
+              </span>
+              <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
+            </>
+          );
+        })()}
 
         <div ref={messagesEndRef} />
       </div>

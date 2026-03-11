@@ -535,16 +535,19 @@ export function useChatMessaging({
               } else {
                 accumulatedContent += chunk;
                 if (currentChatIdRef.current === newChatId) {
+                  // Keep thinking tags in the content — MessageBubble renders
+                  // them as a live-streaming thinking block (DeepSeek-style).
+                  // Only strip non-display markers (DONE, followups).
                   const displayContent = accumulatedContent
                     .replace(/\n?\[DONE]\n?/g, '')
-                    .replace(/\n?<thinking>[\s\S]*?<\/thinking>\n?/g, '')
-                    .replace(/\n?<thinking>[\s\S]*$/g, '')
                     .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
                     .replace(/<suggested-followups>[\s\S]*$/g, '')
                     .trimEnd();
                   setMessages((prev) =>
                     prev.map((msg) =>
-                      msg.id === assistantMessageId ? { ...msg, content: displayContent } : msg
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: displayContent, isStreaming: true }
+                        : msg
                     )
                   );
                 }
