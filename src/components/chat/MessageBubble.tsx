@@ -104,20 +104,47 @@ export const MessageBubble = memo(
       // Strip hidden image reference links (e.g. [ref:https://...supabase.co/...])
       cleaned = cleaned.replace(/\n*\[ref:https?:\/\/[^\]]+\]/g, '').trim();
 
-      // Deduplicate: if the model echoed its thinking at the start of the text response,
-      // strip the duplicated portion. This happens with extended thinking when the model
-      // restates its reasoning before giving the actual answer.
+      // Deduplicate: extended thinking often includes the full answer at the end
+      // of the thinking block, then the same answer is in the text response.
+      // Strategy: strip overlap from the response AND trim the thinking to just reasoning.
       if (thinkingParts.length > 0 && cleaned) {
         for (const part of thinkingParts) {
           const trimmedPart = part.trim();
-          if (trimmedPart && cleaned.startsWith(trimmedPart)) {
+          if (!trimmedPart) continue;
+
+          // Exact prefix match
+          if (cleaned.startsWith(trimmedPart)) {
             cleaned = cleaned.slice(trimmedPart.length).trim();
+            continue;
+          }
+
+          // Find overlap: thinking often ends with the same text the response starts with.
+          // Check successive lines of thinking to find where it starts matching the response.
+          const lines = trimmedPart.split('\n');
+          for (let i = 1; i < lines.length; i++) {
+            const suffix = lines.slice(i).join('\n').trim();
+            if (suffix.length > 40 && cleaned.startsWith(suffix)) {
+              cleaned = cleaned.slice(suffix.length).trim();
+              break;
+            }
+          }
+        }
+      }
+
+      // Trim thinking to just the reasoning — remove any portion that duplicates the response.
+      let thinkingDisplay = thinkingParts.join('\n\n');
+      if (thinkingDisplay && cleaned) {
+        const responseStart = cleaned.slice(0, 120).trim();
+        if (responseStart.length > 30) {
+          const overlapIdx = thinkingDisplay.indexOf(responseStart);
+          if (overlapIdx > 0) {
+            thinkingDisplay = thinkingDisplay.slice(0, overlapIdx).trim();
           }
         }
       }
 
       return {
-        thinkingContent: thinkingParts.join('\n\n'),
+        thinkingContent: thinkingDisplay,
         displayContent: cleaned,
         isStillThinking: stillThinking,
       };
