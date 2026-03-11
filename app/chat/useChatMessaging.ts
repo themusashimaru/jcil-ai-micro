@@ -318,6 +318,7 @@ export function useChatMessaging({
           selectedRepo: selectedRepo || undefined,
           provider: selectedProvider,
           deviceInfo,
+          thinking: { enabled: true, budgetTokens: 10000 },
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -536,6 +537,8 @@ export function useChatMessaging({
                 if (currentChatIdRef.current === newChatId) {
                   const displayContent = accumulatedContent
                     .replace(/\n?\[DONE]\n?/g, '')
+                    .replace(/\n?<thinking>[\s\S]*?<\/thinking>\n?/g, '')
+                    .replace(/\n?<thinking>[\s\S]*$/g, '')
                     .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
                     .replace(/<suggested-followups>[\s\S]*$/g, '')
                     .trimEnd();
