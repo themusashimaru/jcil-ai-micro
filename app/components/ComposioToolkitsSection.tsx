@@ -125,10 +125,12 @@ export default function ComposioToolkitsSection() {
       const response = await fetch(`/api/composio/toolkits?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch toolkits');
 
-      const data: ToolkitsResponse = await response.json();
-      setToolkits(data.toolkits);
-      setGroupedToolkits(data.grouped);
-      setConfigured(data.configured);
+      const json = await response.json();
+      // successResponse wraps payload in { ok, data: { ... } }
+      const data: ToolkitsResponse = json.data || json;
+      setToolkits(data.toolkits || []);
+      setGroupedToolkits(data.grouped || null);
+      setConfigured(data.configured ?? false);
     } catch (err) {
       console.error('Failed to fetch toolkits:', err);
       setError('Failed to load integrations');
