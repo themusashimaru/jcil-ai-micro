@@ -28,9 +28,13 @@ import {
 // (no fallback to SERVICE_ROLE_KEY for separation of concerns)
 import { safeDecrypt } from '@/lib/security/crypto';
 
-// Decrypt token - wrapper for backward compatibility (returns empty string on failure)
-function decryptToken(encryptedData: string): string {
-  return safeDecrypt(encryptedData) || '';
+// Decrypt token — returns null on failure so callers can handle it explicitly
+function decryptToken(encryptedData: string): string | null {
+  const result = safeDecrypt(encryptedData);
+  if (!result) {
+    log.error('Token decryption failed — check ENCRYPTION_KEY');
+  }
+  return result;
 }
 
 /**

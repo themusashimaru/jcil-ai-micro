@@ -92,7 +92,7 @@ async function initAnthropic(): Promise<boolean> {
   }
 
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY_1) {
       return false;
     }
     const anthropicModule = await import('@anthropic-ai/sdk');
@@ -123,7 +123,7 @@ async function planAgents(
     throw new Error('Client not initialized');
   }
 
-  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
 
   // If aspects provided, use them directly
   if (providedAspects && providedAspects.length >= MIN_AGENTS) {
@@ -228,7 +228,7 @@ async function executeAgent(plan: AgentPlan, depth: string): Promise<AgentResult
   }
 
   try {
-    const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
 
     // Determine search intensity based on depth
     const maxSearches = depth === 'quick' ? 2 : depth === 'thorough' ? 5 : 3;
@@ -313,7 +313,7 @@ async function synthesizeResults(
     return { success: false, error: 'Client not available' };
   }
 
-  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
 
   const successfulResults = results.filter((r) => r.success);
   if (successfulResults.length === 0) {

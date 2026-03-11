@@ -217,9 +217,14 @@ async function analyzeImage(
     return { success: false, error: 'Anthropic client not initialized' };
   }
 
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1;
+  if (!anthropicKey) {
+    return { success: false, error: 'Anthropic API key is not configured — vision analysis unavailable' };
+  }
+
   try {
     const client = new AnthropicClient({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+      apiKey: anthropicKey,
     });
 
     const prompt = getAnalysisPrompt(analysisType, question);

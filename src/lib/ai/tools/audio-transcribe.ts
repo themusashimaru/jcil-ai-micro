@@ -191,8 +191,13 @@ async function transcribeAudio(
     return { success: false, error: 'Audio transcription is not available' };
   }
 
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (!openaiKey) {
+    return { success: false, error: 'OpenAI API key is not configured — audio transcription unavailable' };
+  }
+
   try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({ apiKey: openaiKey });
 
     // Create a File-like object for the API
     // Convert Buffer to Uint8Array for File constructor compatibility
