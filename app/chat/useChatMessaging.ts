@@ -583,6 +583,16 @@ export function useChatMessaging({
         );
         streamFinalContent = processedContent;
 
+        // Set the full content (including thinking blocks) on the message
+        // During streaming, thinking was stripped for display; restore it now
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId
+              ? { ...msg, content: streamFinalContent, isStreaming: false }
+              : msg
+          )
+        );
+
         // Parse suggested follow-ups
         const followupsMatch = streamFinalContent.match(
           /<suggested-followups>\s*(\[[\s\S]*?\])\s*<\/suggested-followups>/
