@@ -1083,7 +1083,10 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     featuredActions: getLoomActionNamesByPriority(2),
     toolLimit: 15,
   },
-];
+].filter((toolkit, index, self) =>
+  // Deduplicate by ID — keep first occurrence only
+  self.findIndex((t) => t.id === toolkit.id) === index
+) as ToolkitConfig[];
 
 // ============================================================================
 // TOOLKIT HELPERS

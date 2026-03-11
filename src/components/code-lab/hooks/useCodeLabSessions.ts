@@ -53,9 +53,10 @@ export function useCodeLabSessions(
     try {
       const response = await fetch('/api/code-lab/sessions');
       if (response.ok) {
-        const data = await response.json();
-        setSessions(data.sessions || []);
-        return data.sessions || [];
+        const json = await response.json();
+        const loadedSessions = json.data?.sessions ?? json.sessions ?? [];
+        setSessions(loadedSessions);
+        return loadedSessions;
       }
     } catch (err) {
       log.error('Error loading sessions', err as Error);
@@ -75,10 +76,16 @@ export function useCodeLabSessions(
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setSessions((prev) => [data.session, ...prev]);
-          setCurrentSessionId(data.session.id);
-          return data.session;
+          const json = await response.json();
+          const session = json.data?.session ?? json.session;
+          if (!session?.id) {
+            log.error('Invalid session response', { json });
+            onError?.('Failed to create session');
+            return null;
+          }
+          setSessions((prev) => [session, ...prev]);
+          setCurrentSessionId(session.id);
+          return session;
         }
       } catch (err) {
         log.error('Error creating session', err as Error);
@@ -96,8 +103,8 @@ export function useCodeLabSessions(
     try {
       const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
       if (response.ok) {
-        const data = await response.json();
-        return data.messages || [];
+        const json = await response.json();
+        return json.data?.messages ?? json.messages ?? [];
       }
     } catch (err) {
       log.error('Error loading messages', err as Error);
@@ -156,8 +163,8 @@ export function useCodeLabSessions(
         try {
           const response = await fetch(`/api/code-lab/sessions/${sessionId}/messages`);
           if (response.ok) {
-            const data = await response.json();
-            exportMessages = data.messages || [];
+            const json = await response.json();
+            exportMessages = json.data?.messages ?? json.messages ?? [];
           }
         } catch (err) {
           log.error('Error fetching messages for export', err as Error);

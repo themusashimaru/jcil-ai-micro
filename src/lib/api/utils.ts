@@ -52,13 +52,20 @@ export type RateLimitCheckResult =
 // ========================================
 
 /**
- * Create a successful API response
+ * Create a successful API response.
+ * Spreads data at top level so clients can access fields directly:
+ *   const data = await response.json();
+ *   data.sessions  // works
+ *   data.ok        // also works (true)
+ * Also includes `data` key for backwards compatibility with any code
+ * using the nested pattern (json.data?.sessions).
  */
 export function successResponse<T>(
   data: T,
   status: number = HTTP_STATUS.OK
-): NextResponse<APIResponse<T>> {
-  return NextResponse.json({ ok: true, data }, { status });
+): NextResponse {
+  const payload = typeof data === 'object' && data !== null ? { ok: true, ...data, data } : { ok: true, data };
+  return NextResponse.json(payload, { status });
 }
 
 /**

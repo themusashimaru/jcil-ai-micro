@@ -203,11 +203,13 @@ export default function ComposioToolkitsSection() {
         body: JSON.stringify({ toolkit: toolkit.id }),
       });
 
-      const data = await response.json();
+      const json = await response.json();
+      // successResponse wraps in { ok, data: { ... } }, error responses don't
+      const payload = json.data || json;
 
       if (!response.ok) {
         // Check if the backend says this requires an API key
-        if (data.requiresApiKey) {
+        if (payload.requiresApiKey) {
           setConnecting(null);
           setApiKeyModal({
             isOpen: true,
@@ -217,12 +219,12 @@ export default function ComposioToolkitsSection() {
           });
           return;
         }
-        throw new Error(data.error || 'Failed to initiate connection');
+        throw new Error(payload.error || json.error || 'Failed to initiate connection');
       }
 
       // Redirect to OAuth
-      if (data.redirectUrl) {
-        window.location.href = data.redirectUrl;
+      if (payload.redirectUrl) {
+        window.location.href = payload.redirectUrl;
       }
     } catch (err) {
       console.error('Failed to connect:', err);
@@ -246,10 +248,11 @@ export default function ComposioToolkitsSection() {
         }),
       });
 
-      const data = await response.json();
+      const json = await response.json();
+      const payload = json.data || json;
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to connect');
+        throw new Error(payload.error || json.error || 'Failed to connect');
       }
 
       // Success! Close modal and show success message
