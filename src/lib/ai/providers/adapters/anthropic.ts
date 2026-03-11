@@ -167,20 +167,23 @@ export class AnthropicAdapter extends BaseAIAdapter {
     try {
       const stream = await this.client.messages.stream(apiParams);
 
-      // Track whether current content block is a server tool (web_search)
-      // so we can suppress stray tool_call_delta/tool_call_end events for it
+      // Track current content block type so we can:
+      // 1. Suppress stray events from server tool blocks (web_search)
+      // 2. Only emit tool_call_end for actual tool_use blocks (not text/thinking)
       let isServerToolBlock = false;
+      let currentBlockType = '';
 
       for await (const event of stream) {
-        const chunk = this.parseStreamEvent(event, isServerToolBlock);
+        const chunk = this.parseStreamEvent(event, isServerToolBlock, currentBlockType);
 
-        // Track server tool blocks to suppress stray events
+        // Track block types across events
         if (event.type === 'content_block_start') {
-          const blockType = (event.content_block as { type: string }).type;
+          currentBlockType = (event.content_block as { type: string }).type;
           isServerToolBlock =
-            blockType === 'server_tool_use' || blockType === 'web_search_tool_result';
+            currentBlockType === 'server_tool_use' || currentBlockType === 'web_search_tool_result';
         } else if (event.type === 'content_block_stop') {
           isServerToolBlock = false;
+          currentBlockType = '';
         }
 
         if (chunk) {
@@ -505,7 +508,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
    */
   private parseStreamEvent(
     event: Anthropic.MessageStreamEvent,
-    isServerToolBlock: boolean
+    isServerToolBlock: boolean,
+    currentBlockType: string = ''
   ): UnifiedStreamChunk | null {
     switch (event.type) {
       case 'message_start': {
@@ -573,7 +577,13 @@ export class AnthropicAdapter extends BaseAIAdapter {
       case 'content_block_stop':
         // Suppress stop events from server tool blocks
         if (isServerToolBlock) return null;
-        return { type: 'tool_call_end' };
+        // Only emit tool_call_end for actual tool_use blocks.
+        // Text and thinking blocks don't need an end event —
+        // emitting tool_call_end for them caused spurious events.
+        if (currentBlockType === 'tool_use') {
+          return { type: 'tool_call_end' };
+        }
+        return null;
 
       case 'message_stop':
         return { type: 'message_end' };
