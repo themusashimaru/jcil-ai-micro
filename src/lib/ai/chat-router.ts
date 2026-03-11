@@ -244,16 +244,26 @@ export function createStreamFromChunks(
         let result: ProviderChatResult | undefined;
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
+        let thinkingBuffer = '';
 
         for await (const chunk of chunks) {
+          // Accumulate thinking chunks into a buffer
+          if (chunk.type === 'thinking' && chunk.text) {
+            thinkingBuffer += chunk.text;
+            continue;
+          }
+
+          // When we get a non-thinking chunk, flush any accumulated thinking first
+          if (thinkingBuffer && chunk.type === 'text') {
+            controller.enqueue(
+              encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`)
+            );
+            thinkingBuffer = '';
+          }
+
           // Emit text chunks to the stream
           if (chunk.type === 'text' && chunk.text) {
             controller.enqueue(encoder.encode(chunk.text));
-          }
-
-          // Emit thinking chunks wrapped in markers for UI parsing
-          if (chunk.type === 'thinking' && chunk.text) {
-            controller.enqueue(encoder.encode(`\n<thinking>\n${chunk.text}\n</thinking>\n`));
           }
 
           // Accumulate token usage from message events
@@ -269,6 +279,14 @@ export function createStreamFromChunks(
               message: chunk.error.message,
             });
           }
+        }
+
+        // Flush any remaining thinking content
+        if (thinkingBuffer) {
+          controller.enqueue(
+            encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`)
+          );
+          thinkingBuffer = '';
         }
 
         // Get the final result from the generator

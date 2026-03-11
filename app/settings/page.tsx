@@ -35,7 +35,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -49,30 +49,77 @@ const SectionLoading = () => (
   </div>
 );
 
-const MembershipSection = dynamic(() => import('@/app/components/MembershipSection'), {
-  loading: SectionLoading,
-});
-const UsageMetricsSection = dynamic(() => import('@/app/components/UsageMetricsSection'), {
-  loading: SectionLoading,
-});
-const AccountSection = dynamic(() => import('@/app/components/AccountSection'), {
-  loading: SectionLoading,
-});
-const SupportSection = dynamic(() => import('@/app/components/SupportSection'), {
-  loading: SectionLoading,
-});
-const ConnectorsSection = dynamic(() => import('@/app/components/ConnectorsSection'), {
-  loading: SectionLoading,
-});
-const BYOKSection = dynamic(() => import('@/app/components/BYOKSection'), {
-  loading: SectionLoading,
-});
-const MemoryFeedbackSection = dynamic(() => import('@/app/components/MemoryFeedbackSection'), {
-  loading: SectionLoading,
-});
-const PreferencesSection = dynamic(() => import('@/app/components/PreferencesSection'), {
-  loading: SectionLoading,
-});
+/** Shown when a dynamic chunk fails to load (stale deployment, network error, etc.) */
+function SectionLoadError({ name, onRetry }: { name: string; onRetry: () => void }) {
+  return (
+    <div className="border border-red-500/30 bg-red-500/5 p-6 text-center">
+      <p className="font-mono text-xs text-red-400 mb-3">
+        Failed to load {name}. This usually means the app was updated — try reloading.
+      </p>
+      <button
+        onClick={onRetry}
+        className="border border-accent bg-accent/10 px-4 py-2 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
+      >
+        Reload Page
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Safe dynamic import wrapper. If the chunk fails to load (e.g. stale deployment,
+ * network error), render a fallback instead of crashing the React tree.
+ */
+function safeDynamic(
+  importFn: () => Promise<{ default: React.ComponentType }>,
+  name: string
+) {
+  return dynamic(
+    () =>
+      importFn().catch((err) => {
+        console.error(`[Settings] Failed to load ${name}:`, err);
+        return {
+          default: () => (
+            <SectionLoadError name={name} onRetry={() => window.location.reload()} />
+          ),
+        };
+      }),
+    { loading: SectionLoading, ssr: false }
+  );
+}
+
+const MembershipSection = safeDynamic(
+  () => import('@/app/components/MembershipSection'),
+  'Membership'
+);
+const UsageMetricsSection = safeDynamic(
+  () => import('@/app/components/UsageMetricsSection'),
+  'Usage Metrics'
+);
+const AccountSection = safeDynamic(
+  () => import('@/app/components/AccountSection'),
+  'Account'
+);
+const SupportSection = safeDynamic(
+  () => import('@/app/components/SupportSection'),
+  'Support'
+);
+const ConnectorsSection = safeDynamic(
+  () => import('@/app/components/ConnectorsSection'),
+  'Connectors'
+);
+const BYOKSection = safeDynamic(
+  () => import('@/app/components/BYOKSection'),
+  'BYOK API Keys'
+);
+const MemoryFeedbackSection = safeDynamic(
+  () => import('@/app/components/MemoryFeedbackSection'),
+  'AI Memory'
+);
+const PreferencesSection = safeDynamic(
+  () => import('@/app/components/PreferencesSection'),
+  'Preferences'
+);
 
 type TabId =
   | 'membership'
@@ -102,6 +149,50 @@ const TABS: Tab[] = [
   { id: 'preferences', label: 'Preferences', tag: 'PREFS' },
   { id: 'privacy', label: 'Data & Privacy', tag: 'PRIV' },
 ];
+
+/**
+ * React class ErrorBoundary that catches render errors in tab content.
+ * Prevents a single broken tab from crashing the entire settings page.
+ */
+class TabErrorBoundary extends React.Component<
+  { children: React.ReactNode; tabName: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; tabName: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error(`[Settings] ${this.props.tabName} tab crashed:`, error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="border border-red-500/30 bg-red-500/5 p-6 text-center">
+          <p className="font-mono text-xs text-red-400 mb-2">
+            {this.props.tabName} failed to load.
+          </p>
+          <p className="font-mono text-[10px] text-muted-foreground mb-4">
+            {this.state.error?.message || 'An unexpected error occurred.'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="border border-accent bg-accent/10 px-4 py-2 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function SettingsContent() {
   const searchParams = useSearchParams();
@@ -187,61 +278,85 @@ function SettingsContent() {
           ))}
         </div>
 
-        {/* Tab Content */}
+        {/* Tab Content — each wrapped in ErrorBoundary */}
         <div className="space-y-6">
           {activeTab === 'membership' && (
-            <div>
-              <div className="mb-6">
-                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">MEMBERSHIP & BILLING</h2>
-                <p className="font-mono text-xs text-muted-foreground">
-                  Manage your subscription, view current plan, and upgrade or downgrade.
-                </p>
+            <TabErrorBoundary tabName="Membership">
+              <div>
+                <div className="mb-6">
+                  <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">MEMBERSHIP & BILLING</h2>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    Manage your subscription, view current plan, and upgrade or downgrade.
+                  </p>
+                </div>
+                <MembershipSection />
               </div>
-              <MembershipSection />
-            </div>
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'usage' && (
-            <div>
-              <div className="mb-6">
-                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">USAGE & METRICS</h2>
-                <p className="font-mono text-xs text-muted-foreground">
-                  Track your daily message and image usage across all features.
-                </p>
+            <TabErrorBoundary tabName="Usage & Metrics">
+              <div>
+                <div className="mb-6">
+                  <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">USAGE & METRICS</h2>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    Track your daily message and image usage across all features.
+                  </p>
+                </div>
+                <UsageMetricsSection />
               </div>
-              <UsageMetricsSection />
-            </div>
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'account' && (
-            <div>
-              <div className="mb-6">
-                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">ACCOUNT</h2>
-                <p className="font-mono text-xs text-muted-foreground">Manage your email address and password.</p>
+            <TabErrorBoundary tabName="Account">
+              <div>
+                <div className="mb-6">
+                  <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">ACCOUNT</h2>
+                  <p className="font-mono text-xs text-muted-foreground">Manage your email address and password.</p>
+                </div>
+                <AccountSection />
               </div>
-              <AccountSection />
-            </div>
+            </TabErrorBoundary>
           )}
 
-          {activeTab === 'connectors' && <ConnectorsSection />}
+          {activeTab === 'connectors' && (
+            <TabErrorBoundary tabName="Connectors">
+              <ConnectorsSection />
+            </TabErrorBoundary>
+          )}
 
-          {activeTab === 'support' && <SupportSection />}
+          {activeTab === 'support' && (
+            <TabErrorBoundary tabName="Support">
+              <SupportSection />
+            </TabErrorBoundary>
+          )}
 
-          {activeTab === 'byok' && <BYOKSection />}
+          {activeTab === 'byok' && (
+            <TabErrorBoundary tabName="BYOK API Keys">
+              <BYOKSection />
+            </TabErrorBoundary>
+          )}
 
-          {activeTab === 'memory' && <MemoryFeedbackSection />}
+          {activeTab === 'memory' && (
+            <TabErrorBoundary tabName="AI Memory">
+              <MemoryFeedbackSection />
+            </TabErrorBoundary>
+          )}
 
           {activeTab === 'preferences' && (
-            <div>
-              <div className="mb-6">
-                <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">PREFERENCES</h2>
-                <p className="font-mono text-xs text-muted-foreground">
-                  Customize your AI experience — theme, tone, document styling, and custom
-                  instructions.
-                </p>
+            <TabErrorBoundary tabName="Preferences">
+              <div>
+                <div className="mb-6">
+                  <h2 className="font-bebas text-2xl tracking-tight text-foreground mb-2">PREFERENCES</h2>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    Customize your AI experience — theme, tone, document styling, and custom
+                    instructions.
+                  </p>
+                </div>
+                <PreferencesSection />
               </div>
-              <PreferencesSection />
-            </div>
+            </TabErrorBoundary>
           )}
 
           {activeTab === 'privacy' && (
