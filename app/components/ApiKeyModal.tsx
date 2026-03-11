@@ -144,7 +144,7 @@ export default function ApiKeyModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 text-text-muted"
+            className="p-1 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 text-text-muted"
             aria-label="Close dialog"
           >
             <svg
@@ -169,7 +169,7 @@ export default function ApiKeyModal({
           {/* Error message */}
           {error && (
             <div
-              className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
+              className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"
               role="alert"
             >
               {error}
@@ -220,7 +220,7 @@ export default function ApiKeyModal({
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-text-muted"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 text-text-muted"
                 aria-label={showKey ? 'Hide API key' : 'Show API key'}
               >
                 {showKey ? (

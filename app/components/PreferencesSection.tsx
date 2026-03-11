@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 
 type ResponseTone = 'concise' | 'balanced' | 'detailed';
 type DocumentTheme = 'corporate_blue' | 'modern_dark' | 'warm_earth' | 'clean_minimal' | 'bold_red';
@@ -26,15 +25,7 @@ const THEME_OPTIONS: { value: DocumentTheme; label: string; colors: string }[] =
   { value: 'bold_red', label: 'Bold Red', colors: '#b91c1c / #d97706' },
 ];
 
-const THEME_LABELS: Record<string, string> = {
-  pro: 'Pro (Refined Dark)',
-  light: 'Light',
-  dark: 'Dark',
-  ocean: 'Ocean',
-};
-
 export default function PreferencesSection() {
-  const { theme: appTheme, setTheme: setAppTheme, availableThemes } = useTheme();
   const [preferences, setPreferences] = useState<UserPreferences>({
     response_tone: 'balanced',
     document_theme: 'corporate_blue',
@@ -112,27 +103,6 @@ export default function PreferencesSection() {
 
   return (
     <section className="space-y-6">
-      {/* App Theme */}
-      <div className="glass-morphism rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-1">App Theme</h3>
-        <p className="text-sm text-text-secondary mb-4">Choose how JCIL AI looks.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {availableThemes.map((t) => (
-            <button
-              key={t}
-              onClick={() => setAppTheme(t)}
-              className={`rounded-xl border-2 p-4 text-center text-sm font-medium transition ${
-                appTheme === t
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-theme text-text-secondary hover:border-primary/50'
-              }`}
-            >
-              {THEME_LABELS[t] || t}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Response Tone */}
       <div className="glass-morphism rounded-2xl p-6">
         <h3 className="text-lg font-semibold text-text-primary mb-1">Response Tone</h3>

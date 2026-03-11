@@ -357,17 +357,17 @@ export default function ComposioToolkitsSection() {
 
       {/* Messages */}
       {success && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
           {success}
-          <button onClick={() => setSuccess(null)} className="ml-2 text-green-800 hover:underline">
+          <button onClick={() => setSuccess(null)} className="ml-2 text-green-300 hover:underline">
             Dismiss
           </button>
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 text-red-800 hover:underline">
+          <button onClick={() => setError(null)} className="ml-2 text-red-300 hover:underline">
             Dismiss
           </button>
         </div>
@@ -397,7 +397,7 @@ export default function ComposioToolkitsSection() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search apps... (Twitter, Slack, Gmail, etc.)"
             aria-label="Search integrations"
-            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-background border-theme text-text-primary"
+            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 text-base transition-all focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-background border-theme text-text-primary"
           />
           {search && (
             <button
@@ -469,7 +469,7 @@ export default function ComposioToolkitsSection() {
                   {toolkit.displayName}
                 </p>
                 <p
-                  className={`text-[10px] font-medium mt-0.5 ${toolkit.connected ? 'text-green-600' : 'text-text-muted'}`}
+                  className={`text-[10px] font-medium mt-0.5 ${toolkit.connected ? 'text-green-400' : 'text-text-muted'}`}
                 >
                   {connecting === toolkit.id || disconnecting === toolkit.id
                     ? '...'
@@ -489,7 +489,7 @@ export default function ComposioToolkitsSection() {
           onClick={() => setSelectedCategory(null)}
           className={`px-3 py-1.5 text-sm rounded-lg border transition-colors border-theme ${
             !selectedCategory
-              ? 'ring-2 ring-blue-500 ring-offset-1 text-primary'
+              ? 'ring-2 ring-orange-500 ring-offset-1 ring-offset-black text-primary'
               : 'text-text-secondary'
           }`}
         >
@@ -501,7 +501,7 @@ export default function ComposioToolkitsSection() {
             onClick={() => setSelectedCategory(key)}
             className={`px-3 py-1.5 text-sm rounded-lg border transition-colors border-theme ${
               selectedCategory === key
-                ? 'ring-2 ring-blue-500 ring-offset-1 text-primary'
+                ? 'ring-2 ring-orange-500 ring-offset-1 ring-offset-black text-primary'
                 : 'text-text-secondary'
             }`}
           >
@@ -521,10 +521,10 @@ export default function ComposioToolkitsSection() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="p-4 rounded-xl border animate-pulse border-theme">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-200" />
+                <div className="w-10 h-10 rounded-lg bg-white/10" />
                 <div className="flex-1">
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-                  <div className="h-3 w-32 bg-gray-200 rounded" />
+                  <div className="h-4 w-24 bg-white/10 rounded mb-2" />
+                  <div className="h-3 w-32 bg-white/10 rounded" />
                 </div>
               </div>
             </div>
@@ -579,13 +579,13 @@ export default function ComposioToolkitsSection() {
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${toolkit.connected ? 'bg-green-500/[0.15] text-green-600' : 'bg-[var(--background-secondary)] text-text-muted'}`}
+                    className={`text-xs px-2 py-0.5 rounded-full ${toolkit.connected ? 'bg-green-500/[0.15] text-green-400' : 'bg-[var(--background-secondary)] text-text-muted'}`}
                   >
                     {toolkit.connected ? 'Connected' : toolkit.category}
                   </span>
                   {toolkit.authType === 'api_key' && !toolkit.connected && (
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 bg-orange-400/[0.15] text-orange-600"
+                      className="text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 bg-orange-400/[0.15] text-orange-400"
                       title="Requires API key"
                     >
                       <svg
@@ -610,7 +610,7 @@ export default function ComposioToolkitsSection() {
                   <button
                     onClick={() => handleDisconnect(toolkit)}
                     disabled={disconnecting === toolkit.id || !configured}
-                    className="px-3 py-1 text-xs font-medium rounded-lg border border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors disabled:opacity-50"
+                    className="px-3 py-1 text-xs font-medium rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition-colors disabled:opacity-50"
                   >
                     {disconnecting === toolkit.id ? 'Disconnecting...' : 'Disconnect'}
                   </button>
@@ -624,7 +624,7 @@ export default function ComposioToolkitsSection() {
                       handleConnect(toolkit);
                     }}
                     disabled={connecting === toolkit.id}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50 ${configured ? 'bg-primary' : 'bg-gray-400'}`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg text-white transition-colors disabled:opacity-50 ${configured ? 'bg-primary' : 'bg-white/20'}`}
                   >
                     {connecting === toolkit.id ? 'Connecting...' : 'Connect'}
                   </button>

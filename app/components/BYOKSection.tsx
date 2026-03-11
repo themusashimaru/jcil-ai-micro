@@ -184,17 +184,17 @@ export default function BYOKSection() {
 
       {/* Success/Error Messages */}
       {success && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
           {success}
-          <button onClick={() => setSuccess(null)} className="ml-2 text-green-800 hover:underline">
+          <button onClick={() => setSuccess(null)} className="ml-2 text-green-300 hover:underline">
             Dismiss
           </button>
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 text-red-800 hover:underline">
+          <button onClick={() => setError(null)} className="ml-2 text-red-300 hover:underline">
             Dismiss
           </button>
         </div>
@@ -234,12 +234,12 @@ export default function BYOKSection() {
                 <div className="flex items-center gap-2">
                   {provider.configured ? (
                     <>
-                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-500/15 text-green-400">
                         Configured
                       </span>
                       <button
                         onClick={() => handleRemoveKey(provider.provider, provider.name)}
-                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         Remove
                       </button>
@@ -286,7 +286,7 @@ export default function BYOKSection() {
                   />
                   <p className="text-xs mb-3 text-text-muted">
                     Leave blank to use default:{' '}
-                    <code className="px-1 py-0.5 bg-gray-100 rounded">{provider.defaultModel}</code>
+                    <code className="px-1 py-0.5 bg-white/10 rounded">{provider.defaultModel}</code>
                   </p>
 
                   <div className="flex flex-wrap gap-2">
