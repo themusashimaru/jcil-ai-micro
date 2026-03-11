@@ -58,6 +58,7 @@ function Favicon({ src, hostname }: { src: string; hostname: string }) {
   }
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- external favicon URLs from arbitrary domains
     <img
       src={src}
       alt=""
@@ -78,10 +79,6 @@ export function MessageCitations({ citations }: MessageCitationsProps) {
     [citations]
   );
 
-  const toggle = useCallback(() => setExpanded((prev) => !prev), []);
-
-  if (parsed.length === 0) return null;
-
   // Unique favicons for the collapsed badge (dedupe by hostname, show up to 4)
   const uniqueByHost = useMemo(() => {
     const seen = new Set<string>();
@@ -91,6 +88,10 @@ export function MessageCitations({ citations }: MessageCitationsProps) {
       return true;
     });
   }, [parsed]);
+
+  const toggle = useCallback(() => setExpanded((prev) => !prev), []);
+
+  if (parsed.length === 0) return null;
 
   const previewFavicons = uniqueByHost.slice(0, 4);
 

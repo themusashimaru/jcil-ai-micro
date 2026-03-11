@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, lazy, Suspense, memo } from 'react';
+import { useState, useMemo, useRef, useEffect, lazy, Suspense, memo } from 'react';
 import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -404,6 +404,24 @@ function ThinkingBlock({
   isStreaming?: boolean;
   onToggle: () => void;
 }) {
+  const thinkingRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of thinking content while streaming
+  useEffect(() => {
+    if (expanded && isStreaming && thinkingRef.current) {
+      thinkingRef.current.scrollTop = thinkingRef.current.scrollHeight;
+    }
+  }, [expanded, isStreaming, content]);
+
+  // Clean thinking content: strip any residual <thinking>/<\/thinking> tags
+  // and normalize excessive whitespace from token-by-token streaming
+  const cleanedContent = useMemo(() => {
+    return content
+      .replace(/<\/?thinking>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }, [content]);
+
   return (
     <div
       className="mb-3 rounded-lg text-xs border border-theme"
@@ -429,10 +447,11 @@ function ThinkingBlock({
       </button>
       {expanded && (
         <div
-          className="px-3 pb-3 whitespace-pre-wrap border-t border-theme"
-          style={{ color: 'var(--text-tertiary)' }}
+          ref={thinkingRef}
+          className="px-3 pb-3 border-t border-theme overflow-y-auto"
+          style={{ color: 'var(--text-tertiary)', maxHeight: '200px' }}
         >
-          {content}
+          <div className="whitespace-pre-wrap">{cleanedContent}</div>
           {isStreaming && (
             <span className="inline-block ml-0.5 text-primary animate-[blink_1s_step-end_infinite]">
               ▋

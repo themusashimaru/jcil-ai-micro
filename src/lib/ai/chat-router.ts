@@ -588,6 +588,7 @@ export async function routeChatWithTools(
           const pendingToolCalls: UnifiedToolCall[] = [];
           let currentToolCall: Partial<UnifiedToolCall> | null = null;
           let toolArgsBuffer = '';
+          let toolLoopThinkingBuffer = '';
 
           // Stream from provider
           const chunks = service.chat(currentMessages, chatOptions);
@@ -602,6 +603,13 @@ export async function routeChatWithTools(
                 break;
 
               case 'text':
+                // Flush accumulated thinking before emitting text
+                if (toolLoopThinkingBuffer) {
+                  controller.enqueue(
+                    encoder.encode(`\n<thinking>\n${toolLoopThinkingBuffer}\n</thinking>\n`)
+                  );
+                  toolLoopThinkingBuffer = '';
+                }
                 // Stream text directly to client
                 if (chunk.text) {
                   controller.enqueue(encoder.encode(chunk.text));
@@ -609,9 +617,9 @@ export async function routeChatWithTools(
                 break;
 
               case 'thinking':
-                // Stream thinking content to client (wrapped in markers for UI parsing)
+                // Buffer thinking chunks to avoid wrapping each token individually
                 if (chunk.text) {
-                  controller.enqueue(encoder.encode(`\n<thinking>\n${chunk.text}\n</thinking>\n`));
+                  toolLoopThinkingBuffer += chunk.text;
                 }
                 break;
 
@@ -696,6 +704,14 @@ export async function routeChatWithTools(
                 }
                 break;
             }
+          }
+
+          // Flush any remaining thinking buffer from this iteration
+          if (toolLoopThinkingBuffer) {
+            controller.enqueue(
+              encoder.encode(`\n<thinking>\n${toolLoopThinkingBuffer}\n</thinking>\n`)
+            );
+            toolLoopThinkingBuffer = '';
           }
 
           // If no tool calls, we're done
