@@ -7,6 +7,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { ScrambleTextOnHover } from '@/app/components/landing-v2/ScrambleText';
 
 interface ChatHeaderProps {
@@ -55,7 +56,7 @@ export function ChatHeader({
           </button>
 
           {/* Connectors Link */}
-          <a
+          <Link
             href="/settings?tab=connectors"
             className="flex px-1.5 md:px-3 py-1 md:py-1.5 items-center gap-1 transition-all font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent"
             title="Connect 150+ apps"
@@ -76,7 +77,7 @@ export function ChatHeader({
             <span className="text-[9px] font-mono uppercase tracking-widest border border-accent/30 px-1.5 py-0.5 text-accent">
               NEW
             </span>
-          </a>
+          </Link>
 
           {/* Logo / site name (only when chat active) */}
           {currentChatId && (

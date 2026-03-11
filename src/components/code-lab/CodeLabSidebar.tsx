@@ -385,12 +385,12 @@ export function CodeLabSidebar({
                   ) : repoError ? (
                     <div className="repo-not-connected">
                       <p>{repoError}</p>
-                      <a href="/settings?tab=connectors">Connect GitHub</a>
+                      <Link href="/settings?tab=connectors">Connect GitHub</Link>
                     </div>
                   ) : !githubConnected ? (
                     <div className="repo-not-connected">
                       <p>GitHub not connected</p>
-                      <a href="/settings?tab=connectors">Connect GitHub</a>
+                      <Link href="/settings?tab=connectors">Connect GitHub</Link>
                     </div>
                   ) : filteredRepos.length === 0 ? (
                     <div className="repo-empty">
