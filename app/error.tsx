@@ -4,8 +4,8 @@
  * ERROR PAGE
  *
  * Handles errors at the route segment level.
- * Provides a user-friendly error UI with retry capability.
- * Uses theme-aware CSS variables for consistent styling.
+ * Uses hardcoded dark theme colors to ensure buttons are always visible,
+ * even before CSS variables load.
  */
 
 import { useEffect } from 'react';
@@ -18,16 +18,19 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log error to monitoring service
     console.error('[Error] Page error:', error);
   }, [error]);
 
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4 bg-background">
+    <div className="min-h-[60vh] flex items-center justify-center p-4" style={{ backgroundColor: '#000' }}>
       <div className="text-center max-w-md">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center bg-red-500/10">
+        <div
+          className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+        >
           <svg
-            className="w-8 h-8 text-red-500"
+            className="w-8 h-8"
+            style={{ color: '#ef4444' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -41,29 +44,53 @@ export default function Error({
           </svg>
         </div>
 
-        <h2 className="text-xl font-semibold mb-2 text-text-primary">Something went wrong</h2>
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
+          Something went wrong
+        </h2>
 
-        <p className="mb-6 text-sm text-text-secondary">
+        <p className="mb-6 text-sm" style={{ color: '#a1a1aa' }}>
           We encountered an error while loading this page. Please try again.
         </p>
 
         <div className="flex gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-primary"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#f97316',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
           >
             Try Again
           </button>
 
           <button
             onClick={() => (window.location.href = '/')}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-surface-elevated text-text-secondary border border-theme"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
           >
             Go Home
           </button>
         </div>
 
-        {error.digest && <p className="mt-6 text-xs text-text-muted">Error ID: {error.digest}</p>}
+        {error.digest && (
+          <p className="mt-6 text-xs" style={{ color: '#52525b' }}>
+            Error ID: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   );

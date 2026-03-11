@@ -117,12 +117,12 @@ export default function ConnectorsSection() {
 
       {/* Success/Error Messages */}
       {success && (
-        <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
           {success}
         </div>
       )}
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
           {error}
         </div>
       )}
@@ -162,13 +162,13 @@ export default function ConnectorsSection() {
                       className="w-6 h-6 rounded-full"
                     />
                   )}
-                  <span className="text-sm font-medium text-green-600">
+                  <span className="text-sm font-medium text-green-400">
                     @{githubStatus.username}
                   </span>
                 </div>
                 <button
                   onClick={handleDisconnect}
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors whitespace-nowrap"
                 >
                   Disconnect
                 </button>
@@ -209,7 +209,7 @@ export default function ConnectorsSection() {
               >
                 GitHub Settings
               </a>{' '}
-              with the <code className="px-1 py-0.5 bg-gray-100 rounded text-xs">repo</code> scope.
+              with the <code className="px-1 py-0.5 bg-white/10 rounded text-xs">repo</code> scope.
             </p>
             <div className="flex flex-wrap gap-2">
               <button

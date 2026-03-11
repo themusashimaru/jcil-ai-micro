@@ -4,7 +4,7 @@
  * CODE LAB ERROR PAGE
  *
  * Segment-level error boundary for the /code-lab route.
- * Shows a code-lab-specific recovery UI with retry and navigation options.
+ * Uses hardcoded dark theme colors to guarantee visibility.
  */
 
 import { useEffect } from 'react';
@@ -21,11 +21,15 @@ export default function CodeLabError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#000' }}>
       <div className="text-center max-w-md">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center bg-indigo-500/10">
+        <div
+          className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)' }}
+        >
           <svg
-            className="w-8 h-8 text-indigo-500"
+            className="w-8 h-8"
+            style={{ color: '#818cf8' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -39,9 +43,11 @@ export default function CodeLabError({
           </svg>
         </div>
 
-        <h2 className="text-xl font-semibold mb-2 text-text-primary">Code Lab hit a snag</h2>
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
+          Code Lab hit a snag
+        </h2>
 
-        <p className="mb-6 text-sm text-text-secondary">
+        <p className="mb-6 text-sm" style={{ color: '#a1a1aa' }}>
           Something went wrong loading Code Lab. Your sessions are saved &mdash; let&apos;s get you
           back to coding.
         </p>
@@ -49,17 +55,33 @@ export default function CodeLabError({
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={reset}
-            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-primary"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#f97316',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
             aria-label="Try loading Code Lab again"
           >
             Try Again
           </button>
 
           <button
-            onClick={() => {
-              window.location.href = '/code-lab';
+            onClick={() => (window.location.href = '/code-lab')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
             }}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-surface-elevated text-text-secondary border border-theme"
             aria-label="Reload Code Lab"
           >
             Reload
@@ -67,14 +89,27 @@ export default function CodeLabError({
 
           <button
             onClick={() => (window.location.href = '/chat')}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-surface-elevated text-text-secondary border border-theme"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
             aria-label="Go to Chat"
           >
             Go to Chat
           </button>
         </div>
 
-        {error.digest && <p className="mt-6 text-xs text-text-muted">Error ID: {error.digest}</p>}
+        {error.digest && (
+          <p className="mt-6 text-xs" style={{ color: '#52525b' }}>
+            Error ID: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   );

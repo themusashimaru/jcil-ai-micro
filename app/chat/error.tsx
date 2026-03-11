@@ -4,8 +4,7 @@
  * CHAT ERROR PAGE
  *
  * Segment-level error boundary for the /chat route.
- * Shows a chat-specific recovery UI instead of the generic error page.
- * Offers retry, new chat, and home navigation.
+ * Uses hardcoded dark theme colors to guarantee visibility.
  */
 
 import { useEffect } from 'react';
@@ -22,11 +21,15 @@ export default function ChatError({
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#000' }}>
       <div className="text-center max-w-md">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center bg-red-500/10">
+        <div
+          className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+        >
           <svg
-            className="w-8 h-8 text-red-500"
+            className="w-8 h-8"
+            style={{ color: '#ef4444' }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -40,9 +43,11 @@ export default function ChatError({
           </svg>
         </div>
 
-        <h2 className="text-xl font-semibold mb-2 text-text-primary">Chat hit a snag</h2>
+        <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
+          Chat hit a snag
+        </h2>
 
-        <p className="mb-6 text-sm text-text-secondary">
+        <p className="mb-6 text-sm" style={{ color: '#a1a1aa' }}>
           Something went wrong loading your chat. Your conversations are safe — let&apos;s get you
           back on track.
         </p>
@@ -50,30 +55,58 @@ export default function ChatError({
         <div className="flex gap-3 justify-center flex-wrap">
           <button
             onClick={reset}
-            className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-primary"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#f97316',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
           >
             Try Again
           </button>
 
           <button
-            onClick={() => {
-              // Clear any bad state and reload
-              window.location.href = '/chat';
+            onClick={() => (window.location.href = '/chat')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
             }}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-surface-elevated text-text-secondary border border-theme"
           >
             New Chat
           </button>
 
           <button
             onClick={() => (window.location.href = '/')}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors hover:opacity-90 bg-surface-elevated text-text-secondary border border-theme"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
           >
             Go Home
           </button>
         </div>
 
-        {error.digest && <p className="mt-6 text-xs text-text-muted">Error ID: {error.digest}</p>}
+        {error.digest && (
+          <p className="mt-6 text-xs" style={{ color: '#52525b' }}>
+            Error ID: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   );

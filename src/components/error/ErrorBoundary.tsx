@@ -4,7 +4,7 @@
  * ERROR BOUNDARY COMPONENT
  *
  * Provides graceful error handling for React component trees.
- * Prevents entire app crashes and shows user-friendly error messages.
+ * Uses dark theme colors for consistency.
  */
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
@@ -31,21 +31,16 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to monitoring service
     console.error('[ErrorBoundary] Caught error:', error, errorInfo);
-
-    // Call optional error handler
     this.props.onError?.(error, errorInfo);
   }
 
   render(): ReactNode {
     if (this.state.hasError) {
-      // Custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // Default error UI
       return (
         <div className="error-boundary">
           <div className="error-content">
@@ -65,7 +60,8 @@ export class ErrorBoundary extends Component<Props, State> {
               justify-content: center;
               min-height: 200px;
               padding: 2rem;
-              background: #fef2f2;
+              background: rgba(239, 68, 68, 0.05);
+              border: 1px solid rgba(239, 68, 68, 0.2);
               border-radius: 8px;
               margin: 1rem;
             }
@@ -73,29 +69,33 @@ export class ErrorBoundary extends Component<Props, State> {
               text-align: center;
             }
             .error-content h2 {
-              color: #991b1b;
+              color: #fca5a5;
               font-size: 1.25rem;
               font-weight: 600;
               margin: 0 0 0.5rem;
             }
             .error-content p {
-              color: #7f1d1d;
+              color: #a1a1aa;
               font-size: 0.875rem;
               margin: 0 0 1rem;
             }
             .retry-button {
               padding: 0.5rem 1rem;
-              background: #dc2626;
+              background: #f97316;
               color: white;
               border: none;
               border-radius: 6px;
               font-size: 0.875rem;
               font-weight: 500;
               cursor: pointer;
-              transition: background 0.2s;
+              transition: opacity 0.2s;
             }
             .retry-button:hover {
-              background: #b91c1c;
+              opacity: 0.9;
+            }
+            .retry-button:focus-visible {
+              outline: 2px solid #f97316;
+              outline-offset: 2px;
             }
           `}</style>
         </div>
@@ -124,30 +124,38 @@ export function ErrorFallback({
       <style jsx>{`
         .error-fallback {
           padding: 2rem;
-          background: #fef2f2;
+          background: rgba(239, 68, 68, 0.05);
+          border: 1px solid rgba(239, 68, 68, 0.2);
           border-radius: 8px;
           text-align: center;
         }
         h2 {
-          color: #991b1b;
+          color: #fca5a5;
           font-size: 1.25rem;
         }
         pre {
-          background: #fee2e2;
+          background: rgba(239, 68, 68, 0.1);
           padding: 1rem;
           border-radius: 4px;
-          color: #7f1d1d;
+          color: #fca5a5;
           font-size: 0.75rem;
           overflow-x: auto;
         }
         button {
           margin-top: 1rem;
           padding: 0.5rem 1rem;
-          background: #dc2626;
+          background: #f97316;
           color: white;
           border: none;
           border-radius: 6px;
           cursor: pointer;
+        }
+        button:hover {
+          opacity: 0.9;
+        }
+        button:focus-visible {
+          outline: 2px solid #f97316;
+          outline-offset: 2px;
         }
       `}</style>
     </div>
