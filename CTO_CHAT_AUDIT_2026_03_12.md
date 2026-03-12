@@ -3,7 +3,7 @@
 **Date:** 2026-03-12
 **Scope:** Full audit of regular chat system — route handling, tool execution, document generation, streaming, UI rendering, error handling
 **Auditor:** CTO-level code review
-**Verdict:** **System is well-architected with strong fundamentals. Several silent failure risks identified.**
+**Verdict:** **System is well-architected with strong fundamentals. 11 silent failure risks identified and ALL RESOLVED.**
 
 ---
 
@@ -314,25 +314,27 @@ cookiesToSet.forEach(({ name, value, options }) =>
 
 ## Recommendations (Priority Order)
 
-### Immediate (This Sprint)
-1. **Fix P1-001:** Return error responses from document generation instead of `null` fallthrough
-2. **Fix P1-008:** Fix slot leak — don't set `slotAcquired = false` before streaming starts
-3. **Fix P1-009:** Fix stale `slotAcquired` in docRouteCtx
-4. **Fix P2-004:** Add logging to all `.catch(() => {})` calls
+### All Findings — RESOLVED (2026-03-12)
 
-### Next Sprint
-5. **Fix P1-002:** Add context loading failure indicator to system prompt
-6. **Fix P2-010:** Parallelize context loading with combined timeout
-7. **Fix P1-003:** Replace analytics self-fetch with direct function call
-8. **Fix P2-005:** Add tool loading failure logging
-9. **Fix P2-006:** Add fallback handling for malformed DOCUMENT_DOWNLOAD markers
-10. **Fix P2-011:** Skip MCP tools with unknown schemas or lazy-load real schema
+| Finding | Status | Commit |
+|---------|--------|--------|
+| P1-001: Document generation silent fallthrough | FIXED | Returns error message to user instead of null |
+| P1-002: Context loading failures invisible | FIXED | Failures tracked and injected into system prompt |
+| P1-003: Analytics self-fetch fragile | FIXED | Direct function call replaces HTTP self-fetch |
+| P2-004: Empty `.catch(() => {})` handlers | FIXED | All now log with userId, tokens, error context |
+| P2-005: Tool loading silently skips | FIXED | Now logs tool name, file, and error message |
+| P2-006: DOCUMENT_DOWNLOAD marker fallback | FIXED | Strips raw marker, shows user-friendly fallback |
+| P1-008: Slot leak on streaming error | FIXED | Flags set AFTER handler returns successfully |
+| P1-009: Stale slotAcquired in docRouteCtx | VERIFIED SAFE | Analytics short-circuit returns before doc routes run |
+| P2-010: Sequential context loading | FIXED | Parallel via Promise.allSettled with 3s timeout |
+| P2-011: MCP empty parameter schemas | FIXED | additionalProperties: true + description hint |
+| P3-007: Auth cookie set ignore | NO-FIX-NEEDED | Documented Supabase SSR pattern |
 
-### Monitoring
-11. Add a `/api/health/tools` endpoint that verifies all 56 tools can load
-12. Add structured logging for document generation success/failure rates
-13. Track context loading (memory/learning/RAG) success rates
-14. Track slot utilization and leak rate
+### Future Monitoring Recommendations
+1. Add a `/api/health/tools` endpoint that verifies all 56 tools can load
+2. Add structured logging for document generation success/failure rates
+3. Track context loading (memory/learning/RAG) success rates
+4. Track slot utilization and leak rate
 
 ---
 
