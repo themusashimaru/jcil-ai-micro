@@ -490,10 +490,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Data Analytics Helper (kept inline — small, tightly coupled to request) ──
+// ── Data Analytics Helper (direct call — no HTTP self-fetch) ──
 async function tryDataAnalytics(
   lastUserContent: string,
-  request: NextRequest,
+  _request: NextRequest,
   slotAcquired: boolean,
   requestId: string
 ): Promise<Response | null> {
@@ -505,7 +505,6 @@ async function tryDataAnalytics(
     if (!spreadsheetMatch) return null;
 
     const fileName = spreadsheetMatch[2].trim();
-    const isCSV = fileName.toLowerCase().endsWith('.csv');
 
     const fileHeaderIndex = lastUserContent.indexOf(spreadsheetMatch[0]);
     const contentStart = lastUserContent.indexOf('\n\n', fileHeaderIndex);
@@ -534,24 +533,67 @@ async function tryDataAnalytics(
 
     log.info('Data analytics detected from embedded content', {
       fileName,
-      isCSV,
       contentLength: fileContent.length,
     });
 
-    const analyticsResponse = await fetch(new URL('/api/analytics', request.url).toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName,
-        fileType: isCSV ? 'text/csv' : 'text/tab-separated-values',
-        content: fileContent,
-      }),
+    // Direct call to analytics utils (avoids unreliable HTTP self-fetch in serverless)
+    const {
+      parseCSV,
+      detectColumnType,
+      parseValue,
+      calculateStats,
+      generateInsights,
+      generateCharts,
+      generateSuggestions,
+    } = await import('@/app/api/analytics/analytics-utils');
+    const { v4: uuidv4 } = await import('uuid');
+
+    const rows = parseCSV(fileContent);
+    if (rows.length < 2) return null;
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    const columns = headers.map((name: string, index: number) => {
+      const values = dataRows.map((row: string[]) => row[index] || '');
+      const type = detectColumnType(values);
+      const numericValues: number[] = [];
+      for (const val of values) {
+        const parsed = parseValue(val, type);
+        if (parsed !== null) numericValues.push(parsed);
+      }
+      return {
+        name: name || `Column ${index + 1}`,
+        type,
+        values,
+        numericValues,
+        stats: numericValues.length > 0 ? calculateStats(numericValues) : undefined,
+      };
     });
 
-    if (!analyticsResponse.ok) return null;
+    const insights = generateInsights(columns);
+    const charts = generateCharts(columns, dataRows);
+    const numericColNames = columns
+      .filter((c: { stats?: unknown }) => c.stats)
+      .map((c: { name: string }) => c.name)
+      .slice(0, 3)
+      .join(', ');
+    const summary = `Analyzed ${dataRows.length.toLocaleString()} records with ${columns.length} columns. ${
+      numericColNames ? `Key metrics: ${numericColNames}.` : ''
+    } ${charts.length > 0 ? `Generated ${charts.length} visualization(s).` : ''}`;
 
-    const { analytics } = await analyticsResponse.json();
-    if (!analytics) return null;
+    const analytics = {
+      id: uuidv4(),
+      filename: fileName,
+      summary,
+      insights,
+      charts,
+      rawDataPreview: dataRows.slice(0, 10),
+      totalRows: dataRows.length,
+      totalColumns: columns.length,
+      columnNames: headers,
+      suggestedQueries: generateSuggestions(columns),
+    };
 
     if (slotAcquired) {
       await releaseSlot(requestId);
@@ -586,7 +628,9 @@ async function tryDataAnalytics(
       }
     );
   } catch (error) {
-    log.debug('Analytics detection failed', { error });
+    log.warn('Analytics detection/processing failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
