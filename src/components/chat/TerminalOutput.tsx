@@ -113,16 +113,16 @@ export function TerminalOutput({
 
   return (
     <div
-      className={`my-3 rounded-lg overflow-hidden border bg-[#0d1117] ${success ? 'border-[#30363d]' : 'border-[#f85149]'}`}
+      className={`my-3 rounded-lg overflow-hidden border bg-[var(--code-bg,#0d1117)] ${success ? 'border-[var(--code-border,#30363d)]' : 'border-[var(--error,#f85149)]'}`}
     >
       {/* Header */}
       <div
-        className={`flex items-center justify-between px-3 py-2 border-b border-[#30363d] ${success ? 'bg-[rgba(56,139,253,0.1)]' : 'bg-[rgba(248,81,73,0.1)]'}`}
+        className={`flex items-center justify-between px-3 py-2 border-b border-[var(--code-border,#30363d)] ${success ? 'bg-[rgba(56,139,253,0.1)]' : 'bg-[rgba(248,81,73,0.1)]'}`}
       >
         <div className="flex items-center gap-2">
           {/* Terminal icon */}
           <svg
-            className={`w-4 h-4 ${success ? 'stroke-[#58a6ff]' : 'stroke-[#f85149]'}`}
+            className={`w-4 h-4 ${success ? 'stroke-[var(--info,#58a6ff)]' : 'stroke-[var(--error,#f85149)]'}`}
             viewBox="0 0 24 24"
             fill="none"
             strokeWidth="2"
@@ -206,7 +206,7 @@ export function TerminalOutput({
 
       {/* Command (if provided) */}
       {command && (
-        <div className="px-3 py-2 font-mono text-sm border-b border-[#30363d] bg-[#161b22] flex items-center gap-2">
+        <div className="px-3 py-2 font-mono text-sm border-b border-[var(--code-border,#30363d)] bg-[var(--surface-elevated,#161b22)] flex items-center gap-2">
           <span className="text-green-400">$</span>
           <span className="text-gray-300">{command}</span>
         </div>
@@ -225,14 +225,14 @@ export function TerminalOutput({
               <span
                 style={{
                   color: line.toLowerCase().includes('error')
-                    ? '#f85149'
+                    ? 'var(--error, #f85149)'
                     : line.toLowerCase().includes('warning')
-                      ? '#d29922'
+                      ? 'var(--warning, #d29922)'
                       : line.toLowerCase().includes('success') ||
                           line.includes('✓') ||
                           line.toLowerCase().includes('passed')
-                        ? '#3fb950'
-                        : '#c9d1d9',
+                        ? 'var(--success, #3fb950)'
+                        : 'var(--text-secondary, #c9d1d9)',
                 }}
               >
                 {parseAnsiColors(line) || '\u00A0'}
@@ -263,7 +263,7 @@ export function TerminalOutput({
 
       {/* Error message */}
       {error && (
-        <div className="px-3 py-2 text-sm border-t bg-[rgba(248,81,73,0.1)] border-[#f85149] text-[#f85149]">
+        <div className="px-3 py-2 text-sm border-t bg-[rgba(248,81,73,0.1)] border-[var(--error,#f85149)] text-[var(--error,#f85149)]">
           <strong>Error:</strong> {error}
         </div>
       )}
@@ -289,9 +289,9 @@ export function CodeDiffOutput({
   context: _context = [],
 }: CodeDiffOutputProps) {
   return (
-    <div className="my-3 rounded-lg overflow-hidden border bg-[#0d1117] border-[#30363d]">
+    <div className="my-3 rounded-lg overflow-hidden border bg-[var(--code-bg,#0d1117)] border-[var(--code-border,#30363d)]">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-[rgba(56,139,253,0.1)] border-[#30363d]">
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-[rgba(56,139,253,0.1)] border-[var(--code-border,#30363d)]">
         <svg
           className="w-4 h-4 text-blue-400"
           viewBox="0 0 24 24"

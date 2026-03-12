@@ -7,9 +7,9 @@ import { ComposerAgentsMenu } from './ComposerAgentsMenu';
 import type { ToolMode } from './ChatComposer';
 
 export const TOOL_MODE_INFO: Record<string, { label: string; color: string }> = {
-  search: { label: 'Web Search', color: '#3b82f6' },
-  factcheck: { label: 'Fact Check', color: '#10b981' },
-  research: { label: 'Deep Research', color: '#8b5cf6' },
+  search: { label: 'Web Search', color: 'var(--info, #3b82f6)' },
+  factcheck: { label: 'Fact Check', color: 'var(--success, #10b981)' },
+  research: { label: 'Deep Research', color: 'var(--primary, #8b5cf6)' },
 };
 
 interface ComposerActionBarProps {

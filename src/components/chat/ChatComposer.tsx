@@ -258,8 +258,8 @@ export const ChatComposer = memo(function ChatComposer({
   };
 
   return (
-    <div className="py-2 px-2 md:px-4 md:py-3 pb-safe">
-      <div className="mx-auto max-w-3xl">
+    <div className="py-2 px-2 md:px-4 lg:px-8 md:py-3 pb-safe">
+      <div className="mx-auto max-w-3xl lg:max-w-3xl">
         {replyingTo && <ComposerReplyPreview replyingTo={replyingTo} onClearReply={onClearReply} />}
 
         <ComposerAttachmentPreview attachments={attachments} onRemove={removeAttachment} />
@@ -283,11 +283,7 @@ export const ChatComposer = memo(function ChatComposer({
                     style={{
                       color:
                         toolInfo?.color ||
-                        (activeAgent === 'strategy'
-                          ? '#a855f7'
-                          : activeAgent === 'deep-research'
-                            ? '#10b981'
-                            : 'var(--primary)'),
+                        'var(--primary)',
                     }}
                   >
                     {placeholderText}
