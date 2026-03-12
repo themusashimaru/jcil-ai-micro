@@ -160,24 +160,6 @@ vi.mock('./ComposerAgentsMenu', () => ({
   ),
 }));
 
-vi.mock('./ComposerProviderMenu', () => ({
-  ComposerProviderMenu: ({
-    isOpen,
-    onToggle,
-    selectedProvider,
-  }: {
-    isOpen: boolean;
-    onToggle: () => void;
-    selectedProvider: string;
-  }) => (
-    <div data-testid="provider-menu" data-open={isOpen} data-provider={selectedProvider}>
-      <button data-testid="provider-toggle" onClick={onToggle}>
-        Provider
-      </button>
-    </div>
-  ),
-}));
-
 vi.mock('./ComposerAttachmentPreview', () => ({
   ComposerAttachmentPreview: ({
     attachments,
@@ -715,50 +697,6 @@ describe('ChatComposer', () => {
       });
 
       expect(toggleRecording).toHaveBeenCalled();
-    });
-  });
-
-  // ── Provider menu (admin only) ──────────────────────────────────────────
-
-  describe('Provider menu', () => {
-    it('should show provider menu for admin users with onProviderChange', () => {
-      renderComposer({
-        isAdmin: true,
-        onProviderChange: vi.fn(),
-        selectedProvider: 'claude',
-        configuredProviders: ['claude', 'openai'],
-      });
-      expect(screen.getByTestId('provider-menu')).toBeInTheDocument();
-    });
-
-    it('should not show provider menu for non-admin users', () => {
-      renderComposer({
-        isAdmin: false,
-        onProviderChange: vi.fn(),
-      });
-      expect(screen.queryByTestId('provider-menu')).not.toBeInTheDocument();
-    });
-
-    it('should not show provider menu when onProviderChange is not provided', () => {
-      renderComposer({ isAdmin: true });
-      expect(screen.queryByTestId('provider-menu')).not.toBeInTheDocument();
-    });
-
-    it('should pass selectedProvider to provider menu', () => {
-      renderComposer({
-        isAdmin: true,
-        onProviderChange: vi.fn(),
-        selectedProvider: 'openai',
-      });
-      expect(screen.getByTestId('provider-menu')).toHaveAttribute('data-provider', 'openai');
-    });
-
-    it('should default selectedProvider to claude', () => {
-      renderComposer({
-        isAdmin: true,
-        onProviderChange: vi.fn(),
-      });
-      expect(screen.getByTestId('provider-menu')).toHaveAttribute('data-provider', 'claude');
     });
   });
 
