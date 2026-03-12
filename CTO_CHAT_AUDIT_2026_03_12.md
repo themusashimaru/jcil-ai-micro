@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The regular chat system is **production-quality architecture** with proper decomposition, authentication, rate limiting, and error handling. However, I identified **7 silent failure risks** and **4 areas of concern** that could cause user-facing issues without any visible error messages.
+The regular chat system is **production-quality architecture** with proper decomposition, authentication, rate limiting, and error handling. However, I identified **11 silent failure risks** across multiple severity levels that could cause user-facing issues without any visible error messages.
 
 ### Severity Scale
 - **P0 (Critical):** User loses data or feature silently broken
@@ -197,6 +197,71 @@ Instead of a download button.
 
 ---
 
+### P1-008: Slot Leak on Streaming Error
+**Location:** `app/api/chat/route.ts:456-457`
+```typescript
+isStreamingResponse = true;
+slotAcquired = false;  // Set to false BEFORE streaming completes
+return await handleClaudeProvider({ ...streamConfig, pendingRequestId });
+```
+**Problem:** `slotAcquired` is set to `false` before streaming actually starts. If `handleClaudeProvider` throws before any response begins, the `finally` block won't release the slot because `slotAcquired` is already `false`. This leaks a queue slot.
+
+**Impact:** Under error conditions, queue slots leak and the server gradually runs out of capacity. The `acquireSlot` call at the top of the route will start returning `false` (HTTP 503 "Server busy").
+
+**Fix:** Let `handleClaudeProvider` manage slot release internally, or only set `slotAcquired = false` after confirming the stream started.
+
+---
+
+### P1-009: Stale slotAcquired Flag in Document Route Context
+**Location:** `app/api/chat/route.ts:284`
+```typescript
+const docRouteCtx = {
+    ...
+    slotAcquired,  // Captured at construction time
+};
+```
+**Problem:** `docRouteCtx` captures `slotAcquired` as a value at construction time (line 284). But `slotAcquired` gets reassigned to `false` at line 328 (after analytics check). The `docRouteCtx.slotAcquired` still has the old `true` value. When `handleAutoDetectedDocument` (line 364) uses `ctx.slotAcquired` to decide whether to release the slot, it's operating on a stale flag.
+
+**Impact:** Potential double-release of queue slots, or failure to release in edge cases.
+
+**Fix:** Pass `slotAcquired` as a getter function or restructure the flow.
+
+---
+
+### P2-010: Context Loading Is Sequential With No Timeout
+**Location:** `app/api/chat/route.ts:140-191`
+**Problem:** Memory, learning, and RAG document search are called **sequentially** (not in parallel), each with no timeout. If Supabase is slow (e.g., 3s per call), the user waits 9+ seconds before any chat response begins.
+
+**Impact:** Latency spike under database load. All three should run in parallel with a combined timeout (e.g., 2s max).
+
+**Fix:**
+```typescript
+const [memoryResult, learningResult, docResult] = await Promise.allSettled([
+    withTimeout(getMemoryContext(userId), 2000),
+    withTimeout(getLearningContext(userId), 2000),
+    withTimeout(searchUserDocuments(userId, messageContent, { matchCount: 5 }), 2000),
+]);
+```
+
+---
+
+### P2-011: MCP Tools Added With Empty Parameter Schemas
+**Location:** `app/api/chat/chat-tools.ts:314-316`
+```typescript
+parameters: {
+    type: 'object' as const,
+    properties: {},    // Empty!
+    required: [],
+},
+```
+**Problem:** MCP tools from "available" (not yet started) servers are added to the tool list with **empty parameter schemas**. When Claude calls these tools, the arguments won't match the actual required parameters, causing runtime failures.
+
+**Impact:** MCP tools from cold servers fail on first call. The error is handled, but the user sees "Tool execution failed" without understanding why.
+
+**Fix:** Either skip tools with unknown schemas, or lazy-load the real schema when the server starts.
+
+---
+
 ### P3-007: Auth Cookie Set Failure Silently Ignored
 **Location:** `app/api/chat/auth.ts:86-89`
 ```typescript
@@ -251,18 +316,23 @@ cookiesToSet.forEach(({ name, value, options }) =>
 
 ### Immediate (This Sprint)
 1. **Fix P1-001:** Return error responses from document generation instead of `null` fallthrough
-2. **Fix P1-002:** Add context loading failure indicator to system prompt
-3. **Fix P2-004:** Add logging to all `.catch(() => {})` calls
+2. **Fix P1-008:** Fix slot leak — don't set `slotAcquired = false` before streaming starts
+3. **Fix P1-009:** Fix stale `slotAcquired` in docRouteCtx
+4. **Fix P2-004:** Add logging to all `.catch(() => {})` calls
 
 ### Next Sprint
-4. **Fix P1-003:** Replace analytics self-fetch with direct function call
-5. **Fix P2-005:** Add tool loading failure logging
-6. **Fix P2-006:** Add fallback handling for malformed DOCUMENT_DOWNLOAD markers
+5. **Fix P1-002:** Add context loading failure indicator to system prompt
+6. **Fix P2-010:** Parallelize context loading with combined timeout
+7. **Fix P1-003:** Replace analytics self-fetch with direct function call
+8. **Fix P2-005:** Add tool loading failure logging
+9. **Fix P2-006:** Add fallback handling for malformed DOCUMENT_DOWNLOAD markers
+10. **Fix P2-011:** Skip MCP tools with unknown schemas or lazy-load real schema
 
 ### Monitoring
-7. Add a `/api/health/tools` endpoint that verifies all 56 tools can load
-8. Add structured logging for document generation success/failure rates
-9. Track context loading (memory/learning/RAG) success rates
+11. Add a `/api/health/tools` endpoint that verifies all 56 tools can load
+12. Add structured logging for document generation success/failure rates
+13. Track context loading (memory/learning/RAG) success rates
+14. Track slot utilization and leak rate
 
 ---
 
