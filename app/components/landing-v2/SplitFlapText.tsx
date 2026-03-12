@@ -1,9 +1,17 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { motion } from "framer-motion";
-import { useMemo, useState, useCallback, useEffect, useRef, createContext, useContext } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import type React from 'react';
+import { motion } from 'framer-motion';
+import {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  createContext,
+  useContext,
+} from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 
 interface AudioContextType {
   isMuted: boolean;
@@ -22,9 +30,11 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const getAudioContext = useCallback(() => {
-    if (typeof window === "undefined") return null;
+    if (typeof window === 'undefined') return null;
     if (!audioContextRef.current) {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioContextClass) {
         audioContextRef.current = new AudioContextClass();
       }
@@ -34,7 +44,7 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
 
   const triggerHaptic = useCallback(() => {
     if (isMuted) return;
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(10);
     }
   }, [isMuted]);
@@ -46,7 +56,7 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
     try {
       const ctx = getAudioContext();
       if (!ctx) return;
-      if (ctx.state === "suspended") {
+      if (ctx.state === 'suspended') {
         ctx.resume();
       }
 
@@ -55,15 +65,15 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
       const filter = ctx.createBiquadFilter();
       const lowpass = ctx.createBiquadFilter();
 
-      oscillator.type = "square";
+      oscillator.type = 'square';
       oscillator.frequency.setValueAtTime(800 + Math.random() * 400, ctx.currentTime);
       oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.015);
 
-      filter.type = "bandpass";
+      filter.type = 'bandpass';
       filter.frequency.setValueAtTime(1200, ctx.currentTime);
       filter.Q.setValueAtTime(0.8, ctx.currentTime);
 
-      lowpass.type = "lowpass";
+      lowpass.type = 'lowpass';
       lowpass.frequency.value = 2500;
       lowpass.Q.value = 0.5;
 
@@ -87,7 +97,7 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
     if (isMuted) {
       try {
         const ctx = getAudioContext();
-        if (ctx && ctx.state === "suspended") {
+        if (ctx && ctx.state === 'suspended') {
           ctx.resume();
         }
       } catch {
@@ -96,12 +106,15 @@ export function SplitFlapAudioProvider({ children }: { children: React.ReactNode
     }
   }, [isMuted, getAudioContext]);
 
-  const value = useMemo(() => ({ isMuted, toggleMute, playClick }), [isMuted, toggleMute, playClick]);
+  const value = useMemo(
+    () => ({ isMuted, toggleMute, playClick }),
+    [isMuted, toggleMute, playClick]
+  );
 
   return <SplitFlapAudioContext.Provider value={value}>{children}</SplitFlapAudioContext.Provider>;
 }
 
-export function SplitFlapMuteToggle({ className = "" }: { className?: string }) {
+export function SplitFlapMuteToggle({ className = '' }: { className?: string }) {
   const audio = useSplitFlapAudio();
   if (!audio) return null;
 
@@ -109,10 +122,10 @@ export function SplitFlapMuteToggle({ className = "" }: { className?: string }) 
     <button
       onClick={audio.toggleMute}
       className={`inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-200 ${className}`}
-      aria-label={audio.isMuted ? "Unmute sound effects" : "Mute sound effects"}
+      aria-label={audio.isMuted ? 'Unmute sound effects' : 'Mute sound effects'}
     >
       {audio.isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-      <span>{audio.isMuted ? "Sound Off" : "Sound On"}</span>
+      <span>{audio.isMuted ? 'Sound Off' : 'Sound On'}</span>
     </button>
   );
 }
@@ -123,10 +136,10 @@ interface SplitFlapTextProps {
   speed?: number;
 }
 
-const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
+const CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
 
-function SplitFlapTextInner({ text, className = "", speed = 50 }: SplitFlapTextProps) {
-  const chars = useMemo(() => text.split(""), [text]);
+function SplitFlapTextInner({ text, className = '', speed = 50 }: SplitFlapTextProps) {
+  const chars = useMemo(() => text.split(''), [text]);
   const [animationKey, setAnimationKey] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
   const audio = useSplitFlapAudio();
@@ -147,7 +160,7 @@ function SplitFlapTextInner({ text, className = "", speed = 50 }: SplitFlapTextP
       className={`inline-flex gap-[0.08em] items-center cursor-pointer ${className}`}
       aria-label={text}
       onMouseEnter={handleMouseEnter}
-      style={{ perspective: "1000px" }}
+      style={{ perspective: '1000px' }}
     >
       {chars.map((char, index) => (
         <SplitFlapChar
@@ -177,25 +190,32 @@ interface SplitFlapCharProps {
   playClick?: () => void;
 }
 
-function SplitFlapChar({ char, index, animationKey, skipEntrance, speed, playClick }: SplitFlapCharProps) {
-  const displayChar = CHARSET.includes(char) ? char : " ";
-  const isSpace = char === " ";
-  const [currentChar, setCurrentChar] = useState(skipEntrance ? displayChar : " ");
+function SplitFlapChar({
+  char,
+  index,
+  animationKey,
+  skipEntrance,
+  speed,
+  playClick,
+}: SplitFlapCharProps) {
+  const displayChar = CHARSET.includes(char) ? char : ' ';
+  const isSpace = char === ' ';
+  const [currentChar, setCurrentChar] = useState(skipEntrance ? displayChar : ' ');
   const [isSettled, setIsSettled] = useState(skipEntrance);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tileDelay = 0.15 * index;
 
-  const bgColor = isSettled ? "hsl(0, 0%, 0%)" : "rgba(249, 115, 22, 0.2)";
-  const textColor = isSettled ? "#ffffff" : "#f97316";
+  const bgColor = isSettled ? 'hsl(0, 0%, 0%)' : 'rgba(249, 115, 22, 0.2)';
+  const textColor = isSettled ? '#ffffff' : '#f97316';
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     if (isSpace) {
-      setCurrentChar(" ");
+      setCurrentChar(' ');
       setIsSettled(true);
       return;
     }
@@ -237,8 +257,8 @@ function SplitFlapChar({ char, index, animationKey, skipEntrance, speed, playCli
     return (
       <div
         style={{
-          width: "0.3em",
-          fontSize: "clamp(4rem, 15vw, 14rem)",
+          width: '0.3em',
+          fontSize: 'clamp(3rem, 8vw, 7rem)',
         }}
       />
     );
@@ -248,15 +268,15 @@ function SplitFlapChar({ char, index, animationKey, skipEntrance, speed, playCli
     <motion.div
       initial={skipEntrance ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: tileDelay, duration: 0.3, ease: "easeOut" }}
+      transition={{ delay: tileDelay, duration: 0.3, ease: 'easeOut' }}
       className="relative overflow-hidden flex items-center justify-center font-bebas"
       style={{
-        fontSize: "clamp(4rem, 15vw, 14rem)",
-        width: "0.65em",
-        height: "1.05em",
+        fontSize: 'clamp(3rem, 8vw, 7rem)',
+        width: '0.65em',
+        height: '1.05em',
         backgroundColor: bgColor,
-        transformStyle: "preserve-3d",
-        transition: "background-color 0.15s ease",
+        transformStyle: 'preserve-3d',
+        transition: 'background-color 0.15s ease',
       }}
     >
       <div className="absolute inset-x-0 top-1/2 h-[1px] bg-black/20 pointer-events-none z-10" />
@@ -291,9 +311,9 @@ function SplitFlapChar({ char, index, animationKey, skipEntrance, speed, playCli
         className="absolute inset-x-0 top-0 bottom-1/2 origin-bottom overflow-hidden"
         style={{
           backgroundColor: bgColor,
-          transformStyle: "preserve-3d",
-          backfaceVisibility: "hidden",
-          transition: "background-color 0.15s ease",
+          transformStyle: 'preserve-3d',
+          backfaceVisibility: 'hidden',
+          transition: 'background-color 0.15s ease',
         }}
       >
         <div className="flex h-full items-end justify-center">
