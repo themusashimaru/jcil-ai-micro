@@ -24,6 +24,9 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { TOOL_REGISTRY, type ToolRegistryEntry, type ToolTier } from './registry';
+import { logger } from '@/lib/logger';
+
+const log = logger('ToolLoader');
 
 // ============================================================================
 // TYPES
@@ -646,8 +649,12 @@ export async function loadAvailableToolDefinitions(tiers?: ToolTier[]): Promise<
         if (!available) return null;
 
         return mod.tool;
-      } catch {
-        // Tool failed to load — skip it, don't crash the request
+      } catch (err) {
+        log.error('Tool failed to load — skipping', {
+          tool: entry.name,
+          file: entry.file,
+          error: err instanceof Error ? err.message : String(err),
+        });
         return null;
       }
     });

@@ -74,6 +74,11 @@ export async function POST(request: NextRequest) {
         const spreadsheetData = parseMarkdownToSpreadsheet(content, title);
         const xlsxBuffer = await generateSpreadsheetXlsx(spreadsheetData);
 
+        if (!xlsxBuffer || xlsxBuffer.length === 0) {
+          log.error('Excel generation produced empty buffer', { title });
+          return errors.serverError('Generated Excel file was empty. Please try again with different content.');
+        }
+
         // Generate unique filename
         const timestamp = Date.now();
         const sanitizedTitle = title
@@ -102,7 +107,7 @@ export async function POST(request: NextRequest) {
           : `documents/anonymous/${filename}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('generated-documents')
+          .from('documents')
           .upload(storagePath, xlsxBuffer, {
             contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             upsert: true,
@@ -125,7 +130,7 @@ export async function POST(request: NextRequest) {
 
         // Get signed URL
         const { data: signedData, error: signedError } = await supabase.storage
-          .from('generated-documents')
+          .from('documents')
           .createSignedUrl(storagePath, 3600);
 
         if (signedError || !signedData?.signedUrl) {
@@ -233,7 +238,9 @@ export async function POST(request: NextRequest) {
 
       try {
         generateInvoicePDF(doc, invoiceData);
-        log.info('Invoice PDF generated successfully');
+        log.info('Invoice PDF generated successfully', {
+          hasPlaceholders: invoiceData.companyName === '[Your Company Name]',
+        });
       } catch (pdfError) {
         log.error(
           'Invoice PDF generation error',
@@ -1141,6 +1148,11 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF buffer
     const pdfBuffer = doc.output('arraybuffer');
+
+    if (!pdfBuffer || pdfBuffer.byteLength === 0) {
+      log.error('PDF generation produced empty buffer', { title });
+      return errors.serverError('Generated PDF was empty. Please try again with different content.');
+    }
 
     // If Supabase is available and userId provided, upload for secure download
     if (supabase && userId) {

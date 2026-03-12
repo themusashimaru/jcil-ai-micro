@@ -66,9 +66,9 @@ export function StreamingCodeOutput({
   const activeFile = files[activeFileIndex];
 
   return (
-    <div className="my-3 rounded-lg overflow-hidden border bg-[#0d1117] border-[#30363d]">
+    <div className="my-3 rounded-lg overflow-hidden border bg-[var(--code-bg,#0d1117)] border-[var(--code-border,#30363d)]">
       {/* Header with progress */}
-      <div className="flex items-center justify-between px-3 py-2 border-b bg-purple-500/10 border-[#30363d]">
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-purple-500/10 border-[var(--code-border,#30363d)]">
         <div className="flex items-center gap-2">
           {isStreaming ? (
             <svg
@@ -123,7 +123,7 @@ export function StreamingCodeOutput({
 
       {/* File tabs */}
       {files.length > 1 && (
-        <div className="flex overflow-x-auto border-b bg-[#161b22] border-[#30363d]">
+        <div className="flex overflow-x-auto border-b bg-[var(--surface-elevated,#161b22)] border-[var(--code-border,#30363d)]">
           {files.map((file, index) => (
             <button
               key={file.filename}
@@ -150,7 +150,7 @@ export function StreamingCodeOutput({
         <div ref={scrollRef} className="overflow-auto max-h-[400px]">
           <div className="flex">
             {/* Line numbers */}
-            <div className="select-none text-right pr-3 py-2 text-xs bg-[#161b22] text-[#484f58] min-w-[3rem]">
+            <div className="select-none text-right pr-3 py-2 text-xs bg-[var(--surface-elevated,#161b22)] text-[#484f58] min-w-[3rem]">
               {activeFile.content.split('\n').map((_, i) => (
                 <div key={i} className="leading-6">
                   {i + 1}
@@ -172,7 +172,7 @@ export function StreamingCodeOutput({
       )}
 
       {/* Status footer */}
-      <div className="px-3 py-1.5 text-xs border-t bg-[#161b22] border-[#30363d]">
+      <div className="px-3 py-1.5 text-xs border-t bg-[var(--surface-elevated,#161b22)] border-[var(--code-border,#30363d)]">
         {isStreaming ? (
           <span className="text-purple-400">Writing {activeFile?.filename || 'file'}...</span>
         ) : (

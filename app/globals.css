@@ -83,6 +83,18 @@
   --surface-elevated: #111111;
   --border: rgba(255, 255, 255, 0.08);
 
+  /* Missing variable definitions — used by components */
+  --bg-primary: #000000;
+  --bg-tertiary: #1a1a1a;
+  --text-tertiary: #4b5563;
+  --input-bg: #111111;
+  --code-bg: #0d1117;
+  --code-border: #30363d;
+  --error: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+
   /* Chat-specific editorial colors */
   --chat-input-bg: #000000;
   --chat-user-bubble-bg: transparent;
@@ -129,6 +141,18 @@
   --surface: #ffffff;
   --surface-elevated: #ffffff;
   --border: rgba(0, 0, 0, 0.15);
+
+  /* Missing variable definitions — used by components */
+  --bg-primary: #ffffff;
+  --bg-tertiary: #f3f4f6;
+  --text-tertiary: #9ca3af;
+  --input-bg: #f5f5f5;
+  --code-bg: #f6f8fa;
+  --code-border: #d0d7de;
+  --error: #dc2626;
+  --success: #059669;
+  --warning: #d97706;
+  --info: #2563eb;
 
   /* Chat-specific light mode colors */
   --chat-input-bg: #f5f5f5; /* Light gray input box - visible against white background */
@@ -180,6 +204,18 @@
   --surface-elevated: #0a1424; /* Slightly elevated surface */
   --border: rgba(80, 160, 255, 0.15);
 
+  /* Missing variable definitions — used by components */
+  --bg-primary: #030810;
+  --bg-tertiary: #0a1424;
+  --text-tertiary: #5a7a9a;
+  --input-bg: #0a1424;
+  --code-bg: #050c18;
+  --code-border: rgba(80, 160, 255, 0.2);
+  --error: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+
   /* Chat-specific ocean mode colors - Deep Sea Glassmorphism */
   --chat-input-bg: #030810; /* Matches background for seamless blend */
   --chat-user-bubble-bg: transparent; /* No bubble for user messages */
@@ -223,6 +259,18 @@
   --surface: #1a1a1a;
   --surface-elevated: #000000; /* Black for elevated elements */
   --border: #444444;
+
+  /* Missing variable definitions — used by components */
+  --bg-primary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --text-tertiary: #666666;
+  --input-bg: #000000;
+  --code-bg: #000000;
+  --code-border: #444444;
+  --error: #f87171;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --info: #60a5fa;
 
   /* Chat styling - black input and bubbles on dark gray background */
   --chat-input-bg: #000000; /* Black input box */

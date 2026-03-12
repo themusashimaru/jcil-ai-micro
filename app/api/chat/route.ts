@@ -132,62 +132,73 @@ export async function POST(request: NextRequest) {
 
     const { userId, isAdmin, userPlanKey, customInstructions, supabase } = authResult;
 
-    // ── Context Loading (memory, learning, RAG) ──
+    // ── Context Loading (memory, learning, RAG) — parallel with timeout ──
     let memoryContext = '';
     let learningContext = '';
     let documentContext = '';
+    const contextFailures: string[] = [];
 
-    try {
-      const memory = await getMemoryContext(userId);
-      if (memory.loaded) {
-        memoryContext = memory.contextString;
-        log.debug('Loaded user memory', { userId });
-      }
-    } catch (error) {
-      log.warn('Failed to load user memory', error as Error);
+    // Extract last user message once (used by RAG and observeAndLearn)
+    const lastUserMsg = messages.filter((m: { role: string }) => m.role === 'user').pop();
+    const lastUserMsgText = lastUserMsg
+      ? typeof lastUserMsg.content === 'string'
+        ? lastUserMsg.content
+        : JSON.stringify(lastUserMsg.content)
+      : '';
+
+    // Helper: race a promise against a timeout
+    const withTimeout = <T>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+      Promise.race([
+        promise,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+        ),
+      ]);
+
+    const CONTEXT_TIMEOUT_MS = 3000; // 3s max per context source
+
+    // Load all contexts in parallel with individual timeouts
+    const [memoryResult, learningResult, docResult] = await Promise.allSettled([
+      withTimeout(getMemoryContext(userId), CONTEXT_TIMEOUT_MS, 'Memory'),
+      withTimeout(getLearningContext(userId), CONTEXT_TIMEOUT_MS, 'Learning'),
+      lastUserMsgText
+        ? withTimeout(
+            searchUserDocuments(userId, lastUserMsgText, { matchCount: 5 }),
+            CONTEXT_TIMEOUT_MS,
+            'RAG'
+          )
+        : Promise.resolve(null),
+    ]);
+
+    if (memoryResult.status === 'fulfilled' && memoryResult.value?.loaded) {
+      memoryContext = memoryResult.value.contextString;
+      log.debug('Loaded user memory', { userId });
+    } else if (memoryResult.status === 'rejected') {
+      log.warn('Failed to load user memory', { userId, error: (memoryResult.reason as Error).message });
+      contextFailures.push('saved memory');
     }
 
-    try {
-      const learning = await getLearningContext(userId);
-      if (learning.loaded) {
-        learningContext = learning.contextString;
-        log.debug('Loaded user learning', { userId, prefs: learning.preferences.length });
-      }
-    } catch (error) {
-      log.warn('Failed to load user learning', error as Error);
+    if (learningResult.status === 'fulfilled' && learningResult.value?.loaded) {
+      learningContext = learningResult.value.contextString;
+      log.debug('Loaded user learning', { userId });
+    } else if (learningResult.status === 'rejected') {
+      log.warn('Failed to load user learning', { userId, error: (learningResult.reason as Error).message });
+      contextFailures.push('learned preferences');
+    }
+
+    if (docResult.status === 'fulfilled' && docResult.value?.contextString) {
+      documentContext = docResult.value.contextString;
+      log.debug('Found relevant documents', { userId });
+    } else if (docResult.status === 'rejected') {
+      log.warn('Failed to search user documents', { userId, error: (docResult.reason as Error).message });
+      contextFailures.push('uploaded documents');
     }
 
     // Fire-and-forget: observe message for learning signals
-    const lastUserMsg = messages.filter((m: { role: string }) => m.role === 'user').pop();
-    if (lastUserMsg) {
-      const msgText =
-        typeof lastUserMsg.content === 'string'
-          ? lastUserMsg.content
-          : JSON.stringify(lastUserMsg.content);
-      observeAndLearn(userId, msgText).catch((err: unknown) =>
-        log.error('observeAndLearn failed', err instanceof Error ? err : undefined)
+    if (lastUserMsgText) {
+      observeAndLearn(userId, lastUserMsgText).catch((err: unknown) =>
+        log.error('observeAndLearn failed', { userId, error: err instanceof Error ? err.message : String(err) })
       );
-    }
-
-    // RAG document search
-    try {
-      const lastUserMessage = messages.filter((m) => m.role === 'user').pop();
-      if (lastUserMessage) {
-        const messageContent =
-          typeof lastUserMessage.content === 'string'
-            ? lastUserMessage.content
-            : JSON.stringify(lastUserMessage.content);
-        const docSearch = await searchUserDocuments(userId, messageContent, { matchCount: 5 });
-        if (docSearch.contextString) {
-          documentContext = docSearch.contextString;
-          log.debug('Found relevant documents', {
-            userId,
-            resultCount: docSearch.results.length,
-          });
-        }
-      }
-    } catch (error) {
-      log.warn('Failed to search user documents', error as Error);
     }
 
     // ── Rate Limiting & Quota ──
@@ -272,6 +283,9 @@ export async function POST(request: NextRequest) {
       isAuthenticated: true,
     };
 
+    // Note: slotAcquired is passed as current value. Slot release for non-streaming
+    // doc responses is handled here in route.ts. For streaming (resume conversation),
+    // the doc route manages it via ctx.slotAcquired + ctx.requestId.
     const docRouteCtx = {
       messages: messages as CoreMessage[],
       lastUserContent,
@@ -381,6 +395,7 @@ export async function POST(request: NextRequest) {
       documentContext,
       composioAddition: composioToolContext?.systemPromptAddition,
       deviceInfo,
+      contextFailures: contextFailures.length > 0 ? contextFailures : undefined,
     });
 
     log.debug('Available chat tools', { toolCount: tools.length });
@@ -447,15 +462,19 @@ export async function POST(request: NextRequest) {
     const useFullRouter = selectedProviderId === 'claude' || !!userApiKey;
 
     if (!useFullRouter) {
+      const response = handleNonClaudeProvider(streamConfig);
+      // Only mark as streaming after the handler returns successfully
       isStreamingResponse = true;
       slotAcquired = false;
-      return handleNonClaudeProvider(streamConfig);
+      return response;
     }
 
     // Full tool support for Claude and BYOK providers
+    const response = await handleClaudeProvider({ ...streamConfig, pendingRequestId });
+    // Only mark as streaming after the handler returns successfully
     isStreamingResponse = true;
     slotAcquired = false;
-    return await handleClaudeProvider({ ...streamConfig, pendingRequestId });
+    return response;
   } catch (error) {
     log.error('Unhandled chat error', error instanceof Error ? error : undefined);
     return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
@@ -471,10 +490,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ── Data Analytics Helper (kept inline — small, tightly coupled to request) ──
+// ── Data Analytics Helper (direct call — no HTTP self-fetch) ──
 async function tryDataAnalytics(
   lastUserContent: string,
-  request: NextRequest,
+  _request: NextRequest,
   slotAcquired: boolean,
   requestId: string
 ): Promise<Response | null> {
@@ -486,7 +505,6 @@ async function tryDataAnalytics(
     if (!spreadsheetMatch) return null;
 
     const fileName = spreadsheetMatch[2].trim();
-    const isCSV = fileName.toLowerCase().endsWith('.csv');
 
     const fileHeaderIndex = lastUserContent.indexOf(spreadsheetMatch[0]);
     const contentStart = lastUserContent.indexOf('\n\n', fileHeaderIndex);
@@ -515,24 +533,67 @@ async function tryDataAnalytics(
 
     log.info('Data analytics detected from embedded content', {
       fileName,
-      isCSV,
       contentLength: fileContent.length,
     });
 
-    const analyticsResponse = await fetch(new URL('/api/analytics', request.url).toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName,
-        fileType: isCSV ? 'text/csv' : 'text/tab-separated-values',
-        content: fileContent,
-      }),
+    // Direct call to analytics utils (avoids unreliable HTTP self-fetch in serverless)
+    const {
+      parseCSV,
+      detectColumnType,
+      parseValue,
+      calculateStats,
+      generateInsights,
+      generateCharts,
+      generateSuggestions,
+    } = await import('@/app/api/analytics/analytics-utils');
+    const { v4: uuidv4 } = await import('uuid');
+
+    const rows = parseCSV(fileContent);
+    if (rows.length < 2) return null;
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1);
+
+    const columns = headers.map((name: string, index: number) => {
+      const values = dataRows.map((row: string[]) => row[index] || '');
+      const type = detectColumnType(values);
+      const numericValues: number[] = [];
+      for (const val of values) {
+        const parsed = parseValue(val, type);
+        if (parsed !== null) numericValues.push(parsed);
+      }
+      return {
+        name: name || `Column ${index + 1}`,
+        type,
+        values,
+        numericValues,
+        stats: numericValues.length > 0 ? calculateStats(numericValues) : undefined,
+      };
     });
 
-    if (!analyticsResponse.ok) return null;
+    const insights = generateInsights(columns);
+    const charts = generateCharts(columns, dataRows);
+    const numericColNames = columns
+      .filter((c: { stats?: unknown }) => c.stats)
+      .map((c: { name: string }) => c.name)
+      .slice(0, 3)
+      .join(', ');
+    const summary = `Analyzed ${dataRows.length.toLocaleString()} records with ${columns.length} columns. ${
+      numericColNames ? `Key metrics: ${numericColNames}.` : ''
+    } ${charts.length > 0 ? `Generated ${charts.length} visualization(s).` : ''}`;
 
-    const { analytics } = await analyticsResponse.json();
-    if (!analytics) return null;
+    const analytics = {
+      id: uuidv4(),
+      filename: fileName,
+      summary,
+      insights,
+      charts,
+      rawDataPreview: dataRows.slice(0, 10),
+      totalRows: dataRows.length,
+      totalColumns: columns.length,
+      columnNames: headers,
+      suggestedQueries: generateSuggestions(columns),
+    };
 
     if (slotAcquired) {
       await releaseSlot(requestId);
@@ -567,7 +628,9 @@ async function tryDataAnalytics(
       }
     );
   } catch (error) {
-    log.debug('Analytics detection failed', { error });
+    log.warn('Analytics detection/processing failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }

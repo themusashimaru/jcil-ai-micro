@@ -221,6 +221,13 @@ export async function processDocumentMarkers(
       }
     } catch (qrError) {
       log.error('Error during QR generation:', qrError as Error);
+      const qrErrorMsg: Message = {
+        id: (Date.now() + 5).toString(),
+        role: 'assistant',
+        content: `Sorry, I couldn't generate the QR code due to a network error. Here's the data you can use: ${qrData}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, qrErrorMsg]);
     }
   }
 
@@ -253,6 +260,17 @@ export async function processDocumentMarkers(
       }
     } catch (docError) {
       log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);
+      // Strip the malformed marker so the user doesn't see raw JSON
+      const cleanedContent = content.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/gs, '').trim();
+      const fallbackContent = cleanedContent
+        ? `${cleanedContent}\n\nYour document was generated but the download link could not be processed. Please try again.`
+        : 'Your document was generated but the download link could not be processed. Please try again.';
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, content: fallbackContent } : msg
+        )
+      );
+      content = fallbackContent;
     }
   }
 

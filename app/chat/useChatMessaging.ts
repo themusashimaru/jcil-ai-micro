@@ -82,8 +82,18 @@ export function useChatMessaging({
           () => handleSendMessage(content, attachments, searchMode, selectedRepo),
           CONTINUATION_RETRY_DELAY_MS
         );
-      } catch {
+      } catch (err) {
+        log.error('Chat continuation failed', err instanceof Error ? err : undefined);
         setContinuationDismissed(true);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: 'This conversation has reached its limit and I was unable to continue automatically. Please start a new chat to continue.',
+            timestamp: new Date(),
+          },
+        ]);
       }
       return;
     }
@@ -144,8 +154,17 @@ export function useChatMessaging({
             },
           ]);
         }
-      } catch {
-        /* ok */
+      } catch (err) {
+        log.warn('Agent steering failed', { error: err instanceof Error ? err.message : String(err) });
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: 'I received your input but was unable to apply it to the current task. Please try again.',
+            timestamp: new Date(),
+          },
+        ]);
       }
       return;
     }
@@ -283,8 +302,13 @@ export function useChatMessaging({
 
       // Timeout: show a warning at 30s, abort at 3 minutes
       const slowWarningId = setTimeout(() => {
-        setMessages((prev) => prev.map((msg) => (msg.id === userMessageId ? msg : msg)));
-        // Show a transient status — doesn't replace content, just logs
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessageId && msg.isStreaming && !msg.content
+              ? { ...msg, content: '_Taking longer than usual... still working on your request._' }
+              : msg
+          )
+        );
         log.info('Response taking longer than expected', { chatId: newChatId });
       }, SLOW_RESPONSE_WARNING_MS);
 
@@ -527,8 +551,10 @@ export function useChatMessaging({
                         );
                       }
                     }
-                  } catch {
-                    /* partial SSE data */
+                  } catch (sseErr) {
+                    log.debug('SSE event parse error (may be partial data)', {
+                      error: sseErr instanceof Error ? sseErr.message : String(sseErr),
+                    });
                   }
                 }
               } else {
@@ -712,8 +738,11 @@ export function useChatMessaging({
               });
             }
           }
-        } catch {
-          /* title gen is best-effort */
+        } catch (titleErr) {
+          log.warn('Title generation failed (non-critical)', {
+            chatId: newChatId,
+            error: titleErr instanceof Error ? titleErr.message : String(titleErr),
+          });
         }
       }
     } catch (error) {
@@ -730,8 +759,11 @@ export function useChatMessaging({
         if (streamFinalContent) {
           try {
             await saveMessageToDatabase(newChatId, 'assistant', streamFinalContent, 'text');
-          } catch {
-            /* ok */
+          } catch (saveErr) {
+            log.warn('Failed to save partial response after abort', {
+              chatId: newChatId,
+              error: saveErr instanceof Error ? saveErr.message : String(saveErr),
+            });
           }
         }
         abortControllerRef.current = null;

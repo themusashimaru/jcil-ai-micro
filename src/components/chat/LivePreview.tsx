@@ -101,10 +101,21 @@ function createSandboxedHTML(code: string, isReact: boolean): string {
           React.createElement(ComponentToRender)
         );
       } else {
-        document.getElementById('root').innerHTML = '<p style="color: #f85149;">No React component found. Define a component named App, Component, Main, or Root.</p>';
+        var el = document.getElementById('root');
+        el.textContent = '';
+        var p = document.createElement('p');
+        p.style.color = '#f85149';
+        p.textContent = 'No React component found. Define a component named App, Component, Main, or Root.';
+        el.appendChild(p);
       }
     } catch (error) {
-      document.getElementById('root').innerHTML = '<pre style="color: #f85149; white-space: pre-wrap;">' + error.message + '</pre>';
+      var el = document.getElementById('root');
+      el.textContent = '';
+      var pre = document.createElement('pre');
+      pre.style.color = '#f85149';
+      pre.style.whiteSpace = 'pre-wrap';
+      pre.textContent = error.message;
+      el.appendChild(pre);
     }
   </script>
 </body>

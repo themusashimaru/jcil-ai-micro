@@ -520,13 +520,13 @@ Year 1 Revenue: $100K
       expect(data.data.filename).toMatch(/\.xlsx$/);
     });
 
-    it('should upload XLSX to Supabase generated-documents bucket', async () => {
+    it('should upload XLSX to Supabase documents bucket', async () => {
       await callPOST({
         content: '| A | B |\n| --- | --- |\n| 1 | 2 |',
         title: 'Data',
         format: 'xlsx',
       });
-      expect(mockStorageFrom).toHaveBeenCalledWith('generated-documents');
+      expect(mockStorageFrom).toHaveBeenCalledWith('documents');
       expect(mockStorageUpload).toHaveBeenCalled();
     });
 
@@ -734,13 +734,13 @@ Year 1 Revenue: $100K
       }
     });
 
-    it('should upload XLSX to generated-documents bucket, not documents bucket', async () => {
+    it('should upload XLSX to documents bucket consistently', async () => {
       await callPOST({
         content: '| Col1 |\n| --- |\n| Val1 |',
         title: 'Sheet',
         format: 'xlsx',
       });
-      expect(mockStorageFrom).toHaveBeenCalledWith('generated-documents');
+      expect(mockStorageFrom).toHaveBeenCalledWith('documents');
     });
 
     it('should use anonymous path when user is not authenticated for XLSX', async () => {

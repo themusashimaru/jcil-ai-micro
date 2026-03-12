@@ -166,7 +166,9 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
         userPlanKey = rawTier;
       }
       // Cache set failure is non-fatal
-      await setCachedUserData(user.id, isAdmin, userPlanKey).catch(() => {});
+      await setCachedUserData(user.id, isAdmin, userPlanKey).catch((err) =>
+        log.warn('Failed to cache user data in Redis (non-fatal)', { userId: user.id, error: err instanceof Error ? err.message : String(err) })
+      );
     }
 
     // CHAT-009: Load custom instructions from user settings

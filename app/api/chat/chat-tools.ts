@@ -306,13 +306,17 @@ export async function loadAllTools(
           if (!mcpToolNames.includes(toolName)) {
             mcpToolNames.push(toolName);
 
+            // Note: These tools from cold servers have placeholder schemas.
+            // The actual parameter schema is loaded when the server starts on-demand.
+            // We accept a JSON object as input; the server will validate at execution time.
             const anthropicTool = {
               name: toolName,
-              description: `[MCP: ${serverId}] ${tool.description || tool.name}`,
+              description: `[MCP: ${serverId}] ${tool.description || tool.name} (Server will start on first use — pass arguments as a JSON object)`,
               parameters: {
                 type: 'object' as const,
                 properties: {},
                 required: [],
+                additionalProperties: true,
               },
             };
             tools.push(anthropicTool as UnifiedTool);

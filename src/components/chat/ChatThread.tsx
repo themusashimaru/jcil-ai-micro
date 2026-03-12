@@ -144,7 +144,7 @@ export function ChatThread({
   if (isLoading) {
     return (
       <div className="flex-1 min-h-0 overflow-y-auto px-2 md:px-4">
-        <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl pt-16">
+        <div className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-2xl lg:max-w-3xl pt-16">
           <ThreadSkeleton messageCount={4} />
         </div>
       </div>
@@ -319,7 +319,7 @@ export function ChatThread({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 chat-bg-orbs relative"
+      className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 md:px-4 lg:px-8 chat-bg-orbs relative"
       role="region"
       aria-label="Conversation"
     >
@@ -335,7 +335,7 @@ export function ChatThread({
       )}
 
       <div
-        className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10"
+        className="mx-auto max-w-[95%] sm:max-w-lg md:max-w-2xl lg:max-w-3xl space-y-3 md:space-y-4 pt-16 pb-8 relative z-10"
         role="log"
         aria-label="Chat messages"
         aria-live="polite"
