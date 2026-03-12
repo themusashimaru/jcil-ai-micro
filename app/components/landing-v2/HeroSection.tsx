@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { ScrambleTextOnHover } from "./ScrambleText";
-import { SplitFlapText, SplitFlapMuteToggle, SplitFlapAudioProvider } from "./SplitFlapText";
-import { AnimatedNoise } from "./AnimatedNoise";
-import { BitmapChevron } from "./BitmapChevron";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef } from 'react';
+import { ScrambleTextOnHover } from './ScrambleText';
+import { SplitFlapText, SplitFlapMuteToggle, SplitFlapAudioProvider } from './SplitFlapText';
+import { AnimatedNoise } from './AnimatedNoise';
+import { BitmapChevron } from './BitmapChevron';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -23,8 +23,8 @@ export function HeroSection() {
         opacity: 0,
         scrollTrigger: {
           trigger: sectionRef.current,
-          start: "top top",
-          end: "bottom top",
+          start: 'top top',
+          end: 'bottom top',
           scrub: 1,
         },
       });
@@ -34,7 +34,11 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="hero" className="relative min-h-screen flex items-center pl-6 md:pl-28 pr-6 md:pr-12">
+    <section
+      ref={sectionRef}
+      id="hero"
+      className="relative min-h-screen flex items-center pt-16 pl-6 md:pl-28 pr-6 md:pr-12"
+    >
       <AnimatedNoise opacity={0.03} />
 
       {/* Left vertical labels */}
@@ -60,27 +64,35 @@ export function HeroSection() {
         </h2>
 
         <p className="mt-12 max-w-lg font-mono text-sm text-muted-foreground leading-relaxed">
-          51 real tools. 6 AI agents. Full IDE. 67+ integrations. Enterprise security. All grounded in Scripture.
-          This is AI that shares your values.
+          51 real tools. 6 AI agents. Full IDE. 67+ integrations. Enterprise security. All grounded
+          in Scripture. This is AI that shares your values.
         </p>
 
         {/* Stats row */}
         <div className="mt-10 flex flex-wrap gap-8 md:gap-12">
           <div>
             <span className="font-bebas text-4xl md:text-5xl text-accent">51</span>
-            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Real Tools</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+              Real Tools
+            </span>
           </div>
           <div>
             <span className="font-bebas text-4xl md:text-5xl text-accent">6</span>
-            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">AI Agents</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+              AI Agents
+            </span>
           </div>
           <div>
             <span className="font-bebas text-4xl md:text-5xl text-accent">67+</span>
-            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Integrations</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+              Integrations
+            </span>
           </div>
           <div>
             <span className="font-bebas text-4xl md:text-5xl text-accent">5</span>
-            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">LLM Providers</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+              LLM Providers
+            </span>
           </div>
         </div>
 
