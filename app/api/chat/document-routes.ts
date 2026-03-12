@@ -168,7 +168,18 @@ export async function handleExplicitDocumentGeneration(
     });
   } catch (error) {
     log.error('Document generation error', error as Error);
-    return null; // Fall through to regular chat
+    return new Response(
+      `I encountered an error while generating your ${explicitDocType.toUpperCase()} document. ` +
+        `Please try again — if the issue persists, try simplifying your request.\n\n` +
+        `_Error: ${error instanceof Error ? error.message : 'Unknown error'}_`,
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Document-Generated': 'false',
+          'X-Document-Error': 'true',
+        },
+      }
+    );
   }
 }
 
@@ -241,7 +252,18 @@ export async function handleResumeGeneration(ctx: DocRouteContext): Promise<Resp
     return await streamResumeConversation(ctx);
   } catch (error) {
     log.error('Resume generator error', error as Error);
-    return null;
+    return new Response(
+      `I encountered an error while generating your resume. ` +
+        `Please try again — if the issue persists, try providing the information in a different format.\n\n` +
+        `_Error: ${error instanceof Error ? error.message : 'Unknown error'}_`,
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Document-Generated': 'false',
+          'X-Document-Error': 'true',
+        },
+      }
+    );
   }
 }
 
@@ -666,7 +688,18 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
     });
   } catch (error) {
     log.error('Auto-detected document generation error', error as Error);
-    log.info('Falling back to regular chat after document generation failure');
-    return null;
+    // Return an error message to the user instead of silently falling through
+    return new Response(
+      `I tried to generate a document for you but encountered an error. ` +
+        `Please try again — you can also use the document buttons in the Tools menu for more reliable generation.\n\n` +
+        `_Error: ${error instanceof Error ? error.message : 'Unknown error'}_`,
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Document-Generated': 'false',
+          'X-Document-Error': 'true',
+        },
+      }
+    );
   }
 }

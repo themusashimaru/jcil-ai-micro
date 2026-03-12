@@ -270,6 +270,8 @@ export interface ContextSources {
   documentContext?: string;
   composioAddition?: string;
   deviceInfo?: DeviceInfo;
+  /** Context sources that failed to load (e.g., ['saved memory', 'learned preferences']) */
+  contextFailures?: string[];
 }
 
 /**
@@ -379,6 +381,12 @@ export function buildFullSystemPrompt(contexts: ContextSources): string {
         truncatedTo: estimateTokens(truncated),
       });
     }
+  }
+
+  // Context failure notice — lets the AI acknowledge degraded personalization
+  if (contexts.contextFailures && contexts.contextFailures.length > 0) {
+    const failureList = contexts.contextFailures.join(', ');
+    fullSystemPrompt += `\n\nNOTE: The following personalization sources could not be loaded for this request: ${failureList}. If the user references information from these sources, let them know there was a temporary issue loading that data and suggest they try again.`;
   }
 
   // Composio connected apps context

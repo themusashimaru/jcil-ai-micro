@@ -277,7 +277,9 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
               log.error('logTokenUsage failed (non-Claude)', err instanceof Error ? err : undefined)
             );
 
-            incrementTokenUsage(userId, userPlanKey, totalTokens).catch(() => {});
+            incrementTokenUsage(userId, userPlanKey, totalTokens).catch((err: unknown) =>
+              log.warn('Token increment failed (non-Claude)', { userId, tokens: totalTokens, error: err instanceof Error ? err.message : String(err) })
+            );
           } else if (chunk.type === 'error' && chunk.error) {
             log.error('Adapter stream error', {
               code: chunk.error.code,
@@ -425,7 +427,9 @@ export async function handleClaudeProvider(
         log.error('logTokenUsage failed', err instanceof Error ? err : undefined)
       );
 
-      incrementTokenUsage(userId, userPlanKey, totalTokens).catch(() => {});
+      incrementTokenUsage(userId, userPlanKey, totalTokens).catch((err: unknown) =>
+        log.warn('Token increment failed', { userId, tokens: totalTokens, error: err instanceof Error ? err.message : String(err) })
+      );
     },
   };
 
