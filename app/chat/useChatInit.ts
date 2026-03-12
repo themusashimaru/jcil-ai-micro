@@ -19,7 +19,6 @@ export function useChatInit(state: ChatState) {
     hasProfile,
     setShowFirstRun,
     setIsAdmin,
-    setConfiguredProviders,
     setSidebarCollapsed,
     abortControllerRef,
     pollingIntervalRef,
@@ -102,25 +101,6 @@ export function useChatInit(state: ChatState) {
     };
     checkAdminStatus();
   }, [setIsAdmin]);
-
-  // Fetch configured AI providers on mount
-  useEffect(() => {
-    const fetchProviders = async () => {
-      try {
-        const response = await fetch('/api/providers/status');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.configured && data.configured.length > 0) {
-            setConfiguredProviders(data.configured);
-          }
-        }
-      } catch (error) {
-        log.error('Error fetching provider status:', error as Error);
-        setConfiguredProviders(['claude']);
-      }
-    };
-    fetchProviders();
-  }, [setConfiguredProviders]);
 
   // Detect screen size and set initial sidebar state
   useEffect(() => {

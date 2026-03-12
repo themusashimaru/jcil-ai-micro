@@ -96,9 +96,6 @@ export function ChatMainArea({
     setOpenEditImage,
     conversationLoadError,
     messagesLoading,
-    selectedProvider,
-    setSelectedProvider,
-    configuredProviders,
     modes,
   } = state;
 
@@ -247,7 +244,6 @@ export function ChatMainArea({
             replyingTo={replyingTo}
             onClearReply={handleClearReply}
             initialText={quickPromptText}
-            isAdmin={isAdmin}
             activeAgent={getActiveAgent(modes)}
             strategyLoading={state.modes.strategy.loading}
             deepResearchLoading={state.modes['deep-research'].loading}
@@ -274,9 +270,6 @@ export function ChatMainArea({
               if (mode === 'create-image') setQuickPromptText('Create an image of ');
               else if (mode === 'edit-image') setQuickPromptText('Edit this image: ');
             }}
-            selectedProvider={selectedProvider}
-            onProviderChange={setSelectedProvider}
-            configuredProviders={configuredProviders}
             conversationId={currentChatId || undefined}
             onImageGenerated={handleImageGenerated}
           />
