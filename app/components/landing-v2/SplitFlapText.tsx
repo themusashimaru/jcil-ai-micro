@@ -207,8 +207,10 @@ function SplitFlapChar({
 
   const tileDelay = 0.15 * index;
 
-  const bgColor = isSettled ? 'hsl(0, 0%, 0%)' : 'rgba(249, 115, 22, 0.2)';
-  const textColor = isSettled ? '#ffffff' : '#f97316';
+  const bgColor = isSettled
+    ? 'var(--background, #000)'
+    : 'color-mix(in srgb, var(--accent, #f97316) 20%, transparent)';
+  const textColor = isSettled ? 'var(--foreground, #fff)' : 'var(--accent, #f97316)';
 
   useEffect(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -275,6 +277,7 @@ function SplitFlapChar({
         width: '0.65em',
         height: '1.05em',
         backgroundColor: bgColor,
+        border: '1px solid var(--border, rgba(255,255,255,0.08))',
         transformStyle: 'preserve-3d',
         transition: 'background-color 0.15s ease',
       }}

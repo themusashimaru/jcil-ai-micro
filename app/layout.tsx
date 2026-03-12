@@ -115,7 +115,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ colorScheme: 'dark', backgroundColor: '#000' }}>
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -153,7 +153,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased bg-background text-text-primary">
+      <body
+        className="antialiased bg-background text-text-primary"
+        style={{ backgroundColor: '#000', color: '#fff' }}
+      >
         <a href="#main-content" className="skip-to-content">
           Skip to main content
         </a>

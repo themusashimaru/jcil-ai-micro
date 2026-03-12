@@ -61,6 +61,7 @@
 
 /* Dark / Editorial theme (default) — matches landing page aesthetic */
 :root {
+  color-scheme: dark;
   --font-bebas: 'Bebas Neue', Impact, sans-serif;
   --font-ibm-plex-mono: 'IBM Plex Mono', monospace;
   --background: #000000;
@@ -149,6 +150,13 @@
   --carousel-icon-color: #ffffff;
   --carousel-text: #ffffff;
   --carousel-text-muted: rgba(255, 255, 255, 0.7);
+
+  /* Landing v2 design tokens — must be defined for theme consistency */
+  --accent: #1e3a5f;
+  --accent-foreground: #ffffff;
+  --muted-foreground: #4b5563;
+  --card: #f3f4f6;
+  --card-foreground: #1a1a1a;
 }
 
 /* Ocean theme - Ultra deep navy blue glassmorphism */
@@ -1712,12 +1720,12 @@
 }
 
 /* Editorial sidebar — sharp, mono typography */
-:root.editorial-mode aside[role="navigation"] {
+:root.editorial-mode aside[role='navigation'] {
   border-radius: 0 !important;
 }
 
-:root.editorial-mode aside[role="navigation"] h2,
-:root.editorial-mode aside[role="navigation"] h3 {
+:root.editorial-mode aside[role='navigation'] h2,
+:root.editorial-mode aside[role='navigation'] h3 {
   font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 9px;
   text-transform: uppercase;
@@ -1725,17 +1733,17 @@
   color: var(--muted-foreground);
 }
 
-:root.editorial-mode aside[role="navigation"] button {
+:root.editorial-mode aside[role='navigation'] button {
   border-radius: 0 !important;
 }
 
-:root.editorial-mode aside[role="navigation"] input {
+:root.editorial-mode aside[role='navigation'] input {
   border-radius: 0 !important;
   font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 11px;
 }
 
-:root.editorial-mode aside[role="navigation"] .new-chat-btn {
+:root.editorial-mode aside[role='navigation'] .new-chat-btn {
   font-family: var(--font-ibm-plex-mono), monospace;
   font-size: 10px;
   text-transform: uppercase;
@@ -1778,8 +1786,13 @@
 }
 
 @keyframes editorial-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Editorial corner accent decoration */
@@ -1811,11 +1824,18 @@
    LANDING V2 — Editorial / brutalist design styles
    ============================================================ */
 
-/* Subtle grid background */
+/* Subtle grid background — uses foreground color for theme compatibility */
 .grid-bg {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(
+      color-mix(in srgb, var(--foreground, #fff) 3%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--foreground, #fff) 3%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 60px 60px;
 }
 
