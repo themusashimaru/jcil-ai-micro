@@ -118,16 +118,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const {
-      messages,
-      temperature,
-      max_tokens,
-      searchMode,
-      conversationId,
-      provider,
-      thinking,
-      deviceInfo,
-    } = validation.data;
+    const { messages, temperature, max_tokens, searchMode, conversationId, thinking, deviceInfo } =
+      validation.data;
 
     // ── Authentication + CSRF ──
     const authResult = await authenticateRequest(request);
@@ -393,12 +385,12 @@ export async function POST(request: NextRequest) {
 
     log.debug('Available chat tools', { toolCount: tools.length });
 
-    // Resolve provider — all messages use Sonnet 4.6 by default
+    // Main chat always uses Claude — provider selection is only available in Code Lab via BYOK
     const {
       selectedModel: resolvedModel,
       selectedProviderId,
       error: providerError,
-    } = resolveProvider(provider, userPlanKey);
+    } = resolveProvider('claude', userPlanKey);
     if (providerError) return providerError;
 
     // BYOK: Check if user has their own API key for the selected provider
@@ -434,7 +426,7 @@ export async function POST(request: NextRequest) {
       toolExecutor,
       selectedModel,
       selectedProviderId,
-      provider,
+      provider: 'claude' as const,
       temperature,
       maxTokens: clampedMaxTokens,
       thinking,

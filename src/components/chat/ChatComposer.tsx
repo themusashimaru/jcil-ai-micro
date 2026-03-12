@@ -16,7 +16,6 @@ import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useToastActions } from '@/components/ui/Toast';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { type CreativeMode } from './CreativeButton';
-import type { ProviderId } from '@/lib/ai/providers';
 import { ComposerAttachmentPreview } from './ComposerAttachmentPreview';
 import { ComposerAttachmentMenu } from './ComposerAttachmentMenu';
 import { useFileUpload } from './useFileUpload';
@@ -52,7 +51,6 @@ interface ChatComposerProps {
   replyingTo?: Message | null;
   onClearReply?: () => void;
   initialText?: string;
-  isAdmin?: boolean;
   activeAgent?:
     | 'research'
     | 'strategy'
@@ -85,9 +83,6 @@ interface ChatComposerProps {
   onCreativeMode?: (mode: 'create-image' | 'edit-image' | 'view-gallery') => void;
   conversationId?: string;
   onImageGenerated?: (image: GeneratedImage) => void;
-  selectedProvider?: ProviderId;
-  onProviderChange?: (provider: ProviderId) => void;
-  configuredProviders?: ProviderId[];
 }
 
 export const ChatComposer = memo(function ChatComposer({
@@ -98,7 +93,6 @@ export const ChatComposer = memo(function ChatComposer({
   replyingTo,
   onClearReply,
   initialText,
-  isAdmin,
   activeAgent,
   onAgentSelect,
   strategyLoading,
@@ -114,9 +108,6 @@ export const ChatComposer = memo(function ChatComposer({
   onCreativeMode,
   conversationId,
   onImageGenerated,
-  selectedProvider = 'claude',
-  onProviderChange,
-  configuredProviders = ['claude'],
 }: ChatComposerProps) {
   const codeExecution = useCodeExecutionOptional();
   const selectedRepo = codeExecution?.selectedRepo;
@@ -143,7 +134,6 @@ export const ChatComposer = memo(function ChatComposer({
   const [isMounted, setIsMounted] = useState(false);
   const [showAgentsMenu, setShowAgentsMenu] = useState(false);
   const agentsButtonRef = useRef<HTMLButtonElement>(null);
-  const [showProviderMenu, setShowProviderMenu] = useState(false);
   const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
   const [showCreateImageModal, setShowCreateImageModal] = useState(false);
   const [showEditImageModal, setShowEditImageModal] = useState(false);
@@ -329,7 +319,6 @@ export const ChatComposer = memo(function ChatComposer({
           <ComposerActionBar
             isStreaming={isStreaming}
             disabled={disabled}
-            isAdmin={isAdmin}
             toolMode={toolMode}
             onClearToolMode={() => setToolMode('none')}
             activeAgent={activeAgent}
@@ -338,17 +327,11 @@ export const ChatComposer = memo(function ChatComposer({
             deepResearchLoading={deepResearchLoading}
             deepWriterLoading={deepWriterLoading}
             quickWriterLoading={quickWriterLoading}
-            selectedProvider={selectedProvider}
-            onProviderChange={onProviderChange}
-            configuredProviders={configuredProviders}
             onToggleAttachMenu={() => setShowAttachMenu(!showAttachMenu)}
             showAgentsMenu={showAgentsMenu}
             onToggleAgentsMenu={() => setShowAgentsMenu(!showAgentsMenu)}
             onCloseAgentsMenu={() => setShowAgentsMenu(false)}
             agentsButtonRef={agentsButtonRef}
-            showProviderMenu={showProviderMenu}
-            onToggleProviderMenu={() => setShowProviderMenu(!showProviderMenu)}
-            onCloseProviderMenu={() => setShowProviderMenu(false)}
             cameraInputRef={cameraInputRef}
             photoInputRef={photoInputRef}
             fileInputRef={fileInputRef}

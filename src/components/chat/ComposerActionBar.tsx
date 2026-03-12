@@ -1,11 +1,9 @@
 'use client';
 
 import { RefObject } from 'react';
-import type { ProviderId } from '@/lib/ai/providers';
 import { useTheme } from '@/contexts/ThemeContext';
 import { CreativeButton, type CreativeMode } from './CreativeButton';
 import { ComposerAgentsMenu } from './ComposerAgentsMenu';
-import { ComposerProviderMenu } from './ComposerProviderMenu';
 import type { ToolMode } from './ChatComposer';
 
 export const TOOL_MODE_INFO: Record<string, { label: string; color: string }> = {
@@ -17,7 +15,6 @@ export const TOOL_MODE_INFO: Record<string, { label: string; color: string }> = 
 interface ComposerActionBarProps {
   isStreaming: boolean;
   disabled?: boolean;
-  isAdmin?: boolean;
   toolMode: ToolMode;
   onClearToolMode: () => void;
   activeAgent?:
@@ -43,17 +40,11 @@ interface ComposerActionBarProps {
   deepResearchLoading?: boolean;
   deepWriterLoading?: boolean;
   quickWriterLoading?: boolean;
-  selectedProvider?: ProviderId;
-  onProviderChange?: (provider: ProviderId) => void;
-  configuredProviders?: ProviderId[];
   onToggleAttachMenu: () => void;
   showAgentsMenu: boolean;
   onToggleAgentsMenu: () => void;
   onCloseAgentsMenu: () => void;
   agentsButtonRef: RefObject<HTMLButtonElement>;
-  showProviderMenu: boolean;
-  onToggleProviderMenu: () => void;
-  onCloseProviderMenu: () => void;
   cameraInputRef: RefObject<HTMLInputElement>;
   photoInputRef: RefObject<HTMLInputElement>;
   fileInputRef: RefObject<HTMLInputElement>;
@@ -73,7 +64,6 @@ interface ComposerActionBarProps {
 export function ComposerActionBar({
   isStreaming,
   disabled,
-  isAdmin,
   toolMode,
   onClearToolMode,
   activeAgent,
@@ -82,17 +72,11 @@ export function ComposerActionBar({
   deepResearchLoading,
   deepWriterLoading,
   quickWriterLoading,
-  selectedProvider = 'claude',
-  onProviderChange,
-  configuredProviders = ['claude'],
   onToggleAttachMenu,
   showAgentsMenu,
   onToggleAgentsMenu,
   onCloseAgentsMenu,
   agentsButtonRef,
-  showProviderMenu,
-  onToggleProviderMenu,
-  onCloseProviderMenu,
   cameraInputRef,
   photoInputRef,
   fileInputRef,
@@ -157,20 +141,6 @@ export function ComposerActionBar({
             />
           </svg>
         </button>
-
-        {/* AI Provider selector - admin only */}
-        {isAdmin && onProviderChange && (
-          <ComposerProviderMenu
-            isOpen={showProviderMenu}
-            onToggle={onToggleProviderMenu}
-            onClose={onCloseProviderMenu}
-            selectedProvider={selectedProvider}
-            onProviderChange={onProviderChange}
-            configuredProviders={configuredProviders}
-            isStreaming={isStreaming}
-            disabled={disabled}
-          />
-        )}
 
         {/* Active tool mode indicator */}
         {toolMode !== 'none' && toolMode !== 'research' && toolInfo && (
