@@ -221,6 +221,13 @@ export async function processDocumentMarkers(
       }
     } catch (qrError) {
       log.error('Error during QR generation:', qrError as Error);
+      const qrErrorMsg: Message = {
+        id: (Date.now() + 5).toString(),
+        role: 'assistant',
+        content: `Sorry, I couldn't generate the QR code due to a network error. Here's the data you can use: ${qrData}`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, qrErrorMsg]);
     }
   }
 

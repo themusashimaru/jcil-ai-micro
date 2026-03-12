@@ -102,8 +102,11 @@ export function useAgentOperations({
       if (!mode.sessionId) return;
       try {
         await fetch(`/api/strategy?sessionId=${mode.sessionId}`, { method: 'DELETE' });
-      } catch {
-        /* ok */
+      } catch (err) {
+        log.warn('Failed to cancel agent session (non-critical)', {
+          sessionId: mode.sessionId,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
       setMessages((prev) => [
         ...prev,
@@ -128,8 +131,12 @@ export function useAgentOperations({
       if (mode.isActive && mode.sessionId) {
         try {
           await fetch(`/api/strategy?sessionId=${mode.sessionId}`, { method: 'DELETE' });
-        } catch {
-          /* ok */
+        } catch (err) {
+          log.warn('Failed to cleanup agent session', {
+            modeId: id,
+            sessionId: mode.sessionId,
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       }
       mode.reset();
