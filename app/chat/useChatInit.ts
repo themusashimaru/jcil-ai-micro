@@ -62,7 +62,11 @@ export function useChatInit(state: ChatState) {
 
   // First-run onboarding check
   useEffect(() => {
-    if (localStorage.getItem('jcil-first-run-completed') === 'true') return;
+    try {
+      if (localStorage.getItem('jcil-first-run-completed') === 'true') return;
+    } catch {
+      // localStorage may be unavailable in private browsing — proceed with API check
+    }
 
     const checkFirstRun = async () => {
       try {
@@ -72,7 +76,11 @@ export function useChatInit(state: ChatState) {
           if (!data.settings?.first_run_completed) {
             setShowFirstRun(true);
           } else {
-            localStorage.setItem('jcil-first-run-completed', 'true');
+            try {
+              localStorage.setItem('jcil-first-run-completed', 'true');
+            } catch {
+              // localStorage unavailable — skip caching
+            }
           }
         }
       } catch {
