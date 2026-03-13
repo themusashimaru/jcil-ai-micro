@@ -715,23 +715,35 @@ describe('chat-tools', () => {
       expect(ctx.hasGmail).toBe(true);
     });
 
-    it('detects Outlook connection and sets hasOutlook', async () => {
+    it('detects Outlook connection and sets hasOutlook when tools load', async () => {
       mockIsComposioConfigured.mockReturnValue(true);
       mockGetConnectedAccounts.mockResolvedValue([
         { id: '1', toolkit: 'microsoft_outlook', status: 'connected' },
       ]);
-      mockGetAvailableTools.mockResolvedValue([]);
+      mockGetAvailableTools.mockResolvedValue([
+        {
+          name: 'OUTLOOK_SEND_EMAIL',
+          description: 'Send email',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
 
       const ctx = await getComposioToolsForUser('user-1');
       expect(ctx.hasOutlook).toBe(true);
     });
 
-    it('detects Slack connection and sets hasSlack', async () => {
+    it('detects Slack connection and sets hasSlack when tools load', async () => {
       mockIsComposioConfigured.mockReturnValue(true);
       mockGetConnectedAccounts.mockResolvedValue([
         { id: '1', toolkit: 'slack', status: 'connected' },
       ]);
-      mockGetAvailableTools.mockResolvedValue([]);
+      mockGetAvailableTools.mockResolvedValue([
+        {
+          name: 'SLACK_SEND_MESSAGE',
+          description: 'Send message',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
 
       const ctx = await getComposioToolsForUser('user-1');
       expect(ctx.hasSlack).toBe(true);
@@ -775,7 +787,9 @@ describe('chat-tools', () => {
 
       const ctx = await getComposioToolsForUser('user-1');
       expect(ctx.connectedApps).toContain('github');
-      expect(ctx.hasGitHub).toBe(true);
+      // hasGitHub is false because tools failed to load — this is the correct
+      // behavior so Claude doesn't promise GitHub capabilities it can't deliver
+      expect(ctx.hasGitHub).toBe(false);
       expect(ctx.tools).toEqual([]);
     });
 
