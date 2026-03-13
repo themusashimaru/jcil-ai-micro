@@ -491,7 +491,7 @@ interface ToolkitIntegration {
 }
 
 // Default cap for non-toolkit-specific Composio tools per session
-const MAX_COMPOSIO_TOOLS_DEFAULT = 50;
+const MAX_COMPOSIO_TOOLS_DEFAULT = 500;
 
 /**
  * All supported toolkit integrations.
@@ -499,11 +499,14 @@ const MAX_COMPOSIO_TOOLS_DEFAULT = 50;
  */
 const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
   // ==================== ORIGINAL 4 ====================
+  // Caps set to 500 (effectively unlimited) — each toolkit gets ALL its tools.
+  // Composio returns however many actions the toolkit has.
+  // Sonnet 4.6 handles large tool sets fine; extra schemas are ~2-3K tokens.
   {
     id: 'GITHUB',
     displayName: 'GitHub',
     prefix: 'composio_GITHUB_',
-    cap: 100,
+    cap: 500,
     appMatchers: ['github'],
     sortFn: sortByGitHubPriority,
     systemPromptFn: getGitHubSystemPrompt,
@@ -514,7 +517,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GMAIL',
     displayName: 'Gmail',
     prefix: 'composio_GMAIL_',
-    cap: 40,
+    cap: 500,
     appMatchers: ['gmail'],
     sortFn: sortByGmailPriority,
     systemPromptFn: getGmailSystemPrompt,
@@ -525,7 +528,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'MICROSOFT_OUTLOOK',
     displayName: 'Outlook',
     prefix: 'composio_OUTLOOK_',
-    cap: 64,
+    cap: 500,
     appMatchers: ['microsoftoutlook', 'outlook'],
     sortFn: sortByOutlookPriority,
     systemPromptFn: getOutlookSystemPrompt,
@@ -536,7 +539,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SLACK',
     displayName: 'Slack',
     prefix: 'composio_SLACK_',
-    cap: 80,
+    cap: 500,
     appMatchers: ['slack'],
     sortFn: sortBySlackPriority,
     systemPromptFn: getSlackSystemPrompt,
@@ -549,7 +552,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_SHEETS',
     displayName: 'Google Sheets',
     prefix: 'composio_GOOGLESHEETS_',
-    cap: 44,
+    cap: 500,
     appMatchers: ['googlesheets'],
     sortFn: sortByGoogleSheetsPriority,
     systemPromptFn: getGoogleSheetsSystemPrompt,
@@ -560,7 +563,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'DISCORD',
     displayName: 'Discord',
     prefix: 'composio_DISCORD_',
-    cap: 15,
+    cap: 500,
     appMatchers: ['discord'],
     sortFn: sortByDiscordPriority,
     systemPromptFn: getDiscordSystemPrompt,
@@ -571,7 +574,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_DOCS',
     displayName: 'Google Docs',
     prefix: 'composio_GOOGLEDOCS_',
-    cap: 35,
+    cap: 500,
     appMatchers: ['googledocs'],
     sortFn: sortByGoogleDocsPriority,
     systemPromptFn: getGoogleDocsSystemPrompt,
@@ -582,7 +585,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TWITTER',
     displayName: 'Twitter/X',
     prefix: 'composio_TWITTER_',
-    cap: 75,
+    cap: 500,
     appMatchers: ['twitter', 'twitterx', 'x'],
     sortFn: sortByTwitterPriority,
     systemPromptFn: getTwitterSystemPrompt,
@@ -593,7 +596,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'LINKEDIN',
     displayName: 'LinkedIn',
     prefix: 'composio_LINKEDIN_',
-    cap: 11,
+    cap: 500,
     appMatchers: ['linkedin'],
     sortFn: sortByLinkedInPriority,
     systemPromptFn: getLinkedInSystemPrompt,
@@ -604,7 +607,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'INSTAGRAM',
     displayName: 'Instagram',
     prefix: 'composio_INSTAGRAM_',
-    cap: 32,
+    cap: 500,
     appMatchers: ['instagram'],
     sortFn: sortByInstagramPriority,
     systemPromptFn: getInstagramSystemPrompt,
@@ -615,7 +618,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'YOUTUBE',
     displayName: 'YouTube',
     prefix: 'composio_YOUTUBE_',
-    cap: 24,
+    cap: 500,
     appMatchers: ['youtube'],
     sortFn: sortByYouTubePriority,
     systemPromptFn: getYouTubeSystemPrompt,
@@ -626,7 +629,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'VERCEL',
     displayName: 'Vercel',
     prefix: 'composio_VERCEL_',
-    cap: 50,
+    cap: 500,
     appMatchers: ['vercel'],
     sortFn: sortByVercelPriority,
     systemPromptFn: getVercelSystemPrompt,
@@ -637,7 +640,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'STRIPE',
     displayName: 'Stripe',
     prefix: 'composio_STRIPE_',
-    cap: 80,
+    cap: 500,
     appMatchers: ['stripe'],
     sortFn: sortByStripePriority,
     systemPromptFn: getStripeSystemPrompt,
@@ -648,7 +651,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_DRIVE',
     displayName: 'Google Drive',
     prefix: 'composio_GOOGLEDRIVE_',
-    cap: 59,
+    cap: 500,
     appMatchers: ['googledrive'],
     sortFn: sortByGoogleDrivePriority,
     systemPromptFn: getGoogleDriveSystemPrompt,
@@ -659,7 +662,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'AIRTABLE',
     displayName: 'Airtable',
     prefix: 'composio_AIRTABLE_',
-    cap: 26,
+    cap: 500,
     appMatchers: ['airtable'],
     sortFn: sortByAirtablePriority,
     systemPromptFn: getAirtableSystemPrompt,
@@ -672,7 +675,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'MICROSOFT_TEAMS',
     displayName: 'Microsoft Teams',
     prefix: 'composio_MICROSOFTTEAMS_',
-    cap: 40,
+    cap: 500,
     appMatchers: ['microsoftteams', 'msteams', 'teams'],
     sortFn: sortByMicrosoftTeamsPriority,
     systemPromptFn: getMicrosoftTeamsSystemPrompt,
@@ -683,7 +686,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'LINEAR',
     displayName: 'Linear',
     prefix: 'composio_LINEAR_',
-    cap: 45,
+    cap: 500,
     appMatchers: ['linear'],
     sortFn: sortByLinearPriority,
     systemPromptFn: getLinearSystemPrompt,
@@ -694,7 +697,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_CALENDAR',
     displayName: 'Google Calendar',
     prefix: 'composio_GOOGLECALENDAR_',
-    cap: 30,
+    cap: 500,
     appMatchers: ['googlecalendar'],
     sortFn: sortByGoogleCalendarPriority,
     systemPromptFn: getGoogleCalendarSystemPrompt,
@@ -705,7 +708,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'HUBSPOT',
     displayName: 'HubSpot',
     prefix: 'composio_HUBSPOT_',
-    cap: 45,
+    cap: 500,
     appMatchers: ['hubspot'],
     sortFn: sortByHubSpotPriority,
     systemPromptFn: getHubSpotSystemPrompt,
@@ -716,7 +719,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SALESFORCE',
     displayName: 'Salesforce',
     prefix: 'composio_SALESFORCE_',
-    cap: 45,
+    cap: 500,
     appMatchers: ['salesforce'],
     sortFn: sortBySalesforcePriority,
     systemPromptFn: getSalesforceSystemPrompt,
@@ -727,7 +730,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SENTRY',
     displayName: 'Sentry',
     prefix: 'composio_SENTRY_',
-    cap: 30,
+    cap: 500,
     appMatchers: ['sentry'],
     sortFn: sortBySentryPriority,
     systemPromptFn: getSentrySystemPrompt,
@@ -738,7 +741,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SUPABASE',
     displayName: 'Supabase',
     prefix: 'composio_SUPABASE_',
-    cap: 30,
+    cap: 500,
     appMatchers: ['supabase'],
     sortFn: sortBySupabasePriority,
     systemPromptFn: getSupabaseSystemPrompt,
@@ -749,7 +752,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'CLOUDFLARE',
     displayName: 'Cloudflare',
     prefix: 'composio_CLOUDFLARE_',
-    cap: 30,
+    cap: 500,
     appMatchers: ['cloudflare'],
     sortFn: sortByCloudflarePriority,
     systemPromptFn: getCloudflareSystemPrompt,
@@ -760,7 +763,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'REDDIT',
     displayName: 'Reddit',
     prefix: 'composio_REDDIT_',
-    cap: 28,
+    cap: 500,
     appMatchers: ['reddit'],
     sortFn: sortByRedditPriority,
     systemPromptFn: getRedditSystemPrompt,
@@ -771,7 +774,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SHOPIFY',
     displayName: 'Shopify',
     prefix: 'composio_SHOPIFY_',
-    cap: 40,
+    cap: 500,
     appMatchers: ['shopify'],
     sortFn: sortByShopifyPriority,
     systemPromptFn: getShopifySystemPrompt,
@@ -782,7 +785,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_SLIDES',
     displayName: 'Google Slides',
     prefix: 'composio_GOOGLESLIDES_',
-    cap: 22,
+    cap: 500,
     appMatchers: ['googleslides'],
     sortFn: sortByGoogleSlidesPriority,
     systemPromptFn: getGoogleSlidesSystemPrompt,
@@ -793,7 +796,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_TASKS',
     displayName: 'Google Tasks',
     prefix: 'composio_GOOGLETASKS_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['googletasks'],
     sortFn: sortByGoogleTasksPriority,
     systemPromptFn: getGoogleTasksSystemPrompt,
@@ -804,7 +807,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_MEET',
     displayName: 'Google Meet',
     prefix: 'composio_GOOGLEMEET_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['googlemeet'],
     sortFn: sortByGoogleMeetPriority,
     systemPromptFn: getGoogleMeetSystemPrompt,
@@ -815,7 +818,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_PHOTOS',
     displayName: 'Google Photos',
     prefix: 'composio_GOOGLEPHOTOS_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['googlephotos'],
     sortFn: sortByGooglePhotosPriority,
     systemPromptFn: getGooglePhotosSystemPrompt,
@@ -826,7 +829,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_ANALYTICS',
     displayName: 'Google Analytics',
     prefix: 'composio_GOOGLEANALYTICS_',
-    cap: 20,
+    cap: 500,
     appMatchers: ['googleanalytics'],
     sortFn: sortByGoogleAnalyticsPriority,
     systemPromptFn: getGoogleAnalyticsSystemPrompt,
@@ -837,7 +840,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_SEARCH_CONSOLE',
     displayName: 'Google Search Console',
     prefix: 'composio_GOOGLESEARCHCONSOLE_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['googlesearchconsole'],
     sortFn: sortByGoogleSearchConsolePriority,
     systemPromptFn: getGoogleSearchConsoleSystemPrompt,
@@ -848,7 +851,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_ADS',
     displayName: 'Google Ads',
     prefix: 'composio_GOOGLEADS_',
-    cap: 24,
+    cap: 500,
     appMatchers: ['googleads'],
     sortFn: sortByGoogleAdsPriority,
     systemPromptFn: getGoogleAdsSystemPrompt,
@@ -859,7 +862,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GOOGLE_MAPS',
     displayName: 'Google Maps',
     prefix: 'composio_GOOGLEMAPS_',
-    cap: 14,
+    cap: 500,
     appMatchers: ['googlemaps'],
     sortFn: sortByGoogleMapsPriority,
     systemPromptFn: getGoogleMapsSystemPrompt,
@@ -870,7 +873,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'DROPBOX',
     displayName: 'Dropbox',
     prefix: 'composio_DROPBOX_',
-    cap: 24,
+    cap: 500,
     appMatchers: ['dropbox'],
     sortFn: sortByDropboxPriority,
     systemPromptFn: getDropboxSystemPrompt,
@@ -881,7 +884,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'ELEVENLABS',
     displayName: 'ElevenLabs',
     prefix: 'composio_ELEVENLABS_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['elevenlabs'],
     sortFn: sortByElevenLabsPriority,
     systemPromptFn: getElevenLabsSystemPrompt,
@@ -892,7 +895,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SERPAPI',
     displayName: 'SerpAPI',
     prefix: 'composio_SERPAPI_',
-    cap: 14,
+    cap: 500,
     appMatchers: ['serpapi'],
     sortFn: sortBySerpAPIPriority,
     systemPromptFn: getSerpAPISystemPrompt,
@@ -903,7 +906,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'PERPLEXITY_AI',
     displayName: 'Perplexity AI',
     prefix: 'composio_PERPLEXITYAI_',
-    cap: 10,
+    cap: 500,
     appMatchers: ['perplexityai', 'perplexity'],
     sortFn: sortByPerplexityAIPriority,
     systemPromptFn: getPerplexityAISystemPrompt,
@@ -916,7 +919,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'NOTION',
     displayName: 'Notion',
     prefix: 'composio_NOTION_',
-    cap: 26,
+    cap: 500,
     appMatchers: ['notion'],
     sortFn: sortByNotionPriority,
     systemPromptFn: getNotionSystemPrompt,
@@ -927,7 +930,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'JIRA',
     displayName: 'Jira',
     prefix: 'composio_JIRA_',
-    cap: 38,
+    cap: 500,
     appMatchers: ['jira'],
     sortFn: sortByJiraPriority,
     systemPromptFn: getJiraSystemPrompt,
@@ -938,7 +941,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'ASANA',
     displayName: 'Asana',
     prefix: 'composio_ASANA_',
-    cap: 29,
+    cap: 500,
     appMatchers: ['asana'],
     sortFn: sortByAsanaPriority,
     systemPromptFn: getAsanaSystemPrompt,
@@ -949,7 +952,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'ZOOM',
     displayName: 'Zoom',
     prefix: 'composio_ZOOM_',
-    cap: 17,
+    cap: 500,
     appMatchers: ['zoom'],
     sortFn: sortByZoomPriority,
     systemPromptFn: getZoomSystemPrompt,
@@ -960,7 +963,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TRELLO',
     displayName: 'Trello',
     prefix: 'composio_TRELLO_',
-    cap: 29,
+    cap: 500,
     appMatchers: ['trello'],
     sortFn: sortByTrelloPriority,
     systemPromptFn: getTrelloSystemPrompt,
@@ -971,7 +974,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'CALENDLY',
     displayName: 'Calendly',
     prefix: 'composio_CALENDLY_',
-    cap: 18,
+    cap: 500,
     appMatchers: ['calendly'],
     sortFn: sortByCalendlyPriority,
     systemPromptFn: getCalendlySystemPrompt,
@@ -982,7 +985,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'CLICKUP',
     displayName: 'ClickUp',
     prefix: 'composio_CLICKUP_',
-    cap: 28,
+    cap: 500,
     appMatchers: ['clickup'],
     sortFn: sortByClickUpPriority,
     systemPromptFn: getClickUpSystemPrompt,
@@ -993,7 +996,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TELEGRAM',
     displayName: 'Telegram',
     prefix: 'composio_TELEGRAM_',
-    cap: 18,
+    cap: 500,
     appMatchers: ['telegram'],
     sortFn: sortByTelegramPriority,
     systemPromptFn: getTelegramSystemPrompt,
@@ -1004,7 +1007,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'MAILCHIMP',
     displayName: 'Mailchimp',
     prefix: 'composio_MAILCHIMP_',
-    cap: 26,
+    cap: 500,
     appMatchers: ['mailchimp'],
     sortFn: sortByMailchimpPriority,
     systemPromptFn: getMailchimpSystemPrompt,
@@ -1015,7 +1018,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'ZENDESK',
     displayName: 'Zendesk',
     prefix: 'composio_ZENDESK_',
-    cap: 26,
+    cap: 500,
     appMatchers: ['zendesk'],
     sortFn: sortByZendeskPriority,
     systemPromptFn: getZendeskSystemPrompt,
@@ -1026,7 +1029,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'WHATSAPP',
     displayName: 'WhatsApp Business',
     prefix: 'composio_WHATSAPP_',
-    cap: 20,
+    cap: 500,
     appMatchers: ['whatsapp', 'whatsappbusiness'],
     sortFn: sortByWhatsAppPriority,
     systemPromptFn: getWhatsAppSystemPrompt,
@@ -1037,7 +1040,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'FIGMA',
     displayName: 'Figma',
     prefix: 'composio_FIGMA_',
-    cap: 21,
+    cap: 500,
     appMatchers: ['figma'],
     sortFn: sortByFigmaPriority,
     systemPromptFn: getFigmaSystemPrompt,
@@ -1048,7 +1051,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'DOCUSIGN',
     displayName: 'DocuSign',
     prefix: 'composio_DOCUSIGN_',
-    cap: 24,
+    cap: 500,
     appMatchers: ['docusign'],
     sortFn: sortByDocuSignPriority,
     systemPromptFn: getDocuSignSystemPrompt,
@@ -1059,7 +1062,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'GITLAB',
     displayName: 'GitLab',
     prefix: 'composio_GITLAB_',
-    cap: 34,
+    cap: 500,
     appMatchers: ['gitlab'],
     sortFn: sortByGitLabPriority,
     systemPromptFn: getGitLabSystemPrompt,
@@ -1070,7 +1073,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'MONDAY',
     displayName: 'Monday.com',
     prefix: 'composio_MONDAY_',
-    cap: 21,
+    cap: 500,
     appMatchers: ['monday', 'mondaycom'],
     sortFn: sortByMondayPriority,
     systemPromptFn: getMondaySystemPrompt,
@@ -1081,7 +1084,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'CONFLUENCE',
     displayName: 'Confluence',
     prefix: 'composio_CONFLUENCE_',
-    cap: 24,
+    cap: 500,
     appMatchers: ['confluence'],
     sortFn: sortByConfluencePriority,
     systemPromptFn: getConfluenceSystemPrompt,
@@ -1092,7 +1095,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'INTERCOM',
     displayName: 'Intercom',
     prefix: 'composio_INTERCOM_',
-    cap: 26,
+    cap: 500,
     appMatchers: ['intercom'],
     sortFn: sortByIntercomPriority,
     systemPromptFn: getIntercomSystemPrompt,
@@ -1103,7 +1106,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'QUICKBOOKS',
     displayName: 'QuickBooks',
     prefix: 'composio_QUICKBOOKS_',
-    cap: 23,
+    cap: 500,
     appMatchers: ['quickbooks'],
     sortFn: sortByQuickBooksPriority,
     systemPromptFn: getQuickBooksSystemPrompt,
@@ -1114,7 +1117,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'SENDGRID',
     displayName: 'SendGrid',
     prefix: 'composio_SENDGRID_',
-    cap: 20,
+    cap: 500,
     appMatchers: ['sendgrid'],
     sortFn: sortBySendGridPriority,
     systemPromptFn: getSendGridSystemPrompt,
@@ -1125,7 +1128,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'PIPEDRIVE',
     displayName: 'Pipedrive',
     prefix: 'composio_PIPEDRIVE_',
-    cap: 27,
+    cap: 500,
     appMatchers: ['pipedrive'],
     sortFn: sortByPipedrivePriority,
     systemPromptFn: getPipedriveSystemPrompt,
@@ -1136,7 +1139,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TWILIO',
     displayName: 'Twilio',
     prefix: 'composio_TWILIO_',
-    cap: 20,
+    cap: 500,
     appMatchers: ['twilio'],
     sortFn: sortByTwilioPriority,
     systemPromptFn: getTwilioSystemPrompt,
@@ -1147,7 +1150,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'FRESHDESK',
     displayName: 'Freshdesk',
     prefix: 'composio_FRESHDESK_',
-    cap: 21,
+    cap: 500,
     appMatchers: ['freshdesk'],
     sortFn: sortByFreshdeskPriority,
     systemPromptFn: getFreshdeskSystemPrompt,
@@ -1158,7 +1161,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TYPEFORM',
     displayName: 'Typeform',
     prefix: 'composio_TYPEFORM_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['typeform'],
     sortFn: sortByTypeformPriority,
     systemPromptFn: getTypeformSystemPrompt,
@@ -1169,7 +1172,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'BOX',
     displayName: 'Box',
     prefix: 'composio_BOX_',
-    cap: 22,
+    cap: 500,
     appMatchers: ['box'],
     sortFn: sortByBoxPriority,
     systemPromptFn: getBoxSystemPrompt,
@@ -1180,7 +1183,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'BITBUCKET',
     displayName: 'Bitbucket',
     prefix: 'composio_BITBUCKET_',
-    cap: 22,
+    cap: 500,
     appMatchers: ['bitbucket'],
     sortFn: sortByBitbucketPriority,
     systemPromptFn: getBitbucketSystemPrompt,
@@ -1191,7 +1194,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'TODOIST',
     displayName: 'Todoist',
     prefix: 'composio_TODOIST_',
-    cap: 21,
+    cap: 500,
     appMatchers: ['todoist'],
     sortFn: sortByTodoistPriority,
     systemPromptFn: getTodoistSystemPrompt,
@@ -1202,7 +1205,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'EVERNOTE',
     displayName: 'Evernote',
     prefix: 'composio_EVERNOTE_',
-    cap: 16,
+    cap: 500,
     appMatchers: ['evernote'],
     sortFn: sortByEvernotePriority,
     systemPromptFn: getEvernoteSystemPrompt,
@@ -1213,7 +1216,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'WEBFLOW',
     displayName: 'Webflow',
     prefix: 'composio_WEBFLOW_',
-    cap: 18,
+    cap: 500,
     appMatchers: ['webflow'],
     sortFn: sortByWebflowPriority,
     systemPromptFn: getWebflowSystemPrompt,
@@ -1224,7 +1227,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'PAGERDUTY',
     displayName: 'PagerDuty',
     prefix: 'composio_PAGERDUTY_',
-    cap: 21,
+    cap: 500,
     appMatchers: ['pagerduty'],
     sortFn: sortByPagerDutyPriority,
     systemPromptFn: getPagerDutySystemPrompt,
@@ -1235,7 +1238,7 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     id: 'LOOM',
     displayName: 'Loom',
     prefix: 'composio_LOOM_',
-    cap: 15,
+    cap: 500,
     appMatchers: ['loom'],
     sortFn: sortByLoomPriority,
     systemPromptFn: getLoomSystemPrompt,
@@ -1424,25 +1427,53 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       activeToolkits: activeToolkits.map((t) => t.id),
     });
 
-    // Get available tools for connected apps
-    let composioTools: ComposioTool[] = [];
+    // Get available tools PER TOOLKIT (not all at once)
+    // CRITICAL: Fetching all toolkits in one API call causes large toolkits
+    // (e.g., GitHub with 500+ tools) to consume the entire limit, starving
+    // smaller toolkits (Gmail, Google Sheets) of any tools.
+    const composioTools: ComposioTool[] = [];
     let toolLoadFailed = false;
-    try {
-      composioTools = await getAvailableTools(userId, connectedApps);
-      log.info('Retrieved Composio tools', {
-        userId,
-        rawToolCount: composioTools.length,
-        toolNames: composioTools.slice(0, 10).map((t) => t.name),
-      });
-    } catch (toolsError) {
-      toolLoadFailed = true;
-      log.error('Failed to get available tools from Composio SDK', {
-        userId,
-        connectedApps,
-        error: toolsError instanceof Error ? toolsError.message : String(toolsError),
-        stack: toolsError instanceof Error ? toolsError.stack : undefined,
-      });
+    const perToolkitResults: Record<string, number> = {};
+
+    // Fetch tools for each active toolkit separately
+    // Use the toolkit's cap + buffer as the per-toolkit limit
+    const toolFetchPromises = activeToolkits.map(async (toolkit) => {
+      // Find the connected app name that matches this toolkit
+      const matchingApp = connectedApps.find((app) => appMatchesToolkit(app, toolkit));
+      if (!matchingApp) return { toolkit: toolkit.id, tools: [] as ComposioTool[] };
+
+      try {
+        // Fetch ALL tools for this toolkit from the API.
+        // The toolkit's cap handles limiting what's sent to Claude.
+        // We want full visibility so sorting picks the best tools.
+        const tools = await getAvailableTools(userId, [matchingApp], 500);
+        perToolkitResults[toolkit.id] = tools.length;
+        return { toolkit: toolkit.id, tools };
+      } catch (err) {
+        log.error('Failed to get tools for toolkit', {
+          userId,
+          toolkit: toolkit.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        perToolkitResults[toolkit.id] = -1; // Mark as failed
+        return { toolkit: toolkit.id, tools: [] as ComposioTool[] };
+      }
+    });
+
+    const toolResults = await Promise.all(toolFetchPromises);
+    for (const result of toolResults) {
+      composioTools.push(...result.tools);
+      if (perToolkitResults[result.toolkit] === -1) {
+        toolLoadFailed = true;
+      }
     }
+
+    log.info('Retrieved Composio tools (per-toolkit)', {
+      userId,
+      rawToolCount: composioTools.length,
+      perToolkitResults,
+      sampleToolNames: composioTools.slice(0, 10).map((t) => t.name),
+    });
 
     // Convert to Claude format, filtering out any null/invalid tools
     let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);

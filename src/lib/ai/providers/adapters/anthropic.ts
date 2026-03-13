@@ -456,12 +456,17 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
   /**
    * Convert unified tools to Anthropic format.
-   * Handles both custom tools and native server tools (web_search_20260209).
+   * Handles custom tools, native server tools, and deferred tools (Tool Search Tool).
+   *
+   * When any tools have deferLoading=true, automatically injects the BM25 Tool Search
+   * Tool so Claude can discover deferred tools on-demand instead of loading all
+   * definitions into the context window upfront.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formatTools(tools: UnifiedTool[]): any[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatted: any[] = [];
+    let hasDeferredTools = false;
 
     for (const tool of tools) {
       // Native web search tool — pass as server tool type, not custom tool
@@ -472,8 +477,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
         continue;
       }
 
-      // Standard custom tool
-      formatted.push({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anthropicTool: any = {
         name: tool.name,
         description: tool.description,
         input_schema: {
@@ -481,6 +486,22 @@ export class AnthropicAdapter extends BaseAIAdapter {
           properties: tool.parameters.properties,
           required: tool.parameters.required,
         },
+      };
+
+      // Mark deferred tools — Claude sees name/description but not full schema until searched
+      if (tool.deferLoading) {
+        anthropicTool.defer_loading = true;
+        hasDeferredTools = true;
+      }
+
+      formatted.push(anthropicTool);
+    }
+
+    // Auto-inject Tool Search Tool when deferred tools exist
+    if (hasDeferredTools) {
+      formatted.unshift({
+        type: 'tool_search_tool_bm25_20251119',
+        name: 'tool_search',
       });
     }
 

@@ -501,7 +501,8 @@ export async function executeTool(
  */
 export async function getAvailableTools(
   userId: string,
-  toolkits?: string[]
+  toolkits?: string[],
+  limit: number = 500
 ): Promise<ComposioTool[]> {
   if (!toolkits || toolkits.length === 0) {
     log.info('No toolkits provided, returning empty tools list');
@@ -515,6 +516,7 @@ export async function getAvailableTools(
     userId,
     inputToolkits: toolkits,
     composioToolkits,
+    limit,
   });
 
   // Try primary approach: AnthropicProvider client (pre-formatted for Claude)
@@ -526,7 +528,7 @@ export async function getAvailableTools(
     // 2. Relying on the API's default page size
     const tools = await client.tools.get(userId, {
       toolkits: composioToolkits,
-      limit: 500,
+      limit,
     });
 
     log.info('Got pre-formatted tools from Composio AnthropicProvider', {
@@ -577,7 +579,7 @@ export async function getAvailableTools(
     // getRawComposioTools returns tools with slug, description, inputParameters
     const rawTools = await rawClient.tools.getRawComposioTools({
       toolkits: composioToolkits,
-      limit: 500,
+      limit,
     });
 
     log.info('Got raw tools from Composio (fallback)', {
