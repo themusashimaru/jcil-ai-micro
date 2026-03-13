@@ -520,9 +520,15 @@ export async function getAvailableTools(
     // Use AnthropicProvider client to get pre-formatted tools for Claude
     const client = getAnthropicClient();
 
-    // tools.get() with AnthropicProvider returns Claude-formatted tools
+    // CRITICAL: Pass explicit limit to prevent SDK from:
+    // 1. Auto-applying `important: true` filter (only returns a small subset of tools)
+    // 2. Relying on the API's default page size
+    // Our TOOLKIT_REGISTRY handles prioritization and capping, so we want ALL tools.
+    // The SDK auto-applies important=true when toolkits is set and limit is NOT set
+    // (see @composio/core getRawComposioTools: shouldAutoApplyImportant logic).
     const tools = await client.tools.get(userId, {
       toolkits: composioToolkits,
+      limit: 500,
     });
 
     log.info('Got pre-formatted tools from Composio AnthropicProvider', {
