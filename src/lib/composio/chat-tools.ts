@@ -899,21 +899,15 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       }
     }
 
-    // Legacy flags for backward compatibility (used by route files)
-    const hasGitHub = activeToolkitIds.has('GITHUB');
-    const hasGmail = activeToolkitIds.has('GMAIL');
-    const hasOutlook = activeToolkitIds.has('MICROSOFT_OUTLOOK');
-    const hasSlack = activeToolkitIds.has('SLACK');
-
     log.info('User has connected apps', {
       userId,
       apps: connectedApps,
       activeToolkits: activeToolkits.map((t) => t.id),
-      hasGitHub,
     });
 
     // Get available tools for connected apps
     let composioTools: ComposioTool[] = [];
+    let toolLoadFailed = false;
     try {
       composioTools = await getAvailableTools(userId, connectedApps);
       log.info('Retrieved Composio tools', {
@@ -922,7 +916,13 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
         toolNames: composioTools.slice(0, 10).map((t) => t.name),
       });
     } catch (toolsError) {
-      log.error('Failed to get available tools', { userId, connectedApps, error: toolsError });
+      toolLoadFailed = true;
+      log.error('Failed to get available tools from Composio SDK', {
+        userId,
+        connectedApps,
+        error: toolsError instanceof Error ? toolsError.message : String(toolsError),
+        stack: toolsError instanceof Error ? toolsError.stack : undefined,
+      });
     }
 
     // Convert to Claude format, filtering out any null/invalid tools
@@ -977,39 +977,65 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       otherToolsDropped: otherTools.length - cappedOtherTools.length,
     });
 
-    // Build system prompt addition
-    const appList = connectedApps
-      .map((app) => {
-        const config = getToolkitById(app);
-        return config ? config.displayName : app;
-      })
-      .join(', ');
+    // CRITICAL FIX: Only include toolkit prompts for toolkits that actually
+    // have tools loaded. Previously, the system prompt told Claude about ALL
+    // connected apps even when their tools failed to load, causing Claude to
+    // promise capabilities it couldn't deliver and fall back to giving manual
+    // instructions instead of using the integrations.
+    const toolkitsWithLoadedTools = activeToolkits.filter((toolkit) => {
+      const bucket = toolBuckets.get(toolkit.id) || [];
+      return bucket.length > 0;
+    });
 
-    let systemPromptAddition = `
+    // Track which toolkits connected but had no tools load
+    const toolkitsWithNoTools = activeToolkits.filter((toolkit) => {
+      const bucket = toolBuckets.get(toolkit.id) || [];
+      return bucket.length === 0;
+    });
+
+    if (toolkitsWithNoTools.length > 0) {
+      log.warn('Connected toolkits with zero tools loaded', {
+        userId,
+        toolkits: toolkitsWithNoTools.map((t) => t.id),
+        toolLoadFailed,
+      });
+    }
+
+    // Determine hasX flags based on LOADED tools, not just connection status
+    const loadedToolkitIds = new Set(toolkitsWithLoadedTools.map((t) => t.id));
+    const hasGitHubTools = loadedToolkitIds.has('GITHUB');
+    const hasGmailTools = loadedToolkitIds.has('GMAIL');
+    const hasOutlookTools = loadedToolkitIds.has('MICROSOFT_OUTLOOK');
+    const hasSlackTools = loadedToolkitIds.has('SLACK');
+
+    let systemPromptAddition = '';
+
+    if (toolkitsWithLoadedTools.length > 0) {
+      // Build system prompt ONLY for toolkits that have working tools
+      const appList = toolkitsWithLoadedTools.map((toolkit) => toolkit.displayName).join(', ');
+
+      systemPromptAddition = `
 
 ## Connected App Integrations
 
 The user has connected the following apps: ${appList}
 `;
 
-    // Add toolkit-specific system prompts for all active toolkits
-    for (const toolkit of activeToolkits) {
-      const bucket = toolBuckets.get(toolkit.id) || [];
-      if (bucket.length > 0) {
+      // Add toolkit-specific system prompts only for toolkits with loaded tools
+      for (const toolkit of toolkitsWithLoadedTools) {
         systemPromptAddition += toolkit.systemPromptFn();
       }
-    }
 
-    // Build dynamic capability lines
-    const capabilityLines: string[] = [];
-    for (const toolkit of activeToolkits) {
-      capabilityLines.push(
-        `- **Full ${toolkit.displayName} operations** (${toolkit.capabilitySummaryFn()})`
-      );
-    }
+      // Build dynamic capability lines only for working toolkits
+      const capabilityLines: string[] = [];
+      for (const toolkit of toolkitsWithLoadedTools) {
+        capabilityLines.push(
+          `- **Full ${toolkit.displayName} operations** (${toolkit.capabilitySummaryFn()})`
+        );
+      }
 
-    // Add general app guidance
-    systemPromptAddition += `
+      // Add general app guidance
+      systemPromptAddition += `
 ### Connected App Usage
 
 You can use these apps to help the user with tasks like:
@@ -1076,15 +1102,31 @@ Tool names are prefixed with "composio_" followed by the action:
 5. **For destructive actions (delete, cancel), always confirm first**
 6. **For financial actions (Stripe payments, charges), show full details before executing**
 `;
+    }
+
+    // If some toolkits are connected but their tools failed to load,
+    // tell Claude so it gives an honest response instead of hallucinating
+    if (toolkitsWithNoTools.length > 0) {
+      const unavailableNames = toolkitsWithNoTools.map((t) => t.displayName).join(', ');
+
+      systemPromptAddition += `
+
+### Temporarily Unavailable Integrations
+
+The following apps are connected but their tools could not be loaded in this session: ${unavailableNames}
+
+**Do NOT claim you can perform actions with these integrations.** Instead, let the user know that the integration is temporarily unavailable and suggest they try again shortly or check their connection in Settings > Connectors. Do not give manual instructions as a workaround — the user connected these apps specifically so you could handle them directly.
+`;
+    }
 
     return {
       connectedApps,
       tools,
       systemPromptAddition,
-      hasGitHub,
-      hasGmail,
-      hasOutlook,
-      hasSlack,
+      hasGitHub: hasGitHubTools,
+      hasGmail: hasGmailTools,
+      hasOutlook: hasOutlookTools,
+      hasSlack: hasSlackTools,
     };
   } catch (error) {
     log.error('Failed to get Composio tools', { userId, error });
