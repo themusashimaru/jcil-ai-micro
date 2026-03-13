@@ -1424,25 +1424,52 @@ export async function getComposioToolsForUser(userId: string): Promise<ComposioT
       activeToolkits: activeToolkits.map((t) => t.id),
     });
 
-    // Get available tools for connected apps
-    let composioTools: ComposioTool[] = [];
+    // Get available tools PER TOOLKIT (not all at once)
+    // CRITICAL: Fetching all toolkits in one API call causes large toolkits
+    // (e.g., GitHub with 500+ tools) to consume the entire limit, starving
+    // smaller toolkits (Gmail, Google Sheets) of any tools.
+    const composioTools: ComposioTool[] = [];
     let toolLoadFailed = false;
-    try {
-      composioTools = await getAvailableTools(userId, connectedApps);
-      log.info('Retrieved Composio tools', {
-        userId,
-        rawToolCount: composioTools.length,
-        toolNames: composioTools.slice(0, 10).map((t) => t.name),
-      });
-    } catch (toolsError) {
-      toolLoadFailed = true;
-      log.error('Failed to get available tools from Composio SDK', {
-        userId,
-        connectedApps,
-        error: toolsError instanceof Error ? toolsError.message : String(toolsError),
-        stack: toolsError instanceof Error ? toolsError.stack : undefined,
-      });
+    const perToolkitResults: Record<string, number> = {};
+
+    // Fetch tools for each active toolkit separately
+    // Use the toolkit's cap + buffer as the per-toolkit limit
+    const toolFetchPromises = activeToolkits.map(async (toolkit) => {
+      // Find the connected app name that matches this toolkit
+      const matchingApp = connectedApps.find((app) => appMatchesToolkit(app, toolkit));
+      if (!matchingApp) return { toolkit: toolkit.id, tools: [] as ComposioTool[] };
+
+      try {
+        // Fetch up to 2x the cap to give sorting some headroom
+        const perToolkitLimit = Math.min(toolkit.cap * 2, 200);
+        const tools = await getAvailableTools(userId, [matchingApp], perToolkitLimit);
+        perToolkitResults[toolkit.id] = tools.length;
+        return { toolkit: toolkit.id, tools };
+      } catch (err) {
+        log.error('Failed to get tools for toolkit', {
+          userId,
+          toolkit: toolkit.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        perToolkitResults[toolkit.id] = -1; // Mark as failed
+        return { toolkit: toolkit.id, tools: [] as ComposioTool[] };
+      }
+    });
+
+    const toolResults = await Promise.all(toolFetchPromises);
+    for (const result of toolResults) {
+      composioTools.push(...result.tools);
+      if (perToolkitResults[result.toolkit] === -1) {
+        toolLoadFailed = true;
+      }
     }
+
+    log.info('Retrieved Composio tools (per-toolkit)', {
+      userId,
+      rawToolCount: composioTools.length,
+      perToolkitResults,
+      sampleToolNames: composioTools.slice(0, 10).map((t) => t.name),
+    });
 
     // Convert to Claude format, filtering out any null/invalid tools
     let tools = composioTools.map(toClaudeTool).filter((t): t is ClaudeTool => t !== null);

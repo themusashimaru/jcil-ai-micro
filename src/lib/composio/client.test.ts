@@ -978,6 +978,23 @@ describe('composio/client', () => {
       });
     });
 
+    it('accepts custom limit parameter', async () => {
+      mockToolsGet.mockResolvedValue([
+        {
+          name: 'GMAIL_SEND',
+          description: 'Send email',
+          input_schema: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
+
+      await getAvailableTools('user-1', ['GMAIL'], 80);
+
+      expect(mockToolsGet).toHaveBeenCalledWith('user-1', {
+        toolkits: ['gmail'],
+        limit: 80,
+      });
+    });
+
     it('handles tools without input_schema', async () => {
       mockToolsGet.mockResolvedValue([
         {
