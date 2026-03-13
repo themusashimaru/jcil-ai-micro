@@ -11,7 +11,7 @@
  * - Priority sort function
  * - System prompt injection
  *
- * Supported Toolkits (37):
+ * Supported Toolkits (67):
  * - GitHub, Gmail, Outlook, Slack
  * - Google Sheets, Discord, Google Docs
  * - Twitter, LinkedIn, Instagram, YouTube
@@ -23,6 +23,13 @@
  * - Google Photos, Google Analytics
  * - Google Search Console, Google Ads, Google Maps
  * - Dropbox, ElevenLabs, SerpAPI, Perplexity AI
+ * - Notion, Jira, Asana, Zoom, Trello
+ * - Calendly, ClickUp, Telegram, Mailchimp
+ * - Zendesk, WhatsApp, Figma, DocuSign
+ * - GitLab, Monday, Confluence, Intercom
+ * - QuickBooks, SendGrid, Pipedrive, Twilio
+ * - Freshdesk, Typeform, Box, Bitbucket
+ * - Todoist, Evernote, Webflow, PagerDuty, Loom
  */
 
 import { logger } from '@/lib/logger';
@@ -260,6 +267,186 @@ import {
   logPerplexityAIToolkitStats,
   getPerplexityAICapabilitySummary,
 } from './perplexityai-toolkit';
+import {
+  sortByNotionPriority,
+  getNotionSystemPrompt,
+  logNotionToolkitStats,
+  getNotionCapabilitySummary,
+} from './notion-toolkit';
+import {
+  sortByJiraPriority,
+  getJiraSystemPrompt,
+  logJiraToolkitStats,
+  getJiraCapabilitySummary,
+} from './jira-toolkit';
+import {
+  sortByAsanaPriority,
+  getAsanaSystemPrompt,
+  logAsanaToolkitStats,
+  getAsanaCapabilitySummary,
+} from './asana-toolkit';
+import {
+  sortByZoomPriority,
+  getZoomSystemPrompt,
+  logZoomToolkitStats,
+  getZoomCapabilitySummary,
+} from './zoom-toolkit';
+import {
+  sortByTrelloPriority,
+  getTrelloSystemPrompt,
+  logTrelloToolkitStats,
+  getTrelloCapabilitySummary,
+} from './trello-toolkit';
+import {
+  sortByCalendlyPriority,
+  getCalendlySystemPrompt,
+  logCalendlyToolkitStats,
+  getCalendlyCapabilitySummary,
+} from './calendly-toolkit';
+import {
+  sortByClickUpPriority,
+  getClickUpSystemPrompt,
+  logClickUpToolkitStats,
+  getClickUpCapabilitySummary,
+} from './clickup-toolkit';
+import {
+  sortByTelegramPriority,
+  getTelegramSystemPrompt,
+  logTelegramToolkitStats,
+  getTelegramCapabilitySummary,
+} from './telegram-toolkit';
+import {
+  sortByMailchimpPriority,
+  getMailchimpSystemPrompt,
+  logMailchimpToolkitStats,
+  getMailchimpCapabilitySummary,
+} from './mailchimp-toolkit';
+import {
+  sortByZendeskPriority,
+  getZendeskSystemPrompt,
+  logZendeskToolkitStats,
+  getZendeskCapabilitySummary,
+} from './zendesk-toolkit';
+import {
+  sortByWhatsAppPriority,
+  getWhatsAppSystemPrompt,
+  logWhatsAppToolkitStats,
+  getWhatsAppCapabilitySummary,
+} from './whatsapp-toolkit';
+import {
+  sortByFigmaPriority,
+  getFigmaSystemPrompt,
+  logFigmaToolkitStats,
+  getFigmaCapabilitySummary,
+} from './figma-toolkit';
+import {
+  sortByDocuSignPriority,
+  getDocuSignSystemPrompt,
+  logDocuSignToolkitStats,
+  getDocuSignCapabilitySummary,
+} from './docusign-toolkit';
+import {
+  sortByGitLabPriority,
+  getGitLabSystemPrompt,
+  logGitLabToolkitStats,
+  getGitLabCapabilitySummary,
+} from './gitlab-toolkit';
+import {
+  sortByMondayPriority,
+  getMondaySystemPrompt,
+  logMondayToolkitStats,
+  getMondayCapabilitySummary,
+} from './monday-toolkit';
+import {
+  sortByConfluencePriority,
+  getConfluenceSystemPrompt,
+  logConfluenceToolkitStats,
+  getConfluenceCapabilitySummary,
+} from './confluence-toolkit';
+import {
+  sortByIntercomPriority,
+  getIntercomSystemPrompt,
+  logIntercomToolkitStats,
+  getIntercomCapabilitySummary,
+} from './intercom-toolkit';
+import {
+  sortByQuickBooksPriority,
+  getQuickBooksSystemPrompt,
+  logQuickBooksToolkitStats,
+  getQuickBooksCapabilitySummary,
+} from './quickbooks-toolkit';
+import {
+  sortBySendGridPriority,
+  getSendGridSystemPrompt,
+  logSendGridToolkitStats,
+  getSendGridCapabilitySummary,
+} from './sendgrid-toolkit';
+import {
+  sortByPipedrivePriority,
+  getPipedriveSystemPrompt,
+  logPipedriveToolkitStats,
+  getPipedriveCapabilitySummary,
+} from './pipedrive-toolkit';
+import {
+  sortByTwilioPriority,
+  getTwilioSystemPrompt,
+  logTwilioToolkitStats,
+  getTwilioCapabilitySummary,
+} from './twilio-toolkit';
+import {
+  sortByFreshdeskPriority,
+  getFreshdeskSystemPrompt,
+  logFreshdeskToolkitStats,
+  getFreshdeskCapabilitySummary,
+} from './freshdesk-toolkit';
+import {
+  sortByTypeformPriority,
+  getTypeformSystemPrompt,
+  logTypeformToolkitStats,
+  getTypeformCapabilitySummary,
+} from './typeform-toolkit';
+import {
+  sortByBoxPriority,
+  getBoxSystemPrompt,
+  logBoxToolkitStats,
+  getBoxCapabilitySummary,
+} from './box-toolkit';
+import {
+  sortByBitbucketPriority,
+  getBitbucketSystemPrompt,
+  logBitbucketToolkitStats,
+  getBitbucketCapabilitySummary,
+} from './bitbucket-toolkit';
+import {
+  sortByTodoistPriority,
+  getTodoistSystemPrompt,
+  logTodoistToolkitStats,
+  getTodoistCapabilitySummary,
+} from './todoist-toolkit';
+import {
+  sortByEvernotePriority,
+  getEvernoteSystemPrompt,
+  logEvernoteToolkitStats,
+  getEvernoteCapabilitySummary,
+} from './evernote-toolkit';
+import {
+  sortByWebflowPriority,
+  getWebflowSystemPrompt,
+  logWebflowToolkitStats,
+  getWebflowCapabilitySummary,
+} from './webflow-toolkit';
+import {
+  sortByPagerDutyPriority,
+  getPagerDutySystemPrompt,
+  logPagerDutyToolkitStats,
+  getPagerDutyCapabilitySummary,
+} from './pagerduty-toolkit';
+import {
+  sortByLoomPriority,
+  getLoomSystemPrompt,
+  logLoomToolkitStats,
+  getLoomCapabilitySummary,
+} from './loom-toolkit';
 
 const log = logger('ComposioTools');
 
@@ -722,6 +909,338 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     systemPromptFn: getPerplexityAISystemPrompt,
     logStatsFn: logPerplexityAIToolkitStats,
     capabilitySummaryFn: getPerplexityAICapabilitySummary,
+  },
+
+  // ==================== 30 NEW TOOLKITS ====================
+  {
+    id: 'NOTION',
+    displayName: 'Notion',
+    prefix: 'composio_NOTION_',
+    cap: 26,
+    appMatchers: ['notion'],
+    sortFn: sortByNotionPriority,
+    systemPromptFn: getNotionSystemPrompt,
+    logStatsFn: logNotionToolkitStats,
+    capabilitySummaryFn: getNotionCapabilitySummary,
+  },
+  {
+    id: 'JIRA',
+    displayName: 'Jira',
+    prefix: 'composio_JIRA_',
+    cap: 38,
+    appMatchers: ['jira'],
+    sortFn: sortByJiraPriority,
+    systemPromptFn: getJiraSystemPrompt,
+    logStatsFn: logJiraToolkitStats,
+    capabilitySummaryFn: getJiraCapabilitySummary,
+  },
+  {
+    id: 'ASANA',
+    displayName: 'Asana',
+    prefix: 'composio_ASANA_',
+    cap: 29,
+    appMatchers: ['asana'],
+    sortFn: sortByAsanaPriority,
+    systemPromptFn: getAsanaSystemPrompt,
+    logStatsFn: logAsanaToolkitStats,
+    capabilitySummaryFn: getAsanaCapabilitySummary,
+  },
+  {
+    id: 'ZOOM',
+    displayName: 'Zoom',
+    prefix: 'composio_ZOOM_',
+    cap: 17,
+    appMatchers: ['zoom'],
+    sortFn: sortByZoomPriority,
+    systemPromptFn: getZoomSystemPrompt,
+    logStatsFn: logZoomToolkitStats,
+    capabilitySummaryFn: getZoomCapabilitySummary,
+  },
+  {
+    id: 'TRELLO',
+    displayName: 'Trello',
+    prefix: 'composio_TRELLO_',
+    cap: 29,
+    appMatchers: ['trello'],
+    sortFn: sortByTrelloPriority,
+    systemPromptFn: getTrelloSystemPrompt,
+    logStatsFn: logTrelloToolkitStats,
+    capabilitySummaryFn: getTrelloCapabilitySummary,
+  },
+  {
+    id: 'CALENDLY',
+    displayName: 'Calendly',
+    prefix: 'composio_CALENDLY_',
+    cap: 18,
+    appMatchers: ['calendly'],
+    sortFn: sortByCalendlyPriority,
+    systemPromptFn: getCalendlySystemPrompt,
+    logStatsFn: logCalendlyToolkitStats,
+    capabilitySummaryFn: getCalendlyCapabilitySummary,
+  },
+  {
+    id: 'CLICKUP',
+    displayName: 'ClickUp',
+    prefix: 'composio_CLICKUP_',
+    cap: 28,
+    appMatchers: ['clickup'],
+    sortFn: sortByClickUpPriority,
+    systemPromptFn: getClickUpSystemPrompt,
+    logStatsFn: logClickUpToolkitStats,
+    capabilitySummaryFn: getClickUpCapabilitySummary,
+  },
+  {
+    id: 'TELEGRAM',
+    displayName: 'Telegram',
+    prefix: 'composio_TELEGRAM_',
+    cap: 18,
+    appMatchers: ['telegram'],
+    sortFn: sortByTelegramPriority,
+    systemPromptFn: getTelegramSystemPrompt,
+    logStatsFn: logTelegramToolkitStats,
+    capabilitySummaryFn: getTelegramCapabilitySummary,
+  },
+  {
+    id: 'MAILCHIMP',
+    displayName: 'Mailchimp',
+    prefix: 'composio_MAILCHIMP_',
+    cap: 26,
+    appMatchers: ['mailchimp'],
+    sortFn: sortByMailchimpPriority,
+    systemPromptFn: getMailchimpSystemPrompt,
+    logStatsFn: logMailchimpToolkitStats,
+    capabilitySummaryFn: getMailchimpCapabilitySummary,
+  },
+  {
+    id: 'ZENDESK',
+    displayName: 'Zendesk',
+    prefix: 'composio_ZENDESK_',
+    cap: 26,
+    appMatchers: ['zendesk'],
+    sortFn: sortByZendeskPriority,
+    systemPromptFn: getZendeskSystemPrompt,
+    logStatsFn: logZendeskToolkitStats,
+    capabilitySummaryFn: getZendeskCapabilitySummary,
+  },
+  {
+    id: 'WHATSAPP',
+    displayName: 'WhatsApp Business',
+    prefix: 'composio_WHATSAPP_',
+    cap: 20,
+    appMatchers: ['whatsapp', 'whatsappbusiness'],
+    sortFn: sortByWhatsAppPriority,
+    systemPromptFn: getWhatsAppSystemPrompt,
+    logStatsFn: logWhatsAppToolkitStats,
+    capabilitySummaryFn: getWhatsAppCapabilitySummary,
+  },
+  {
+    id: 'FIGMA',
+    displayName: 'Figma',
+    prefix: 'composio_FIGMA_',
+    cap: 21,
+    appMatchers: ['figma'],
+    sortFn: sortByFigmaPriority,
+    systemPromptFn: getFigmaSystemPrompt,
+    logStatsFn: logFigmaToolkitStats,
+    capabilitySummaryFn: getFigmaCapabilitySummary,
+  },
+  {
+    id: 'DOCUSIGN',
+    displayName: 'DocuSign',
+    prefix: 'composio_DOCUSIGN_',
+    cap: 24,
+    appMatchers: ['docusign'],
+    sortFn: sortByDocuSignPriority,
+    systemPromptFn: getDocuSignSystemPrompt,
+    logStatsFn: logDocuSignToolkitStats,
+    capabilitySummaryFn: getDocuSignCapabilitySummary,
+  },
+  {
+    id: 'GITLAB',
+    displayName: 'GitLab',
+    prefix: 'composio_GITLAB_',
+    cap: 34,
+    appMatchers: ['gitlab'],
+    sortFn: sortByGitLabPriority,
+    systemPromptFn: getGitLabSystemPrompt,
+    logStatsFn: logGitLabToolkitStats,
+    capabilitySummaryFn: getGitLabCapabilitySummary,
+  },
+  {
+    id: 'MONDAY',
+    displayName: 'Monday.com',
+    prefix: 'composio_MONDAY_',
+    cap: 21,
+    appMatchers: ['monday', 'mondaycom'],
+    sortFn: sortByMondayPriority,
+    systemPromptFn: getMondaySystemPrompt,
+    logStatsFn: logMondayToolkitStats,
+    capabilitySummaryFn: getMondayCapabilitySummary,
+  },
+  {
+    id: 'CONFLUENCE',
+    displayName: 'Confluence',
+    prefix: 'composio_CONFLUENCE_',
+    cap: 24,
+    appMatchers: ['confluence'],
+    sortFn: sortByConfluencePriority,
+    systemPromptFn: getConfluenceSystemPrompt,
+    logStatsFn: logConfluenceToolkitStats,
+    capabilitySummaryFn: getConfluenceCapabilitySummary,
+  },
+  {
+    id: 'INTERCOM',
+    displayName: 'Intercom',
+    prefix: 'composio_INTERCOM_',
+    cap: 26,
+    appMatchers: ['intercom'],
+    sortFn: sortByIntercomPriority,
+    systemPromptFn: getIntercomSystemPrompt,
+    logStatsFn: logIntercomToolkitStats,
+    capabilitySummaryFn: getIntercomCapabilitySummary,
+  },
+  {
+    id: 'QUICKBOOKS',
+    displayName: 'QuickBooks',
+    prefix: 'composio_QUICKBOOKS_',
+    cap: 23,
+    appMatchers: ['quickbooks'],
+    sortFn: sortByQuickBooksPriority,
+    systemPromptFn: getQuickBooksSystemPrompt,
+    logStatsFn: logQuickBooksToolkitStats,
+    capabilitySummaryFn: getQuickBooksCapabilitySummary,
+  },
+  {
+    id: 'SENDGRID',
+    displayName: 'SendGrid',
+    prefix: 'composio_SENDGRID_',
+    cap: 20,
+    appMatchers: ['sendgrid'],
+    sortFn: sortBySendGridPriority,
+    systemPromptFn: getSendGridSystemPrompt,
+    logStatsFn: logSendGridToolkitStats,
+    capabilitySummaryFn: getSendGridCapabilitySummary,
+  },
+  {
+    id: 'PIPEDRIVE',
+    displayName: 'Pipedrive',
+    prefix: 'composio_PIPEDRIVE_',
+    cap: 27,
+    appMatchers: ['pipedrive'],
+    sortFn: sortByPipedrivePriority,
+    systemPromptFn: getPipedriveSystemPrompt,
+    logStatsFn: logPipedriveToolkitStats,
+    capabilitySummaryFn: getPipedriveCapabilitySummary,
+  },
+  {
+    id: 'TWILIO',
+    displayName: 'Twilio',
+    prefix: 'composio_TWILIO_',
+    cap: 20,
+    appMatchers: ['twilio'],
+    sortFn: sortByTwilioPriority,
+    systemPromptFn: getTwilioSystemPrompt,
+    logStatsFn: logTwilioToolkitStats,
+    capabilitySummaryFn: getTwilioCapabilitySummary,
+  },
+  {
+    id: 'FRESHDESK',
+    displayName: 'Freshdesk',
+    prefix: 'composio_FRESHDESK_',
+    cap: 21,
+    appMatchers: ['freshdesk'],
+    sortFn: sortByFreshdeskPriority,
+    systemPromptFn: getFreshdeskSystemPrompt,
+    logStatsFn: logFreshdeskToolkitStats,
+    capabilitySummaryFn: getFreshdeskCapabilitySummary,
+  },
+  {
+    id: 'TYPEFORM',
+    displayName: 'Typeform',
+    prefix: 'composio_TYPEFORM_',
+    cap: 16,
+    appMatchers: ['typeform'],
+    sortFn: sortByTypeformPriority,
+    systemPromptFn: getTypeformSystemPrompt,
+    logStatsFn: logTypeformToolkitStats,
+    capabilitySummaryFn: getTypeformCapabilitySummary,
+  },
+  {
+    id: 'BOX',
+    displayName: 'Box',
+    prefix: 'composio_BOX_',
+    cap: 22,
+    appMatchers: ['box'],
+    sortFn: sortByBoxPriority,
+    systemPromptFn: getBoxSystemPrompt,
+    logStatsFn: logBoxToolkitStats,
+    capabilitySummaryFn: getBoxCapabilitySummary,
+  },
+  {
+    id: 'BITBUCKET',
+    displayName: 'Bitbucket',
+    prefix: 'composio_BITBUCKET_',
+    cap: 22,
+    appMatchers: ['bitbucket'],
+    sortFn: sortByBitbucketPriority,
+    systemPromptFn: getBitbucketSystemPrompt,
+    logStatsFn: logBitbucketToolkitStats,
+    capabilitySummaryFn: getBitbucketCapabilitySummary,
+  },
+  {
+    id: 'TODOIST',
+    displayName: 'Todoist',
+    prefix: 'composio_TODOIST_',
+    cap: 21,
+    appMatchers: ['todoist'],
+    sortFn: sortByTodoistPriority,
+    systemPromptFn: getTodoistSystemPrompt,
+    logStatsFn: logTodoistToolkitStats,
+    capabilitySummaryFn: getTodoistCapabilitySummary,
+  },
+  {
+    id: 'EVERNOTE',
+    displayName: 'Evernote',
+    prefix: 'composio_EVERNOTE_',
+    cap: 16,
+    appMatchers: ['evernote'],
+    sortFn: sortByEvernotePriority,
+    systemPromptFn: getEvernoteSystemPrompt,
+    logStatsFn: logEvernoteToolkitStats,
+    capabilitySummaryFn: getEvernoteCapabilitySummary,
+  },
+  {
+    id: 'WEBFLOW',
+    displayName: 'Webflow',
+    prefix: 'composio_WEBFLOW_',
+    cap: 18,
+    appMatchers: ['webflow'],
+    sortFn: sortByWebflowPriority,
+    systemPromptFn: getWebflowSystemPrompt,
+    logStatsFn: logWebflowToolkitStats,
+    capabilitySummaryFn: getWebflowCapabilitySummary,
+  },
+  {
+    id: 'PAGERDUTY',
+    displayName: 'PagerDuty',
+    prefix: 'composio_PAGERDUTY_',
+    cap: 21,
+    appMatchers: ['pagerduty'],
+    sortFn: sortByPagerDutyPriority,
+    systemPromptFn: getPagerDutySystemPrompt,
+    logStatsFn: logPagerDutyToolkitStats,
+    capabilitySummaryFn: getPagerDutyCapabilitySummary,
+  },
+  {
+    id: 'LOOM',
+    displayName: 'Loom',
+    prefix: 'composio_LOOM_',
+    cap: 15,
+    appMatchers: ['loom'],
+    sortFn: sortByLoomPriority,
+    systemPromptFn: getLoomSystemPrompt,
+    logStatsFn: logLoomToolkitStats,
+    capabilitySummaryFn: getLoomCapabilitySummary,
   },
 ];
 
