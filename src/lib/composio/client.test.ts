@@ -966,6 +966,7 @@ describe('composio/client', () => {
 
       expect(mockToolsGet).toHaveBeenCalledWith('user-1', {
         toolkits: ['googlesheets', 'microsoftteams'],
+        limit: 500,
       });
     });
 
