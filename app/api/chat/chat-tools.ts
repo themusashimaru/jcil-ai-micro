@@ -359,7 +359,10 @@ export async function loadAllTools(
         });
       }
     } catch (composioError) {
-      log.warn('Failed to load Composio tools', { error: composioError });
+      log.error('Failed to load Composio tools - integrations will be unavailable', {
+        userId,
+        error: composioError instanceof Error ? composioError.message : String(composioError),
+      });
     }
   }
 
