@@ -181,6 +181,116 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Step 2c: Direct HTTP call to Composio API (bypasses SDK entirely)
+    // This tells us if the API itself is working or if the SDK is the problem
+    const directApiStart = Date.now();
+    const firstApp = connectedApps[0]; // Test with first connected app
+    const testSlug = firstApp.toLowerCase().replace(/_/g, '');
+    try {
+      const apiKey = process.env.COMPOSIO_API_KEY || '';
+      const apiUrl = `https://backend.composio.dev/api/v2/toolkits/${testSlug}/tools?limit=5`;
+
+      const directResponse = await fetch(apiUrl, {
+        headers: {
+          'x-api-key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+
+      const directStatus = directResponse.status;
+      let directBody: any = null;
+      try {
+        directBody = await directResponse.json();
+      } catch {
+        directBody = await directResponse.text().catch(() => 'Failed to read body');
+      }
+
+      steps.push({
+        step: '2c_direct_api_call',
+        status: directStatus === 200 ? 'pass' : 'fail',
+        duration_ms: Date.now() - directApiStart,
+        details: {
+          url: apiUrl,
+          httpStatus: directStatus,
+          testToolkit: testSlug,
+          responseToolCount: Array.isArray(directBody?.items)
+            ? directBody.items.length
+            : Array.isArray(directBody)
+              ? directBody.length
+              : 'not an array',
+          responseSample: Array.isArray(directBody?.items)
+            ? directBody.items.slice(0, 3).map((t: any) => ({
+                name: t.name,
+                slug: t.slug,
+                enum: t.enum,
+              }))
+            : typeof directBody === 'object'
+              ? { keys: Object.keys(directBody || {}).slice(0, 10) }
+              : String(directBody).substring(0, 200),
+        },
+      });
+    } catch (directError) {
+      steps.push({
+        step: '2c_direct_api_call',
+        status: 'fail',
+        duration_ms: Date.now() - directApiStart,
+        details: { testToolkit: testSlug },
+        error: directError instanceof Error ? directError.message : 'Direct API call failed',
+      });
+    }
+
+    // Step 2d: Direct HTTP call to list tools using the SDK's actual filter format
+    const sdkApiStart = Date.now();
+    try {
+      const apiKey = process.env.COMPOSIO_API_KEY || '';
+      const toolkitSlugs = connectedApps.map((a) => a.toLowerCase().replace(/_/g, ''));
+      const apiUrl = `https://backend.composio.dev/api/v2/tools?toolkit_slug=${encodeURIComponent(toolkitSlugs.join(','))}&limit=10`;
+
+      const sdkResponse = await fetch(apiUrl, {
+        headers: {
+          'x-api-key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+
+      const sdkStatus = sdkResponse.status;
+      let sdkBody: any = null;
+      try {
+        sdkBody = await sdkResponse.json();
+      } catch {
+        sdkBody = await sdkResponse.text().catch(() => 'Failed to read body');
+      }
+
+      const items = sdkBody?.items || sdkBody?.tools || (Array.isArray(sdkBody) ? sdkBody : []);
+
+      steps.push({
+        step: '2d_sdk_api_format',
+        status: sdkStatus === 200 && items.length > 0 ? 'pass' : 'fail',
+        duration_ms: Date.now() - sdkApiStart,
+        details: {
+          url: apiUrl,
+          httpStatus: sdkStatus,
+          toolkitSlugs,
+          responseToolCount: items.length,
+          responseKeys: Object.keys(sdkBody || {}),
+          sampleTools: items.slice(0, 5).map((t: any) => ({
+            name: t.name,
+            slug: t.slug,
+            enum: t.enum,
+            toolkit: t.toolkit,
+          })),
+        },
+      });
+    } catch (sdkApiError) {
+      steps.push({
+        step: '2d_sdk_api_format',
+        status: 'fail',
+        duration_ms: Date.now() - sdkApiStart,
+        details: {},
+        error: sdkApiError instanceof Error ? sdkApiError.message : 'SDK API format call failed',
+      });
+    }
+
     // Step 3: Get available tools via our getAvailableTools (with fallback)
     const toolsStart = Date.now();
     let rawToolCount = 0;
