@@ -503,29 +503,27 @@ export async function getAvailableTools(
   userId: string,
   toolkits?: string[]
 ): Promise<ComposioTool[]> {
+  if (!toolkits || toolkits.length === 0) {
+    log.info('No toolkits provided, returning empty tools list');
+    return [];
+  }
+
+  // Convert to Composio's slug format (lowercase, no underscores)
+  const composioToolkits = toolkits.map((t) => toComposioSlug(t));
+
+  log.info('Getting tools for toolkits', {
+    userId,
+    inputToolkits: toolkits,
+    composioToolkits,
+  });
+
+  // Try primary approach: AnthropicProvider client (pre-formatted for Claude)
   try {
-    if (!toolkits || toolkits.length === 0) {
-      log.info('No toolkits provided, returning empty tools list');
-      return [];
-    }
-
-    // Convert to Composio's slug format (lowercase, no underscores)
-    const composioToolkits = toolkits.map((t) => toComposioSlug(t));
-
-    log.info('Getting tools for toolkits with AnthropicProvider', {
-      userId,
-      toolkits: composioToolkits,
-    });
-
-    // Use AnthropicProvider client to get pre-formatted tools for Claude
     const client = getAnthropicClient();
 
     // CRITICAL: Pass explicit limit to prevent SDK from:
     // 1. Auto-applying `important: true` filter (only returns a small subset of tools)
     // 2. Relying on the API's default page size
-    // Our TOOLKIT_REGISTRY handles prioritization and capping, so we want ALL tools.
-    // The SDK auto-applies important=true when toolkits is set and limit is NOT set
-    // (see @composio/core getRawComposioTools: shouldAutoApplyImportant logic).
     const tools = await client.tools.get(userId, {
       toolkits: composioToolkits,
       limit: 500,
@@ -534,39 +532,86 @@ export async function getAvailableTools(
     log.info('Got pre-formatted tools from Composio AnthropicProvider', {
       userId,
       toolCount: tools?.length || 0,
-      sampleTools: tools?.slice(0, 3).map((t: any) => t.name),
+      sampleTools: tools?.slice(0, 5).map((t: any) => t.name),
     });
 
-    // Tools from AnthropicProvider should already have correct format:
-    // { name, description, input_schema: { type: 'object', properties, required } }
-    // We map to our ComposioTool format which uses 'parameters' internally
-    return (tools || []).map((tool: any) => {
-      // AnthropicProvider uses input_schema (Claude format)
-      const inputSchema = tool.input_schema || {};
-
-      log.debug('Mapping AnthropicProvider tool', {
-        name: tool.name,
-        hasInputSchema: !!tool.input_schema,
-        schemaType: inputSchema.type,
-        propertyCount: Object.keys(inputSchema.properties || {}).length,
+    if (tools && tools.length > 0) {
+      return (tools || []).map((tool: any) => {
+        const inputSchema = tool.input_schema || {};
+        return {
+          name: tool.name,
+          description: tool.description || '',
+          parameters: {
+            type: 'object' as const,
+            properties: inputSchema.properties || {},
+            required: inputSchema.required || [],
+          },
+        };
       });
+    }
 
+    log.warn('AnthropicProvider returned 0 tools, trying raw fallback', {
+      userId,
+      composioToolkits,
+    });
+  } catch (providerError) {
+    log.error('AnthropicProvider tools.get() failed, trying raw fallback', {
+      userId,
+      composioToolkits,
+      error: providerError instanceof Error ? providerError.message : String(providerError),
+      stack: providerError instanceof Error ? providerError.stack : undefined,
+      errorType: providerError?.constructor?.name,
+    });
+  }
+
+  // Fallback: Use raw client (without AnthropicProvider) and manually format
+  // This bypasses the provider wrapper which might be causing issues
+  try {
+    const rawClient = getClient();
+
+    log.info('Attempting raw tools.get() fallback (no provider)', {
+      userId,
+      composioToolkits,
+    });
+
+    // getRawComposioTools returns tools with slug, description, inputParameters
+    const rawTools = await rawClient.tools.getRawComposioTools({
+      toolkits: composioToolkits,
+      limit: 500,
+    });
+
+    log.info('Got raw tools from Composio (fallback)', {
+      userId,
+      toolCount: rawTools?.length || 0,
+      sampleTools: rawTools?.slice(0, 5).map((t: any) => ({
+        slug: t.slug,
+        hasInputParams: !!t.inputParameters,
+      })),
+    });
+
+    // Manually convert raw tools to our ComposioTool format
+    return (rawTools || []).map((tool: any) => {
+      const params = tool.inputParameters || {};
       return {
-        name: tool.name,
+        name: tool.slug || tool.name || '',
         description: tool.description || '',
         parameters: {
           type: 'object' as const,
-          properties: inputSchema.properties || {},
-          required: inputSchema.required || [],
+          properties: params.properties || {},
+          required: params.required || [],
         },
       };
     });
-  } catch (error) {
-    log.error('Failed to get available tools from Composio', { userId, toolkits, error });
-    // Propagate the error so callers know tools failed to load
-    // (returning [] would silently make all integrations disappear)
+  } catch (rawError) {
+    log.error('Raw tools fallback also failed', {
+      userId,
+      composioToolkits,
+      error: rawError instanceof Error ? rawError.message : String(rawError),
+      stack: rawError instanceof Error ? rawError.stack : undefined,
+    });
+
     throw new Error(
-      `Failed to load Composio tools: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to load Composio tools (both provider and raw): ${rawError instanceof Error ? rawError.message : 'Unknown error'}`
     );
   }
 }
@@ -634,12 +679,23 @@ function mapComposioAccount(account: Record<string, unknown>): ConnectedAccount 
     EXPIRED: 'expired',
   };
 
-  const status = (account.status as string) || '';
+  // CRITICAL: Composio API may return status in any case (e.g., 'active', 'Active', 'ACTIVE').
+  // Normalize to uppercase for lookup, otherwise all connections default to 'disconnected'.
+  const rawStatus = (account.status as string) || '';
+  const normalizedStatus = rawStatus.toUpperCase();
+  const mappedStatus = statusMap[normalizedStatus] || 'disconnected';
+
+  log.debug('Status mapping', {
+    rawStatus,
+    normalizedStatus,
+    mappedStatus,
+    accountId: account.id,
+  });
 
   return {
     id: account.id as string,
     toolkit: toolkitId, // Use our internal ID format (GOOGLE_SHEETS)
-    status: statusMap[status] || 'disconnected',
+    status: mappedStatus,
     connectedAt: account.createdAt as string | undefined,
     metadata: {
       email: account.email as string | undefined,
