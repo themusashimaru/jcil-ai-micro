@@ -138,7 +138,13 @@ export class AnthropicAdapter extends BaseAIAdapter {
     );
 
     // Convert tools if provided
-    const tools = options.tools ? (this.formatTools(options.tools) as Anthropic.Tool[]) : undefined;
+    let tools: Anthropic.Tool[] | undefined;
+    let hasDeferredTools = false;
+    if (options.tools) {
+      const result = this.formatToolsWithMeta(options.tools);
+      tools = result.tools as Anthropic.Tool[];
+      hasDeferredTools = result.hasDeferredTools;
+    }
 
     // Build API parameters
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,8 +170,13 @@ export class AnthropicAdapter extends BaseAIAdapter {
       apiParams.temperature = 1;
     }
 
+    // Tool Search Tool (defer_loading) requires the advanced-tool-use beta header
+    const streamOptions = hasDeferredTools
+      ? { headers: { 'anthropic-beta': 'advanced-tool-use-2025-11-20' } }
+      : undefined;
+
     try {
-      const stream = await this.client.messages.stream(apiParams);
+      const stream = await this.client.messages.stream(apiParams, streamOptions);
 
       // Track current content block type so we can:
       // 1. Suppress stray events from server tool blocks (web_search)
@@ -180,7 +191,9 @@ export class AnthropicAdapter extends BaseAIAdapter {
         if (event.type === 'content_block_start') {
           currentBlockType = (event.content_block as { type: string }).type;
           isServerToolBlock =
-            currentBlockType === 'server_tool_use' || currentBlockType === 'web_search_tool_result';
+            currentBlockType === 'server_tool_use' ||
+            currentBlockType === 'web_search_tool_result' ||
+            currentBlockType === 'tool_search_tool_result';
         } else if (event.type === 'content_block_stop') {
           isServerToolBlock = false;
           currentBlockType = '';
@@ -464,6 +477,15 @@ export class AnthropicAdapter extends BaseAIAdapter {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formatTools(tools: UnifiedTool[]): any[] {
+    return this.formatToolsWithMeta(tools).tools;
+  }
+
+  /**
+   * Like formatTools, but also returns metadata about the tool set
+   * (e.g., whether deferred tools are present, requiring the beta header).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  formatToolsWithMeta(tools: UnifiedTool[]): { tools: any[]; hasDeferredTools: boolean } {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatted: any[] = [];
     let hasDeferredTools = false;
@@ -505,7 +527,7 @@ export class AnthropicAdapter extends BaseAIAdapter {
       });
     }
 
-    return formatted;
+    return { tools: formatted, hasDeferredTools };
   }
 
   /**
