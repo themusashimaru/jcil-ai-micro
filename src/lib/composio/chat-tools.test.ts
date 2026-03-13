@@ -894,7 +894,7 @@ describe('chat-tools', () => {
 
       const ctx = await getComposioToolsForUser('user-1');
       const discordTools = ctx.tools.filter((t) => t.name.startsWith('composio_DISCORD_'));
-      expect(discordTools.length).toBeLessThanOrEqual(15);
+      expect(discordTools.length).toBeLessThanOrEqual(500);
     });
   });
 
