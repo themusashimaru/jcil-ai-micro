@@ -80,6 +80,7 @@ const mockConnectedAccountsCreate = vi.fn();
 const mockConnectedAccountsWaitForConnection = vi.fn();
 const mockToolsExecute = vi.fn();
 const mockToolsGet = vi.fn();
+const mockToolsGetRaw = vi.fn();
 
 function createMockClient() {
   return {
@@ -98,6 +99,7 @@ function createMockClient() {
     tools: {
       execute: mockToolsExecute,
       get: mockToolsGet,
+      getRawComposioTools: mockToolsGetRaw,
     },
   };
 }
@@ -960,7 +962,13 @@ describe('composio/client', () => {
     });
 
     it('converts toolkit names to Composio slugs', async () => {
-      mockToolsGet.mockResolvedValue([]);
+      mockToolsGet.mockResolvedValue([
+        {
+          name: 'GOOGLESHEETS_TOOL',
+          description: 'A tool',
+          input_schema: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
 
       await getAvailableTools('user-1', ['GOOGLE_SHEETS', 'MICROSOFT_TEAMS']);
 
@@ -1001,28 +1009,47 @@ describe('composio/client', () => {
       expect(result[0].description).toBe('');
     });
 
-    it('throws on API error instead of silently returning empty array', async () => {
+    it('throws on API error when both provider and raw fallback fail', async () => {
       mockToolsGet.mockRejectedValue(new Error('API error'));
+      mockToolsGetRaw.mockRejectedValue(new Error('Raw API error'));
 
       await expect(getAvailableTools('user-1', ['GITHUB'])).rejects.toThrow(
-        'Failed to load Composio tools: API error'
+        'Failed to load Composio tools (both provider and raw): Raw API error'
       );
     });
 
-    it('handles null response from SDK', async () => {
+    it('falls back to raw tools when provider returns null', async () => {
       mockToolsGet.mockResolvedValue(null);
+      mockToolsGetRaw.mockResolvedValue([
+        {
+          slug: 'SLACK_SEND_MESSAGE',
+          description: 'Send a Slack message',
+          inputParameters: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
 
       const result = await getAvailableTools('user-1', ['SLACK']);
 
-      expect(result).toEqual([]);
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe('SLACK_SEND_MESSAGE');
     });
 
-    it('handles undefined response from SDK', async () => {
-      mockToolsGet.mockResolvedValue(undefined);
+    it('falls back to raw tools when provider returns empty', async () => {
+      mockToolsGet.mockResolvedValue([]);
+      mockToolsGetRaw.mockResolvedValue([
+        {
+          slug: 'GMAIL_SEND_EMAIL',
+          description: 'Send an email',
+          inputParameters: { type: 'object', properties: {}, required: [] },
+        },
+      ]);
 
       const result = await getAvailableTools('user-1', ['GMAIL']);
 
-      expect(result).toEqual([]);
+      // AnthropicProvider returned [], but it's treated as 0 tools, triggering fallback
+      // The fallback should return the raw tools
+      expect(result.length).toBe(1);
+      expect(result[0].name).toBe('GMAIL_SEND_EMAIL');
     });
 
     it('processes multiple toolkits at once', async () => {

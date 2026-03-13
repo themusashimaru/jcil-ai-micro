@@ -12,7 +12,12 @@
 import { NextRequest } from 'next/server';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
-import { getConnectedAccounts, getAvailableTools, isComposioConfigured } from '@/lib/composio';
+import {
+  getConnectedAccounts,
+  getAvailableTools,
+  isComposioConfigured,
+  getComposioClient,
+} from '@/lib/composio';
 import { getComposioToolsForUser } from '@/lib/composio/chat-tools';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +78,55 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Step 2: Get connected accounts
+    // Step 2: Get RAW connected accounts from Composio API (bypassing our mapping)
+    // This shows exactly what Composio returns so we can detect status mapping issues
+    const rawAccountsStart = Date.now();
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    let rawAccountItems: any[] = [];
+    try {
+      const client = getComposioClient();
+      const rawAccounts = await client.connectedAccounts.list({
+        userIds: [userId],
+      });
+      rawAccountItems = rawAccounts.items || [];
+
+      steps.push({
+        step: '2a_raw_composio_accounts',
+        status: rawAccountItems.length > 0 ? 'pass' : 'warn',
+        duration_ms: Date.now() - rawAccountsStart,
+        details: {
+          totalRawAccounts: rawAccountItems.length,
+          rawAccounts: rawAccountItems.map((a: any) => ({
+            id: a.id,
+            status: a.status, // EXACT status string from Composio
+            statusType: typeof a.status,
+            toolkit: a.toolkit
+              ? {
+                  slug: a.toolkit.slug,
+                  name: a.toolkit.name,
+                  id: a.toolkit.id,
+                }
+              : 'undefined',
+            integrationId: a.integrationId,
+            appName: a.appName,
+            appUniqueId: a.appUniqueId,
+          })),
+        },
+      });
+    } catch (rawAccountsError) {
+      steps.push({
+        step: '2a_raw_composio_accounts',
+        status: 'fail',
+        duration_ms: Date.now() - rawAccountsStart,
+        details: {},
+        error:
+          rawAccountsError instanceof Error
+            ? rawAccountsError.message
+            : 'Failed to get raw accounts',
+      });
+    }
+
+    // Step 2b: Get connected accounts through our mapping layer
     const accountsStart = Date.now();
     let connectedApps: string[] = [];
     try {
@@ -82,7 +135,7 @@ export async function GET(request: NextRequest) {
       connectedApps = connected.map((a) => a.toolkit);
 
       steps.push({
-        step: '2_connected_accounts',
+        step: '2b_mapped_accounts',
         status: connected.length > 0 ? 'pass' : 'warn',
         duration_ms: Date.now() - accountsStart,
         details: {
@@ -94,27 +147,41 @@ export async function GET(request: NextRequest) {
             id: a.id,
           })),
           connectedApps,
+          statusMismatchCheck:
+            rawAccountItems.length > 0
+              ? {
+                  rawCount: rawAccountItems.length,
+                  mappedCount: accounts.length,
+                  rawStatuses: rawAccountItems.map((a: any) => a.status),
+                  mappedStatuses: accounts.map((a) => a.status),
+                }
+              : 'no raw data to compare',
         },
       });
     } catch (accountsError) {
       steps.push({
-        step: '2_connected_accounts',
+        step: '2b_mapped_accounts',
         status: 'fail',
         duration_ms: Date.now() - accountsStart,
         details: {},
-        error: accountsError instanceof Error ? accountsError.message : 'Failed to get accounts',
+        error:
+          accountsError instanceof Error ? accountsError.message : 'Failed to get mapped accounts',
       });
     }
 
     if (connectedApps.length === 0) {
       return Response.json({
         ok: false,
-        summary: 'No connected apps found. Connect an app first in Settings > Connectors.',
+        summary:
+          'No connected apps found after mapping. ' +
+          (rawAccountItems.length > 0
+            ? `Raw API returned ${rawAccountItems.length} account(s) with statuses: [${rawAccountItems.map((a: any) => a.status).join(', ')}]. Status mapping may be broken.`
+            : 'No accounts in Composio API either. Connect an app first in Settings > Connectors.'),
         steps,
       });
     }
 
-    // Step 3: Get available tools (raw from Composio SDK)
+    // Step 3: Get available tools via our getAvailableTools (with fallback)
     const toolsStart = Date.now();
     let rawToolCount = 0;
     let rawToolNames: string[] = [];
@@ -131,13 +198,13 @@ export async function GET(request: NextRequest) {
       }
 
       steps.push({
-        step: '3_available_tools_raw',
+        step: '3_available_tools',
         status: rawToolCount > 0 ? 'pass' : 'fail',
         duration_ms: Date.now() - toolsStart,
         details: {
           totalTools: rawToolCount,
           toolsByPrefix,
-          sampleToolNames: rawToolNames.slice(0, 15),
+          sampleToolNames: rawToolNames.slice(0, 20),
           sampleToolSchema: rawTools[0]
             ? {
                 name: rawTools[0].name,
@@ -151,7 +218,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (toolsError) {
       steps.push({
-        step: '3_available_tools_raw',
+        step: '3_available_tools',
         status: 'fail',
         duration_ms: Date.now() - toolsStart,
         details: {
@@ -192,6 +259,7 @@ export async function GET(request: NextRequest) {
         error: pipelineError instanceof Error ? pipelineError.message : 'Pipeline failed',
       });
     }
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     // Summary
     const failedSteps = steps.filter((s) => s.status === 'fail');
