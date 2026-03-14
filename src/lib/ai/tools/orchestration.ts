@@ -912,6 +912,99 @@ export class ChainTelemetry {
 }
 
 // ============================================================================
+// COMPENSATING TRANSACTIONS (ROLLBACK)
+// ============================================================================
+
+/**
+ * Maps tools that create side effects to tools that can undo them.
+ * Used to offer rollback when a multi-step workflow fails partway.
+ */
+export const COMPENSATING_ACTIONS: Record<
+  string,
+  {
+    undoTool: string;
+    description: string;
+  }
+> = {
+  composio_GMAIL_SEND_EMAIL: {
+    undoTool: 'composio_GMAIL_MOVE_TO_TRASH',
+    description: 'Move sent email to Trash',
+  },
+  composio_GMAIL_CREATE_EMAIL_DRAFT: {
+    undoTool: 'composio_GMAIL_DELETE_DRAFT',
+    description: 'Delete the draft',
+  },
+  composio_GOOGLECALENDAR_CREATE_EVENT: {
+    undoTool: 'composio_GOOGLECALENDAR_DELETE_EVENT',
+    description: 'Delete the calendar event',
+  },
+  composio_SLACK_SEND_MESSAGE: {
+    undoTool: 'composio_SLACK_DELETE_MESSAGE',
+    description: 'Delete the Slack message',
+  },
+  composio_GITHUB_CREATE_AN_ISSUE: {
+    undoTool: 'composio_GITHUB_UPDATE_AN_ISSUE',
+    description: 'Close the GitHub issue',
+  },
+  composio_GMAIL_ADD_LABEL_TO_EMAIL: {
+    undoTool: 'composio_GMAIL_ADD_LABEL_TO_EMAIL',
+    description: 'Remove the label (reverse operation)',
+  },
+};
+
+/**
+ * Check if a tool has a compensating (undo) action available.
+ */
+export function hasCompensatingAction(toolName: string): boolean {
+  return toolName in COMPENSATING_ACTIONS;
+}
+
+/**
+ * Get the compensating action details for a tool.
+ */
+export function getCompensatingAction(
+  toolName: string
+): (typeof COMPENSATING_ACTIONS)[string] | null {
+  return COMPENSATING_ACTIONS[toolName] || null;
+}
+
+/**
+ * Build rollback instructions for Claude when a chain fails midway.
+ * Lists what was completed and what can be undone.
+ */
+export function buildRollbackContext(
+  completedTools: Array<{ name: string; params: Record<string, unknown> }>
+): string {
+  if (completedTools.length === 0) return '';
+
+  const undoable: string[] = [];
+  const permanent: string[] = [];
+
+  for (const tool of completedTools) {
+    const comp = COMPENSATING_ACTIONS[tool.name];
+    if (comp) {
+      undoable.push(`- ${tool.name}: Can undo via ${comp.undoTool} (${comp.description})`);
+    } else {
+      const label = tool.name.replace(/^composio_/, '').replace(/_/g, ' ');
+      permanent.push(`- ${label}: Already completed (cannot be automatically undone)`);
+    }
+  }
+
+  const lines = [
+    '\n<rollback_context>',
+    'The workflow failed partway. Here is what was already done:',
+  ];
+  if (undoable.length > 0) {
+    lines.push('\nReversible (can offer to undo):', ...undoable);
+  }
+  if (permanent.length > 0) {
+    lines.push('\nNot automatically reversible:', ...permanent);
+  }
+  lines.push('</rollback_context>');
+  return lines.join('\n');
+}
+
+// ============================================================================
 // CHAIN DETECTION
 // ============================================================================
 
@@ -1065,6 +1158,38 @@ For repetitive tasks, maximize efficiency:
 - Create multiple documents by calling create_document multiple times with different formats
 - Use parallel_research to gather info from multiple sources simultaneously
 - Process multiple data sets in parallel with run_code
+
+## SCHEDULED ACTIONS
+When a user asks to do something at a specific time (e.g., "send this email at 3pm",
+"remind me tomorrow", "post this tweet on Monday"):
+1. Show a \`\`\`scheduled-action code block with the schedule details:
+\`\`\`scheduled-action
+{
+  "action": "Send Email",
+  "platform": "Gmail",
+  "summary": "Send weekly report to team",
+  "scheduledFor": "2026-03-14T15:00:00",
+  "scheduledDisplay": "Today at 3:00 PM",
+  "timezone": "America/New_York",
+  "toolName": "composio_GMAIL_SEND_EMAIL",
+  "toolParams": { "recipient_email": "...", "subject": "...", "body": "..." }
+}
+\`\`\`
+2. Wait for user confirmation before scheduling
+3. Support recurring schedules: "daily", "weekly", "monthly"
+4. Always show the timezone
+
+## ERROR RECOVERY & ROLLBACK
+When a multi-step workflow fails partway:
+1. Tell the user exactly which step failed and why
+2. List what was already completed successfully
+3. For reversible actions, offer to undo:
+   - Email sent → "I can move it to Trash"
+   - Calendar event created → "I can delete the event"
+   - Draft created → "I can delete the draft"
+   - Document generated → files persist (not reversible, but harmless)
+4. For non-reversible actions, clearly state they cannot be undone
+5. Offer to retry the failed step or skip it and continue
 
 IMPORTANT: Always complete the full chain. If a user asks for "a presentation about AI trends,"
 don't just research — research, THEN create charts, THEN build the presentation with those charts.

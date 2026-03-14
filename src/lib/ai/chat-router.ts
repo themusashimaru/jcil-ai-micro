@@ -40,6 +40,7 @@ import {
   partitionParallelCalls,
   detectChainPattern,
   getToolFallbacks,
+  buildRollbackContext,
 } from './tools/orchestration';
 
 const log = logger('ChatRouter');
@@ -579,6 +580,8 @@ export async function routeChatWithTools(
   const chainTelemetry = new ChainTelemetry();
   // Track all tools executed this session for chain detection
   const executedToolNames: string[] = [];
+  // Track completed tool calls with params for rollback context
+  const completedToolCalls: Array<{ name: string; params: Record<string, unknown> }> = [];
 
   // Create a stream that handles tool loops
   const stream = new ReadableStream<Uint8Array>({
@@ -810,6 +813,46 @@ export async function routeChatWithTools(
                       chainTelemetry.startChain(detectedChain.name, detectedChain.tools);
                     }
                     chainTelemetry.stepCompleted(detectedChain.name);
+
+                    // Emit chain progress to stream for real-time UI
+                    try {
+                      const steps = detectedChain.tools.map((t) => {
+                        const executedIdx = executedToolNames.indexOf(t);
+                        const isExecuted = executedIdx >= 0;
+                        const isCurrent = t === toolCall.name;
+                        return {
+                          name: t,
+                          label: t.replace(/^composio_/, '').replace(/_/g, ' '),
+                          status: isExecuted
+                            ? 'complete'
+                            : isCurrent
+                              ? 'running'
+                              : ('pending' as const),
+                        };
+                      });
+                      const exec = chainTelemetry
+                        .getAll()
+                        .find((e) => e.chainName === detectedChain.name);
+                      const progressJson = JSON.stringify({
+                        chainName: detectedChain.name,
+                        steps,
+                        status: exec?.status || 'running',
+                      });
+                      controller.enqueue(
+                        encoder.encode(`\n\`\`\`chain-progress\n${progressJson}\n\`\`\`\n`)
+                      );
+                    } catch {
+                      // Non-critical — don't break the stream if progress emission fails
+                    }
+                  }
+
+                  // Track successful tool for rollback context
+                  if (!result.isError) {
+                    const parsedArgs =
+                      typeof toolCall.arguments === 'string'
+                        ? {}
+                        : (toolCall.arguments as Record<string, unknown>);
+                    completedToolCalls.push({ name: toolCall.name, params: parsedArgs });
                   }
 
                   log.debug('Tool execution complete', {
@@ -841,9 +884,12 @@ export async function routeChatWithTools(
                       ? `\n\nFALLBACK: Try using ${fallbacks[0]} instead of ${toolCall.name} to accomplish the same goal.`
                       : '';
 
+                  // Build rollback context if there are completed steps
+                  const rollbackHint = buildRollbackContext(completedToolCalls);
+
                   return {
                     toolCallId: toolCall.id,
-                    content: `Error executing tool: ${errorMsg}${fallbackHint}`,
+                    content: `Error executing tool: ${errorMsg}${fallbackHint}${rollbackHint}`,
                     isError: true,
                   } as UnifiedToolResult;
                 }
