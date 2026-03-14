@@ -51,7 +51,7 @@ const PLATFORM_ICONS: Record<string, string> = {
 };
 
 const STATUS_CONFIG: Record<string, { dot: string; label: string; color: string }> = {
-  pending: { dot: 'bg-blue-400', label: 'Scheduled', color: 'text-blue-400' },
+  pending: { dot: 'bg-orange-400', label: 'Scheduled', color: 'text-orange-400' },
   running: { dot: 'bg-amber-400 animate-pulse', label: 'Running', color: 'text-amber-400' },
   completed: { dot: 'bg-emerald-400', label: 'Done', color: 'text-emerald-400' },
   failed: { dot: 'bg-red-400', label: 'Failed', color: 'text-red-400' },
@@ -148,7 +148,7 @@ export function ChatSidebarScheduledTasks({
             Scheduled
           </span>
           {pendingCount > 0 && (
-            <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-900/40 text-blue-300 font-medium">
+            <span className="text-xs px-1.5 py-0.5 rounded-full bg-orange-900/40 text-orange-300 font-medium">
               {pendingCount}
             </span>
           )}

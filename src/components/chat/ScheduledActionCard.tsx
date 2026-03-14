@@ -87,7 +87,7 @@ export default function ScheduledActionCard({
           <div className="font-semibold text-white text-sm">{data.platform}</div>
           <div className="text-xs text-gray-400">{data.action}</div>
         </div>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-900/40 text-blue-300">
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-900/40 text-orange-300">
           {'\u23F0'} Scheduled
         </span>
       </div>
@@ -112,7 +112,7 @@ export default function ScheduledActionCard({
           {data.recurring && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400 w-16">Repeats</span>
-              <span className="text-xs text-blue-300 capitalize">{data.recurring}</span>
+              <span className="text-xs text-orange-300 capitalize">{data.recurring}</span>
             </div>
           )}
         </div>
@@ -132,7 +132,7 @@ export default function ScheduledActionCard({
             'Scheduling...'
           ) : (
             <>
-              <span className="text-blue-400">{'\u23F0'}</span>
+              <span className="text-orange-400">{'\u23F0'}</span>
               Schedule
             </>
           )}

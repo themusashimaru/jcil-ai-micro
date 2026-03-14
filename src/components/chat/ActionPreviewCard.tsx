@@ -136,7 +136,7 @@ export default function ActionPreviewCard({
               <button
                 onClick={handleEdit}
                 disabled={!editInstruction.trim()}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50 bg-blue-500"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50 bg-orange-500"
               >
                 Apply Edit
               </button>
