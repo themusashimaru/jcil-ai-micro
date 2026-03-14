@@ -219,12 +219,12 @@ export function ThinkingTreeView({ session }: TreeViewProps) {
         .node-type {
           font-size: 0.75rem;
           font-weight: 600;
-          color: var(--cl-text-secondary, #374151);
+          color: var(--cl-text-secondary, var(--text-secondary, #9ca3af));
         }
 
         .node-text {
           font-size: 0.875rem;
-          color: var(--cl-text-secondary, #374151);
+          color: var(--cl-text-secondary, var(--text-secondary, #9ca3af));
           line-height: 1.5;
         }
       `}</style>
@@ -295,7 +295,7 @@ export function ThinkingTimelineView({ session, stats }: TimelineViewProps) {
           justify-content: space-between;
           margin-top: 0.25rem;
           font-size: 0.6875rem;
-          color: var(--cl-text-muted, #6b7280);
+          color: var(--cl-text-muted, var(--text-muted, #9ca3af));
         }
       `}</style>
     </div>

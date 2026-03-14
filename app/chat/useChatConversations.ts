@@ -61,8 +61,24 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
       const currentMessages = messagesRef.current;
 
       if (isStreamingRef.current) {
+        // Wait briefly to see if the stream is still alive
         await new Promise((resolve) => setTimeout(resolve, 500));
-        if (isStreamingRef.current) return;
+        if (isStreamingRef.current) {
+          // Stream is likely dead after mobile app backgrounding —
+          // the browser drops fetch connections when the app is suspended.
+          // Abort the stale connection and trigger pending request recovery.
+          log.info(
+            'Stream still active after returning from background — aborting stale connection',
+            { chatId }
+          );
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+          }
+          setIsStreaming(false);
+          // Wait for abort to propagate through the reader error handler
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
       }
 
       const fetchedMessages = await fetchMessages(chatId);

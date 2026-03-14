@@ -377,7 +377,7 @@ export function CodeLabThinking({
           background: var(--cl-bg-tertiary, #f3f4f6);
           border-top: 1px solid var(--cl-border-primary, #e5e7eb);
           font-size: 0.875rem;
-          color: var(--cl-text-secondary, #374151);
+          color: var(--cl-text-secondary, var(--text-secondary, #9ca3af));
         }
 
         .thinking-summary strong {

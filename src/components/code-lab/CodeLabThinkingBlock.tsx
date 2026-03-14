@@ -159,13 +159,13 @@ export function CodeLabThinkingBlock({
           display: flex;
           gap: 0.75rem;
           font-size: 0.75rem;
-          color: #6b7280;
+          color: var(--text-secondary, #9ca3af);
         }
 
         .thinking-preview {
           padding: 0 1rem 0.75rem;
           font-size: 0.8125rem;
-          color: #6b7280;
+          color: var(--text-secondary, #9ca3af);
           font-style: italic;
         }
 
@@ -182,7 +182,7 @@ export function CodeLabThinkingBlock({
           border-radius: 8px;
           font-size: 0.8125rem;
           line-height: 1.6;
-          color: #374151;
+          color: var(--text-secondary, #9ca3af);
           white-space: pre-wrap;
           word-break: break-word;
           font-family: 'SF Mono', 'Fira Code', monospace;
@@ -197,9 +197,13 @@ export function CodeLabThinkingBlock({
             border-color: rgba(139, 92, 246, 0.3);
           }
 
-          .thinking-content pre {
+          .thinking-content {
             background: rgba(0, 0, 0, 0.2);
-            color: #e5e7eb;
+          }
+
+          .thinking-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            color: #d1d5db;
           }
         }
       `}</style>
