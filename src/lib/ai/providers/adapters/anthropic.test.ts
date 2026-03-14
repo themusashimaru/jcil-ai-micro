@@ -464,7 +464,7 @@ describe('AnthropicAdapter', () => {
       expect(result[1].name).toBe('tool_b');
     });
 
-    it('should add defer_loading to deferred tools and inject Tool Search Tool', () => {
+    it('should format Composio tools as standard custom tools', () => {
       const adapter = new AnthropicAdapter();
       const tools: UnifiedTool[] = [
         {
@@ -476,41 +476,19 @@ describe('AnthropicAdapter', () => {
           name: 'composio_GMAIL_SEND',
           description: 'Send email',
           parameters: { type: 'object', properties: { to: { type: 'string' } } },
-          deferLoading: true,
         },
       ];
 
       const result = adapter.formatTools(tools);
 
-      // Tool Search Tool auto-injected at position 0
-      expect(result[0]).toEqual({
-        type: 'tool_search_tool_bm25_20251119',
-        name: 'tool_search',
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('builtin_tool');
+      expect(result[1].name).toBe('composio_GMAIL_SEND');
+      expect(result[1].input_schema).toEqual({
+        type: 'object',
+        properties: { to: { type: 'string' } },
+        required: undefined,
       });
-
-      // Built-in tool has no defer_loading
-      expect(result[1].name).toBe('builtin_tool');
-      expect(result[1].defer_loading).toBeUndefined();
-
-      // Composio tool has defer_loading: true
-      expect(result[2].name).toBe('composio_GMAIL_SEND');
-      expect(result[2].defer_loading).toBe(true);
-    });
-
-    it('should NOT inject Tool Search Tool when no deferred tools exist', () => {
-      const adapter = new AnthropicAdapter();
-      const tools: UnifiedTool[] = [
-        {
-          name: 'tool_a',
-          description: 'Tool A',
-          parameters: { type: 'object', properties: {} },
-        },
-      ];
-
-      const result = adapter.formatTools(tools);
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe('tool_a');
-      expect(result[0].type).toBeUndefined();
     });
   });
 

@@ -138,13 +138,7 @@ export class AnthropicAdapter extends BaseAIAdapter {
     );
 
     // Convert tools if provided
-    let tools: Anthropic.Tool[] | undefined;
-    let hasDeferredTools = false;
-    if (options.tools) {
-      const result = this.formatToolsWithMeta(options.tools);
-      tools = result.tools as Anthropic.Tool[];
-      hasDeferredTools = result.hasDeferredTools;
-    }
+    const tools = options.tools ? (this.formatTools(options.tools) as Anthropic.Tool[]) : undefined;
 
     // Build API parameters
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -170,13 +164,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
       apiParams.temperature = 1;
     }
 
-    // Tool Search Tool (defer_loading) requires the advanced-tool-use beta header
-    const streamOptions = hasDeferredTools
-      ? { headers: { 'anthropic-beta': 'advanced-tool-use-2025-11-20' } }
-      : undefined;
-
     try {
-      const stream = await this.client.messages.stream(apiParams, streamOptions);
+      const stream = await this.client.messages.stream(apiParams);
 
       // Track current content block type so we can:
       // 1. Suppress stray events from server tool blocks (web_search)
@@ -191,9 +180,7 @@ export class AnthropicAdapter extends BaseAIAdapter {
         if (event.type === 'content_block_start') {
           currentBlockType = (event.content_block as { type: string }).type;
           isServerToolBlock =
-            currentBlockType === 'server_tool_use' ||
-            currentBlockType === 'web_search_tool_result' ||
-            currentBlockType === 'tool_search_tool_result';
+            currentBlockType === 'server_tool_use' || currentBlockType === 'web_search_tool_result';
         } else if (event.type === 'content_block_stop') {
           isServerToolBlock = false;
           currentBlockType = '';
@@ -469,26 +456,12 @@ export class AnthropicAdapter extends BaseAIAdapter {
 
   /**
    * Convert unified tools to Anthropic format.
-   * Handles custom tools, native server tools, and deferred tools (Tool Search Tool).
-   *
-   * When any tools have deferLoading=true, automatically injects the BM25 Tool Search
-   * Tool so Claude can discover deferred tools on-demand instead of loading all
-   * definitions into the context window upfront.
+   * Handles both custom tools and native server tools (web_search_20260209).
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formatTools(tools: UnifiedTool[]): any[] {
-    return this.formatToolsWithMeta(tools).tools;
-  }
-
-  /**
-   * Like formatTools, but also returns metadata about the tool set
-   * (e.g., whether deferred tools are present, requiring the beta header).
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  formatToolsWithMeta(tools: UnifiedTool[]): { tools: any[]; hasDeferredTools: boolean } {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formatted: any[] = [];
-    let hasDeferredTools = false;
 
     for (const tool of tools) {
       // Native web search tool — pass as server tool type, not custom tool
@@ -499,8 +472,8 @@ export class AnthropicAdapter extends BaseAIAdapter {
         continue;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anthropicTool: any = {
+      // Standard custom tool
+      formatted.push({
         name: tool.name,
         description: tool.description,
         input_schema: {
@@ -508,26 +481,10 @@ export class AnthropicAdapter extends BaseAIAdapter {
           properties: tool.parameters.properties,
           required: tool.parameters.required,
         },
-      };
-
-      // Mark deferred tools — Claude sees name/description but not full schema until searched
-      if (tool.deferLoading) {
-        anthropicTool.defer_loading = true;
-        hasDeferredTools = true;
-      }
-
-      formatted.push(anthropicTool);
-    }
-
-    // Auto-inject Tool Search Tool when deferred tools exist
-    if (hasDeferredTools) {
-      formatted.unshift({
-        type: 'tool_search_tool_bm25_20251119',
-        name: 'tool_search',
       });
     }
 
-    return { tools: formatted, hasDeferredTools };
+    return formatted;
   }
 
   /**
