@@ -183,47 +183,49 @@ export function extractArtifacts(
     }
 
     case 'create_document': {
-      // Document tool returns base64 or download URLs
-      if (resultContent.includes('data:application/pdf')) {
-        artifacts.push({ type: 'file', content: 'PDF document generated', label: 'PDF document' });
-      }
-      if (resultContent.includes('.docx') || resultContent.includes('application/vnd.openxml')) {
-        artifacts.push({
-          type: 'file',
-          content: 'DOCX document generated',
-          label: 'Word document',
-        });
-      }
-      // Check for download URLs
+      // Extract download URLs (hosted URLs from Supabase upload, or data URLs as fallback)
       const docUrls = resultContent.match(URL_PATTERN) || [];
       for (const url of docUrls) {
-        artifacts.push({ type: 'file', content: url, label: 'Document download' });
+        const isDocx = url.includes('.docx') || resultContent.includes('DOCX');
+        const isPdf = url.includes('.pdf') || resultContent.includes('PDF');
+        const label = isPdf ? 'PDF document' : isDocx ? 'Word document' : 'Document';
+        artifacts.push({ type: 'file', content: url, label });
+      }
+      // Fallback: if no HTTP URLs found but has data URL, note it
+      if (docUrls.length === 0 && resultContent.includes('data:application/')) {
+        artifacts.push({ type: 'file', content: 'Document generated (inline)', label: 'Document' });
       }
       break;
     }
 
     case 'create_presentation': {
-      if (resultContent.includes('.pptx') || resultContent.includes('presentation')) {
-        artifacts.push({
-          type: 'file',
-          content: 'PPTX generated',
-          label: 'PowerPoint presentation',
-        });
-      }
       const pptxUrls = resultContent.match(URL_PATTERN) || [];
       for (const url of pptxUrls) {
-        artifacts.push({ type: 'file', content: url, label: 'Presentation download' });
+        artifacts.push({ type: 'file', content: url, label: 'PowerPoint presentation' });
+      }
+      if (pptxUrls.length === 0 && resultContent.includes('data:application/')) {
+        artifacts.push({
+          type: 'file',
+          content: 'Presentation generated (inline)',
+          label: 'Presentation',
+        });
       }
       break;
     }
 
     case 'create_spreadsheet':
     case 'excel_advanced': {
-      artifacts.push({
-        type: 'file',
-        content: 'Spreadsheet generated',
-        label: 'Excel spreadsheet',
-      });
+      const xlsxUrls = resultContent.match(URL_PATTERN) || [];
+      for (const url of xlsxUrls) {
+        artifacts.push({ type: 'file', content: url, label: 'Excel spreadsheet' });
+      }
+      if (xlsxUrls.length === 0 && resultContent.includes('data:application/')) {
+        artifacts.push({
+          type: 'file',
+          content: 'Spreadsheet generated (inline)',
+          label: 'Spreadsheet',
+        });
+      }
       break;
     }
 
