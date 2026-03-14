@@ -20,6 +20,10 @@ import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
 import { TerminalOutput } from './TerminalOutput';
 import ActionPreviewCard, { parseActionPreview, type ActionPreviewData } from './ActionPreviewCard';
+import DestructiveActionCard, {
+  parseDestructiveAction,
+  type DestructiveActionData,
+} from './DestructiveActionCard';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { logger } from '@/lib/logger';
 
@@ -37,6 +41,10 @@ interface MarkdownRendererProps {
   onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
   /** Callback when action preview is cancelled */
   onActionCancel?: (preview: ActionPreviewData) => void;
+  /** Callback when destructive action is confirmed */
+  onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
+  /** Callback when destructive action is cancelled */
+  onDestructiveCancel?: (data: DestructiveActionData) => void;
 }
 
 /**
@@ -380,8 +388,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   onActionSend,
   onActionEdit,
   onActionCancel,
+  onDestructiveConfirm,
+  onDestructiveCancel,
 }: MarkdownRendererProps) {
   const [actionSending, setActionSending] = useState(false);
+  const [destructiveConfirming, setDestructiveConfirming] = useState(false);
 
   // Get code execution context (optional - gracefully handle if not in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -446,6 +457,34 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
               onCancel={() => {
                 if (onActionCancel) {
                   onActionCancel(previewData);
+                }
+              }}
+            />
+          );
+        }
+      }
+
+      // Check if this is a destructive action confirmation (delete, remove, etc.)
+      if (language === 'action-confirm') {
+        const confirmData = parseDestructiveAction(`\`\`\`action-confirm\n${codeContent}\n\`\`\``);
+        if (confirmData) {
+          return (
+            <DestructiveActionCard
+              data={confirmData}
+              confirming={destructiveConfirming}
+              onConfirm={async () => {
+                if (onDestructiveConfirm) {
+                  setDestructiveConfirming(true);
+                  try {
+                    await onDestructiveConfirm(confirmData);
+                  } finally {
+                    setDestructiveConfirming(false);
+                  }
+                }
+              }}
+              onCancel={() => {
+                if (onDestructiveCancel) {
+                  onDestructiveCancel(confirmData);
                 }
               }}
             />

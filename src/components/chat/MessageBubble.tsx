@@ -7,6 +7,7 @@ import type { Message } from '@/app/chat/types';
 import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { ActionPreviewData } from './ActionPreviewCard';
+import type { DestructiveActionData } from './DestructiveActionCard';
 import { getToolEntry } from '@/lib/ai/tools/registry';
 import { CodePreviewBlock } from './CodePreviewBlock';
 import { MessageFooter } from './MessageFooter';
@@ -55,6 +56,8 @@ interface MessageBubbleProps {
   onActionSend?: (preview: ActionPreviewData) => Promise<void>;
   onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
   onActionCancel?: (preview: ActionPreviewData) => void;
+  onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
+  onDestructiveCancel?: (data: DestructiveActionData) => void;
   onRetry?: () => void;
 }
 
@@ -69,6 +72,8 @@ export const MessageBubble = memo(
     onActionSend,
     onActionEdit,
     onActionCancel,
+    onDestructiveConfirm,
+    onDestructiveCancel,
     onRetry,
   }: MessageBubbleProps) {
     const isUser = message.role === 'user';
@@ -343,6 +348,8 @@ export const MessageBubble = memo(
                     onActionSend={onActionSend}
                     onActionEdit={onActionEdit}
                     onActionCancel={onActionCancel}
+                    onDestructiveConfirm={onDestructiveConfirm}
+                    onDestructiveCancel={onDestructiveCancel}
                   />
                   {message.isStreaming && (
                     <span className="inline-block ml-0.5 text-primary animate-[blink_1s_step-end_infinite] text-base leading-none">

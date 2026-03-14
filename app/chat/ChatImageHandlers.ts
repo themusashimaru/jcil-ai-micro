@@ -4,6 +4,7 @@ import { formatActionSuccessMessage } from './chatUtils';
 import type { AgentModeId } from './agentModes';
 import type { Message, GeneratedImage, Attachment } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
+import type { DestructiveActionData } from '@/components/chat/DestructiveActionCard';
 import type { SearchMode } from '@/components/chat/ChatComposer';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 
@@ -175,6 +176,63 @@ export function createImageHandlers({
     ]);
   };
 
+  const handleDestructiveConfirm = async (data: DestructiveActionData): Promise<void> => {
+    try {
+      const response = await fetch('/api/composio/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: data.toolName.replace(/^composio_/, ''),
+          params: data.toolParams,
+        }),
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `destructive-success-${Date.now()}`,
+            role: 'assistant',
+            content: `Done! Successfully completed: ${data.summary}`,
+            timestamp: new Date(),
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `destructive-error-${Date.now()}`,
+            role: 'assistant',
+            content: `Failed to ${data.action.toLowerCase()} on ${data.platform}: ${result.error || 'Unknown error'}.`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `destructive-error-${Date.now()}`,
+          role: 'assistant',
+          content: `An error occurred while trying to ${data.action.toLowerCase()} on ${data.platform}.`,
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  };
+
+  const handleDestructiveCancel = (data: DestructiveActionData): void => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `destructive-cancel-${Date.now()}`,
+        role: 'assistant',
+        content: `Okay, I've cancelled the ${data.action.toLowerCase()} operation. Nothing was changed.`,
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
   const handleCarouselSelect = async (cardId: string) => {
     switch (cardId) {
       case 'create-image':
@@ -201,6 +259,8 @@ export function createImageHandlers({
     handleActionSend,
     handleActionEdit,
     handleActionCancel,
+    handleDestructiveConfirm,
+    handleDestructiveCancel,
     handleCarouselSelect,
   };
 }

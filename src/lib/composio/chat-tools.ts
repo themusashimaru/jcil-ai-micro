@@ -1624,6 +1624,33 @@ For emails, include recipient and subject:
 The user will see a card with Send/Edit/Cancel buttons. Only execute the tool when they click Send.
 If they click Edit and provide instructions, regenerate the preview with their changes.
 
+### Destructive Action Confirmations
+
+**ALWAYS show a confirmation card before deleting, removing, or making irreversible changes.**
+
+Use this exact JSON format to show a red confirmation card:
+
+\`\`\`action-confirm
+{
+  "platform": "Gmail",
+  "action": "Delete Emails",
+  "summary": "Delete 5 emails from Robin Hood promotions",
+  "items": ["Robin Hood: New deals this week!", "Robin Hood: Your account update", "Robin Hood: Special offer inside"],
+  "itemCount": 5,
+  "toolName": "composio_GMAIL_BATCH_DELETE_MESSAGES",
+  "toolParams": { "message_ids": ["id1", "id2", "id3", "id4", "id5"] }
+}
+\`\`\`
+
+The user will see a red confirmation card with the items listed and Confirm/Cancel buttons.
+Only execute the destructive tool when they click Confirm.
+
+Use action-confirm for ALL destructive operations:
+- Deleting emails, messages, or conversations
+- Removing files, repos, or resources
+- Cancelling subscriptions, payments, or deployments
+- Bulk updates that modify or overwrite existing data
+
 ### Tool Usage
 
 Tool names are prefixed with "composio_" followed by the action:
