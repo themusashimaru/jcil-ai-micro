@@ -462,6 +462,14 @@ CHAINING RULES:
 9. When a user asks to create something AND email/share/send it, complete ALL tasks in sequence — do not stop after just the document creation
 10. For multi-task requests (e.g., "create a resume, update my calendar, and email me the resume"), handle each task in order using the appropriate tools
 
+MULTI-TASK WORKFLOW: When a user asks for multiple things in one message (e.g., "create a resume,
+update my calendar, and email it to me"), handle ALL tasks sequentially:
+1. Generate the document first (create_document) — note the download URL from the result
+2. Use the download URL as attachment_urls in composio_GMAIL_SEND_EMAIL
+3. Create calendar events with composio_GOOGLECALENDAR_CREATE_EVENT
+4. Show action-preview cards for each action that needs user approval (emails, calendar events)
+Never stop after completing only the first task — complete the ENTIRE request.
+
 PARALLEL EXECUTION: When tool calls are independent (don't depend on each other's results),
 call them simultaneously. For example, generate multiple charts at once, or run web_search
 while creating a chart from already-known data.
