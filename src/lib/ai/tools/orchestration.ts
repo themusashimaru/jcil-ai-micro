@@ -407,6 +407,25 @@ export const TOOL_CHAINS = [
     tools: ['parallel_research', 'create_chart', 'create_presentation', 'pdf_manipulate'],
     trigger: 'when user asks for a comprehensive creative deliverable',
   },
+  {
+    name: 'Document and Email',
+    description: 'Create a document (PDF, DOCX, resume), then email it to a recipient',
+    tools: ['create_document', 'composio_GMAIL_SEND_EMAIL'],
+    trigger: 'when user asks to create a document AND send/email it',
+  },
+  {
+    name: 'Document and Calendar',
+    description: 'Create a document, then add a calendar event related to it',
+    tools: ['create_document', 'composio_GOOGLECALENDAR_CREATE_EVENT'],
+    trigger: 'when user asks to create a document AND add a calendar event',
+  },
+  {
+    name: 'Multi-Action Workflow',
+    description:
+      'Handle multiple user requests in sequence: documents, emails, calendar, file operations',
+    tools: ['create_document', 'composio_GMAIL_SEND_EMAIL', 'composio_GOOGLECALENDAR_CREATE_EVENT'],
+    trigger: 'when user asks for multiple distinct tasks in one message',
+  },
 ];
 
 // ============================================================================
@@ -439,6 +458,9 @@ CHAINING RULES:
 5. When extract_pdf returns text, feed it to analyze_text_nlp or run_code for analysis
 6. When any tool returns a URL, it can be embedded in documents, presentations, or emails
 7. When fetch_url returns HTML with tables, use extract_table to structure the data
+8. When create_document generates a file, you can reference its download URL in a follow-up email tool call
+9. When a user asks to create something AND email/share/send it, complete ALL tasks in sequence — do not stop after just the document creation
+10. For multi-task requests (e.g., "create a resume, update my calendar, and email me the resume"), handle each task in order using the appropriate tools
 
 PARALLEL EXECUTION: When tool calls are independent (don't depend on each other's results),
 call them simultaneously. For example, generate multiple charts at once, or run web_search

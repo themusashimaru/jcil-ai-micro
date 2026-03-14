@@ -198,6 +198,15 @@ export async function handleResumeGeneration(ctx: DocRouteContext): Promise<Resp
     );
   }
 
+  // If the user wants chained tasks (resume + email, resume + calendar),
+  // fall through to Claude's tool loop for full orchestration
+  if (hasChainedTasks(ctx.lastUserContent)) {
+    log.info('Multi-task request detected alongside resume — falling through to tool loop', {
+      message: ctx.lastUserContent.substring(0, 80),
+    });
+    return null;
+  }
+
   log.info('Resume generator mode activated');
 
   try {
@@ -501,6 +510,29 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
  * Handle auto-detected document generation.
  * Returns a Response if handled, null if should fall through to regular chat.
  */
+/**
+ * Detect if a message requests additional actions beyond document creation.
+ * When chained tasks are detected (e.g., "create a resume and email it"),
+ * we should let Claude's tool loop handle the full workflow instead of
+ * intercepting with the document-only route.
+ */
+function hasChainedTasks(message: string): boolean {
+  const lower = message.toLowerCase();
+  // Patterns that indicate additional tasks alongside document creation
+  const chainedPatterns = [
+    /\b(and|then|also|after that)\b.{0,40}\b(email|send|mail|forward)\b/i,
+    /\b(and|then|also|after that)\b.{0,40}\b(calendar|schedule|event|appointment|meeting)\b/i,
+    /\b(and|then|also|after that)\b.{0,40}\b(upload|share|post|publish|save to)\b/i,
+    /\b(and|then|also|after that)\b.{0,40}\b(slack|discord|tweet|message)\b/i,
+    /\b(email|send|mail)\b.{0,20}\b(it|the|this|that|to me|to my|to him|to her|to them)\b/i,
+    /\b(share|upload)\b.{0,20}\b(it|the|this|that)\b.{0,20}\b(to|on|via|with)\b/i,
+    /\bupdate\b.{0,20}\b(my|the)?\s*(calendar|schedule)\b/i,
+    /\b(add|create|set)\b.{0,20}\b(calendar|event|appointment|reminder)\b/i,
+  ];
+
+  return chainedPatterns.some((pattern) => pattern.test(lower));
+}
+
 export async function handleAutoDetectedDocument(ctx: DocRouteContext): Promise<Response | null> {
   const conversationForDetection = ctx.messages.map((m) => ({
     role: String(m.role),
@@ -509,6 +541,17 @@ export async function handleAutoDetectedDocument(ctx: DocRouteContext): Promise<
   const detectedDocType = detectDocumentIntent(ctx.lastUserContent, conversationForDetection);
 
   if (!detectedDocType || !ctx.isAuthenticated) return null;
+
+  // If the user is requesting multiple tasks (e.g., "create a resume and email it"),
+  // fall through to Claude's tool loop which can chain document generation with
+  // Composio tools (email, calendar, etc.)
+  if (hasChainedTasks(ctx.lastUserContent)) {
+    log.info('Multi-task request detected alongside document — falling through to tool loop', {
+      documentType: detectedDocType,
+      message: ctx.lastUserContent.substring(0, 80),
+    });
+    return null;
+  }
 
   const isEditRequest =
     /\b(add|change|update|modify|edit|adjust|remove|fix|redo|regenerate|different|instead|actually)\b/i.test(

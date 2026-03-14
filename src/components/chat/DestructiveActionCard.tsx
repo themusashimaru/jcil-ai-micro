@@ -103,29 +103,23 @@ export default function DestructiveActionCard({
         <button
           onClick={handleConfirm}
           disabled={confirming || confirmed}
-          className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 bg-red-600"
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 bg-zinc-700 text-white"
         >
           {confirming ? (
-            <>
-              <span className="animate-spin">\u23F3</span>
-              Processing...
-            </>
+            'Processing...'
           ) : confirmed ? (
-            <>
-              <span>\u2713</span>
-              Done
-            </>
+            'Done'
           ) : (
             <>
-              <span>{'\u{1F5D1}\uFE0F'}</span>
-              {data.action}
+              <span className="text-red-400">&#10003;</span>
+              Confirm
             </>
           )}
         </button>
         <button
           onClick={onCancel}
           disabled={confirming || confirmed}
-          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 text-gray-400 hover:text-white"
+          className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 text-zinc-500 hover:text-white"
         >
           Cancel
         </button>
