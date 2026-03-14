@@ -396,13 +396,37 @@ const BASE64_LINK_PATTERN = /\[([^\]]+)\]\((data:([^;]+);base64,[A-Za-z0-9+/=]+)
 
 /** MIME type → file extension */
 const MIME_TO_EXT: Record<string, string> = {
+  // Documents
   'application/pdf': 'pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/rtf': 'rtf',
+  // Images
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/svg+xml': 'svg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  // Data / Text
+  'text/csv': 'csv',
+  'text/plain': 'txt',
+  'text/markdown': 'md',
+  'text/html': 'html',
+  'application/json': 'json',
+  'application/xml': 'xml',
+  'text/xml': 'xml',
+  // Archives
+  'application/zip': 'zip',
+  'application/gzip': 'gz',
+  // Audio / Video (for transcription outputs, media tools)
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'audio/ogg': 'ogg',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
 };
 
 /**
