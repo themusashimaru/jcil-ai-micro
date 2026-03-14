@@ -348,7 +348,6 @@ export async function loadAllTools(
               properties: composioTool.input_schema.properties || {},
               required: composioTool.input_schema.required || [],
             },
-            deferLoading: true, // Load on-demand via Tool Search Tool to avoid context bloat
           } as UnifiedTool);
         }
 

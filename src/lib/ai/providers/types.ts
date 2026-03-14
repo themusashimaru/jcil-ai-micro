@@ -245,8 +245,6 @@ export interface UnifiedTool {
   description: string;
   /** Parameter schema */
   parameters: ToolParameterSchema;
-  /** When true, tool definition is deferred — only loaded on-demand via Tool Search Tool */
-  deferLoading?: boolean;
 }
 
 /**
