@@ -492,15 +492,13 @@ function ThinkingBlock({
           {expanded ? '▼' : '▶'}
         </span>
         <span>Thinking</span>
-        {isStreaming && (
-          <span className="inline-block ml-1 text-primary animate-pulse">...</span>
-        )}
+        {isStreaming && <span className="inline-block ml-1 text-primary animate-pulse">...</span>}
       </button>
       {expanded && (
         <div
           ref={thinkingRef}
           className="px-3 pb-3 border-t border-theme overflow-y-auto"
-          style={{ color: 'var(--text-tertiary)', maxHeight: '200px' }}
+          style={{ color: 'var(--text-secondary)', maxHeight: '200px' }}
         >
           <div className="whitespace-pre-wrap">{cleanedContent}</div>
           {isStreaming && (
