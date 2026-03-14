@@ -14,6 +14,7 @@ import { getActiveAgent, type AgentModeId } from './agentModes';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Message, Attachment, GeneratedImage } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
+import type { DestructiveActionData } from '@/components/chat/DestructiveActionCard';
 import type { ChatState } from './useChatState';
 
 interface ChatMainAreaProps {
@@ -46,6 +47,8 @@ interface ChatMainAreaProps {
   handleActionSend: (preview: ActionPreviewData) => Promise<void>;
   handleActionEdit: (preview: ActionPreviewData, instruction: string) => void;
   handleActionCancel: (preview: ActionPreviewData) => void;
+  handleDestructiveConfirm: (data: DestructiveActionData) => Promise<void>;
+  handleDestructiveCancel: (data: DestructiveActionData) => void;
   handleCarouselSelect: (cardId: string) => Promise<void>;
   startAgentMode: (modeId: AgentModeId) => Promise<void>;
   cancelAgentMode: (modeId: AgentModeId) => Promise<void>;
@@ -69,6 +72,8 @@ export function ChatMainArea({
   handleActionSend,
   handleActionEdit,
   handleActionCancel,
+  handleDestructiveConfirm,
+  handleDestructiveCancel,
   handleCarouselSelect,
   startAgentMode,
   cancelAgentMode,
@@ -189,6 +194,8 @@ export function ChatMainArea({
             onActionSend={handleActionSend}
             onActionEdit={handleActionEdit}
             onActionCancel={handleActionCancel}
+            onDestructiveConfirm={handleDestructiveConfirm}
+            onDestructiveCancel={handleDestructiveCancel}
             onFollowupSelect={handleFollowupSelect}
             onRetry={handleRetry}
           />

@@ -31,6 +31,7 @@ import { ScrambleText } from '@/app/components/landing-v2/ScrambleText';
 import { SplitFlapText, SplitFlapAudioProvider } from '@/app/components/landing-v2/SplitFlapText';
 import { AnimatedNoise } from '@/app/components/landing-v2/AnimatedNoise';
 import type { ActionPreviewData } from './ActionPreviewCard';
+import type { DestructiveActionData } from './DestructiveActionCard';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -50,6 +51,10 @@ interface ChatThreadProps {
   onActionEdit?: (preview: ActionPreviewData, instruction: string) => void;
   /** Callback when action preview is cancelled */
   onActionCancel?: (preview: ActionPreviewData) => void;
+  /** Callback when destructive action is confirmed */
+  onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
+  /** Callback when destructive action is cancelled */
+  onDestructiveCancel?: (data: DestructiveActionData) => void;
   /** Callback when a suggested follow-up is clicked */
   onFollowupSelect?: (suggestion: string) => void;
   /** Whether messages are being loaded */
@@ -82,6 +87,8 @@ export function ChatThread({
   onActionSend,
   onActionEdit,
   onActionCancel,
+  onDestructiveConfirm,
+  onDestructiveCancel,
   onFollowupSelect,
   isLoading,
   onRetry,
@@ -200,19 +207,25 @@ export function ChatThread({
               <div className="font-bebas text-2xl md:text-3xl text-accent">
                 <ScrambleText text="51" duration={0.6} delayMs={2200} className="inline-block" />
               </div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Tools</div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">
+                Tools
+              </div>
             </div>
             <div className="text-center">
               <div className="font-bebas text-2xl md:text-3xl text-accent">
                 <ScrambleText text="67+" duration={0.6} delayMs={2400} className="inline-block" />
               </div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Connections</div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">
+                Connections
+              </div>
             </div>
             <div className="text-center">
               <div className="font-bebas text-2xl md:text-3xl text-foreground">
                 <ScrambleText text="AI" duration={0.4} delayMs={2600} className="inline-block" />
               </div>
-              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Powered</div>
+              <div className="font-mono text-[8px] uppercase tracking-[0.2em] text-muted-foreground">
+                Powered
+              </div>
             </div>
           </div>
 
@@ -258,7 +271,12 @@ export function ChatThread({
             ) : theme === 'dark' ? (
               /* Dark mode: ScrambleText decode animation */
               <h1 className="font-bebas text-5xl md:text-7xl tracking-tight text-foreground">
-                <ScrambleText text="JCIL.AI" duration={1.2} delayMs={200} className="inline-block" />
+                <ScrambleText
+                  text="JCIL.AI"
+                  duration={1.2}
+                  delayMs={200}
+                  className="inline-block"
+                />
               </h1>
             ) : mainLogo ? (
               mainLogo.startsWith('data:video/') ? (
@@ -365,6 +383,8 @@ export function ChatThread({
                   onActionSend={onActionSend}
                   onActionEdit={onActionEdit}
                   onActionCancel={onActionCancel}
+                  onDestructiveConfirm={onDestructiveConfirm}
+                  onDestructiveCancel={onDestructiveCancel}
                   onRetry={onRetry}
                 />
                 {/* Suggested follow-ups: only on the last assistant message, not while streaming */}
@@ -385,19 +405,21 @@ export function ChatThread({
         })}
 
         {/* Intelligent typing indicator — only show before first content arrives */}
-        {isStreaming && (() => {
-          const lastMsg = messages[messages.length - 1];
-          const hasContent = lastMsg?.role === 'assistant' && lastMsg.content && lastMsg.content.length > 0;
-          if (hasContent) return null;
-          return (
-            <>
-              <span className="sr-only" role="status">
-                AI is responding
-              </span>
-              <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
-            </>
-          );
-        })()}
+        {isStreaming &&
+          (() => {
+            const lastMsg = messages[messages.length - 1];
+            const hasContent =
+              lastMsg?.role === 'assistant' && lastMsg.content && lastMsg.content.length > 0;
+            if (hasContent) return null;
+            return (
+              <>
+                <span className="sr-only" role="status">
+                  AI is responding
+                </span>
+                <TypingIndicator documentType={documentType} userMessage={lastUserMessage} />
+              </>
+            );
+          })()}
 
         <div ref={messagesEndRef} />
       </div>
