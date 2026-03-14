@@ -32,6 +32,7 @@ import { SplitFlapText, SplitFlapAudioProvider } from '@/app/components/landing-
 import { AnimatedNoise } from '@/app/components/landing-v2/AnimatedNoise';
 import type { ActionPreviewData } from './ActionPreviewCard';
 import type { DestructiveActionData } from './DestructiveActionCard';
+import type { ScheduledActionData } from './ScheduledActionCard';
 
 interface ChatThreadProps {
   messages: Message[];
@@ -55,6 +56,12 @@ interface ChatThreadProps {
   onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
   /** Callback when destructive action is cancelled */
   onDestructiveCancel?: (data: DestructiveActionData) => void;
+  /** Callback when scheduled action is confirmed */
+  onScheduledConfirm?: (data: ScheduledActionData) => Promise<void>;
+  /** Callback when scheduled action time is modified */
+  onScheduledModifyTime?: (data: ScheduledActionData, newTime: string) => void;
+  /** Callback when scheduled action is cancelled */
+  onScheduledCancel?: (data: ScheduledActionData) => void;
   /** Callback when a suggested follow-up is clicked */
   onFollowupSelect?: (suggestion: string) => void;
   /** Whether messages are being loaded */
@@ -89,6 +96,9 @@ export function ChatThread({
   onActionCancel,
   onDestructiveConfirm,
   onDestructiveCancel,
+  onScheduledConfirm,
+  onScheduledModifyTime,
+  onScheduledCancel,
   onFollowupSelect,
   isLoading,
   onRetry,
@@ -385,6 +395,9 @@ export function ChatThread({
                   onActionCancel={onActionCancel}
                   onDestructiveConfirm={onDestructiveConfirm}
                   onDestructiveCancel={onDestructiveCancel}
+                  onScheduledConfirm={onScheduledConfirm}
+                  onScheduledModifyTime={onScheduledModifyTime}
+                  onScheduledCancel={onScheduledCancel}
                   onRetry={onRetry}
                 />
                 {/* Suggested follow-ups: only on the last assistant message, not while streaming */}

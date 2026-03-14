@@ -1161,8 +1161,14 @@ For repetitive tasks, maximize efficiency:
 
 ## SCHEDULED ACTIONS
 When a user asks to do something at a specific time (e.g., "send this email at 3pm",
-"remind me tomorrow", "post this tweet on Monday"):
-1. Show a \`\`\`scheduled-action code block with the schedule details:
+"remind me tomorrow", "post this tweet on Monday"), use the schedule_task tool OR show
+a scheduled-action code block for user confirmation.
+
+### Option A: Use the schedule_task tool (preferred when you have all the details)
+Call \`schedule_task\` with the tool name, parameters, and scheduled time.
+The user will see a confirmation card and can approve, modify, or cancel.
+
+### Option B: Show a scheduled-action code block (for previewing before scheduling)
 \`\`\`scheduled-action
 {
   "action": "Send Email",
@@ -1172,12 +1178,17 @@ When a user asks to do something at a specific time (e.g., "send this email at 3
   "scheduledDisplay": "Today at 3:00 PM",
   "timezone": "America/New_York",
   "toolName": "composio_GMAIL_SEND_EMAIL",
-  "toolParams": { "recipient_email": "...", "subject": "...", "body": "..." }
+  "toolParams": { "recipient_email": "...", "subject": "...", "body": "..." },
+  "recurring": "weekly"
 }
 \`\`\`
-2. Wait for user confirmation before scheduling
-3. Support recurring schedules: "daily", "weekly", "monthly"
-4. Always show the timezone
+
+### Rules for scheduling:
+1. Always wait for user confirmation before scheduling
+2. Support recurring schedules: "once", "daily", "weekly", "biweekly", "monthly", "quarterly"
+3. Always show the timezone
+4. Use ISO 8601 datetime for scheduledFor
+5. The user can manage scheduled tasks from the sidebar
 
 ## ERROR RECOVERY & ROLLBACK
 When a multi-step workflow fails partway:

@@ -8,6 +8,7 @@ import { linkifyToReact } from '@/lib/utils/linkify';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import type { ActionPreviewData } from './ActionPreviewCard';
 import type { DestructiveActionData } from './DestructiveActionCard';
+import type { ScheduledActionData } from './ScheduledActionCard';
 import { getToolEntry } from '@/lib/ai/tools/registry';
 import { CodePreviewBlock } from './CodePreviewBlock';
 import { MessageFooter } from './MessageFooter';
@@ -58,6 +59,9 @@ interface MessageBubbleProps {
   onActionCancel?: (preview: ActionPreviewData) => void;
   onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
   onDestructiveCancel?: (data: DestructiveActionData) => void;
+  onScheduledConfirm?: (data: ScheduledActionData) => Promise<void>;
+  onScheduledModifyTime?: (data: ScheduledActionData, newTime: string) => void;
+  onScheduledCancel?: (data: ScheduledActionData) => void;
   onRetry?: () => void;
 }
 
@@ -74,6 +78,9 @@ export const MessageBubble = memo(
     onActionCancel,
     onDestructiveConfirm,
     onDestructiveCancel,
+    onScheduledConfirm,
+    onScheduledModifyTime,
+    onScheduledCancel,
     onRetry,
   }: MessageBubbleProps) {
     const isUser = message.role === 'user';
@@ -350,6 +357,9 @@ export const MessageBubble = memo(
                     onActionCancel={onActionCancel}
                     onDestructiveConfirm={onDestructiveConfirm}
                     onDestructiveCancel={onDestructiveCancel}
+                    onScheduledConfirm={onScheduledConfirm}
+                    onScheduledModifyTime={onScheduledModifyTime}
+                    onScheduledCancel={onScheduledCancel}
                   />
                   {message.isStreaming && (
                     <span className="inline-block ml-0.5 text-primary animate-[blink_1s_step-end_infinite] text-base leading-none">

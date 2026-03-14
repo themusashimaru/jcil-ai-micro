@@ -90,6 +90,9 @@ function ChatClientInner() {
     handleActionCancel,
     handleDestructiveConfirm,
     handleDestructiveCancel,
+    handleScheduledConfirm,
+    handleScheduledModifyTime,
+    handleScheduledCancel,
     handleCarouselSelect,
   } = createImageHandlers({
     currentChatId: state.currentChatId,
@@ -131,6 +134,9 @@ function ChatClientInner() {
           handleActionCancel={handleActionCancel}
           handleDestructiveConfirm={handleDestructiveConfirm}
           handleDestructiveCancel={handleDestructiveCancel}
+          handleScheduledConfirm={handleScheduledConfirm}
+          handleScheduledModifyTime={handleScheduledModifyTime}
+          handleScheduledCancel={handleScheduledCancel}
           handleCarouselSelect={handleCarouselSelect}
           startAgentMode={startAgentMode}
           cancelAgentMode={cancelAgentMode}

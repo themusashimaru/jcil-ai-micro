@@ -15,6 +15,7 @@ import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Message, Attachment, GeneratedImage } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { DestructiveActionData } from '@/components/chat/DestructiveActionCard';
+import type { ScheduledActionData } from '@/components/chat/ScheduledActionCard';
 import type { ChatState } from './useChatState';
 
 interface ChatMainAreaProps {
@@ -49,6 +50,9 @@ interface ChatMainAreaProps {
   handleActionCancel: (preview: ActionPreviewData) => void;
   handleDestructiveConfirm: (data: DestructiveActionData) => Promise<void>;
   handleDestructiveCancel: (data: DestructiveActionData) => void;
+  handleScheduledConfirm: (data: ScheduledActionData) => Promise<void>;
+  handleScheduledModifyTime: (data: ScheduledActionData, newTime: string) => void;
+  handleScheduledCancel: (data: ScheduledActionData) => void;
   handleCarouselSelect: (cardId: string) => Promise<void>;
   startAgentMode: (modeId: AgentModeId) => Promise<void>;
   cancelAgentMode: (modeId: AgentModeId) => Promise<void>;
@@ -74,6 +78,9 @@ export function ChatMainArea({
   handleActionCancel,
   handleDestructiveConfirm,
   handleDestructiveCancel,
+  handleScheduledConfirm,
+  handleScheduledModifyTime,
+  handleScheduledCancel,
   handleCarouselSelect,
   startAgentMode,
   cancelAgentMode,
@@ -196,6 +203,9 @@ export function ChatMainArea({
             onActionCancel={handleActionCancel}
             onDestructiveConfirm={handleDestructiveConfirm}
             onDestructiveCancel={handleDestructiveCancel}
+            onScheduledConfirm={handleScheduledConfirm}
+            onScheduledModifyTime={handleScheduledModifyTime}
+            onScheduledCancel={handleScheduledCancel}
             onFollowupSelect={handleFollowupSelect}
             onRetry={handleRetry}
           />
