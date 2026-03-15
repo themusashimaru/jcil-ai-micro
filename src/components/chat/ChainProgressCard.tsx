@@ -163,7 +163,9 @@ export default function ChainProgressCard({ data }: ChainProgressCardProps) {
                   }`}
                 >
                   <span className="mr-1.5">{display.icon}</span>
-                  {step.status === 'running' ? display.label + '...' : step.label || display.label}
+                  {step.status === 'running'
+                    ? (step.label || display.label) + '...'
+                    : step.label || display.label}
                 </div>
                 {step.output && step.status === 'complete' && (
                   <div className="text-xs text-gray-500 truncate mt-0.5">{step.output}</div>
