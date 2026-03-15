@@ -14,6 +14,10 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import type { CodeLabSession } from './types';
 import { CodeLabFileBrowser } from './CodeLabFileBrowser';
+import {
+  ChatSidebarScheduledTasks,
+  type ScheduledTask,
+} from '@/components/chat/ChatSidebarScheduledTasks';
 import { useDebounceValue } from '@/hooks/useDebounce';
 import './code-lab-sidebar.css';
 
@@ -68,6 +72,65 @@ export function CodeLabSidebar({
   const [repoError, setRepoError] = useState<string | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  // Scheduled tasks state
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+
+  const fetchScheduledTasks = useCallback(async () => {
+    try {
+      const response = await fetch('/api/scheduled-tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledTasks(data.tasks || []);
+      }
+    } catch (error) {
+      console.error('[CodeLabSidebar] Error fetching scheduled tasks:', error);
+    }
+  }, []);
+
+  const handlePauseTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch('/api/scheduled-tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: taskId, status: 'paused' }),
+        });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[CodeLabSidebar] Error pausing task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
+
+  const handleResumeTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch('/api/scheduled-tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: taskId, status: 'pending' }),
+        });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[CodeLabSidebar] Error resuming task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
+
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch(`/api/scheduled-tasks?id=${taskId}`, { method: 'DELETE' });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[CodeLabSidebar] Error deleting task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
+
   // Fetch GitHub repos when selector opens
   // Always refetch if not connected (user might have just connected via Settings)
   const fetchRepos = useCallback(
@@ -114,6 +177,10 @@ export function CodeLabSidebar({
     },
     [repos.length, githubConnected]
   );
+
+  useEffect(() => {
+    fetchScheduledTasks();
+  }, [fetchScheduledTasks]);
 
   useEffect(() => {
     if (showRepoSelector) {
@@ -582,6 +649,17 @@ export function CodeLabSidebar({
                 ))
               )}
             </div>
+          </div>
+
+          {/* Scheduled Tasks */}
+          <div className="sidebar-scheduled-tasks">
+            <ChatSidebarScheduledTasks
+              tasks={scheduledTasks}
+              onPause={handlePauseTask}
+              onResume={handleResumeTask}
+              onDelete={handleDeleteTask}
+              onRefresh={fetchScheduledTasks}
+            />
           </div>
 
           {/* Footer */}
