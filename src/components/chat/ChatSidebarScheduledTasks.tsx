@@ -37,6 +37,8 @@ interface ChatSidebarScheduledTasksProps {
   onResume: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onRefresh: () => void;
+  /** Called when user clicks the "+" button to create a new task */
+  onCreateTask?: () => void;
 }
 
 const PLATFORM_ICONS: Record<string, string> = {
@@ -107,6 +109,7 @@ export function ChatSidebarScheduledTasks({
   onResume,
   onDelete,
   onRefresh,
+  onCreateTask,
 }: ChatSidebarScheduledTasksProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [menuTaskId, setMenuTaskId] = useState<string | null>(null);
@@ -125,8 +128,6 @@ export function ChatSidebarScheduledTasks({
     },
     [onPause, onResume, onDelete]
   );
-
-  if (activeTasks.length === 0) return null;
 
   return (
     <div className="mb-2">
@@ -159,27 +160,67 @@ export function ChatSidebarScheduledTasks({
             </span>
           )}
         </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRefresh();
-          }}
-          className="p-1 opacity-0 group-hover:opacity-100 rounded text-text-muted hover:text-text-primary transition-opacity"
-          title="Refresh tasks"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-0.5">
+          {onCreateTask && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissNewBadge('scheduled-tasks');
+                onCreateTask();
+              }}
+              className="p-1 opacity-0 group-hover:opacity-100 rounded text-text-muted hover:text-text-primary transition-opacity"
+              title="New scheduled task"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRefresh();
+            }}
+            className="p-1 opacity-0 group-hover:opacity-100 rounded text-text-muted hover:text-text-primary transition-opacity"
+            title="Refresh tasks"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      {/* Task List */}
-      {!isCollapsed && (
+      {/* Task List or Empty State */}
+      {!isCollapsed && activeTasks.length === 0 && (
+        <div className="mt-1 px-2 py-3 text-center">
+          <p className="text-[11px] text-text-muted leading-relaxed">
+            No scheduled tasks yet.
+            {onCreateTask ? (
+              <button
+                onClick={onCreateTask}
+                className="ml-1 text-sky-400 hover:text-sky-300 transition-colors"
+              >
+                Create one
+              </button>
+            ) : (
+              <span className="ml-1">Ask the AI to schedule something for you.</span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {!isCollapsed && activeTasks.length > 0 && (
         <div className="mt-1 space-y-0.5 pl-1" role="list">
           {activeTasks.map((task) => {
             const icon = PLATFORM_ICONS[task.platform.toLowerCase()] || PLATFORM_ICONS.default;

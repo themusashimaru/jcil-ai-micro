@@ -577,6 +577,7 @@ export function ChatSidebar({
               onResume={handleResumeTask}
               onDelete={handleDeleteTask}
               onRefresh={fetchScheduledTasks}
+              onCreateTask={onNewChat}
             />
 
             {unorganizedChats.length > 0 && (
