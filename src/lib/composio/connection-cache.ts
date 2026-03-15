@@ -23,10 +23,13 @@ const log = logger('ComposioConnectionCache');
 // CONFIGURATION
 // ============================================================================
 
-// Cache TTL in milliseconds (5 minutes)
-// Connections will be refreshed from Composio API after this period
-// Reduced from 10 minutes to detect disconnections faster
-const CACHE_TTL_MS = 5 * 60 * 1000;
+// Cache TTL in milliseconds (30 minutes)
+// Connections will be refreshed from Composio API after this period.
+// A longer TTL reduces the chance of hitting partial API responses that
+// could incorrectly affect connection state. Since we use additive-only
+// caching (never mark absent connections as disconnected), a longer TTL
+// is safe and prevents unnecessary API calls.
+const CACHE_TTL_MS = 30 * 60 * 1000;
 
 // Maximum retries for Composio API calls
 const MAX_RETRIES = 3;
@@ -150,6 +153,16 @@ export async function isCacheFresh(userId: string): Promise<boolean> {
 /**
  * Save connections to local cache
  * This is called after successfully fetching from Composio API
+ *
+ * IMPORTANT: We NEVER mark connections as disconnected just because they are
+ * absent from an API response. The Composio API can return partial/incomplete
+ * lists due to rate limiting, pagination, or transient errors. Connections
+ * should only be marked disconnected when:
+ * 1. The user explicitly disconnects (via removeConnectionFromCache)
+ * 2. The API explicitly returns them with a non-active status (FAILED, EXPIRED)
+ *
+ * This prevents the "random disconnection" problem where connections appear
+ * to drop and users have to keep re-adding them.
  */
 export async function saveConnectionsToCache(
   userId: string,
@@ -164,109 +177,84 @@ export async function saveConnectionsToCache(
   try {
     const now = new Date().toISOString();
 
-    // Prepare records for upsert
-    const records = connections.map((conn) => ({
-      user_id: userId,
-      connection_id: conn.id,
-      toolkit: conn.toolkit.toUpperCase(),
-      status: conn.status,
-      connected_at: conn.connectedAt || null,
-      last_verified_at: now,
-      metadata: conn.metadata || {},
-    }));
+    // Separate connections into active and explicitly-inactive
+    const activeConnections = connections.filter(
+      (c) => c.status === 'connected' || c.status === 'pending'
+    );
+    const inactiveConnections = connections.filter(
+      (c) => c.status !== 'connected' && c.status !== 'pending'
+    );
 
-    if (records.length > 0) {
-      // Upsert connections (update if exists, insert if not)
+    // Upsert active connections — these are confirmed alive by the API
+    if (activeConnections.length > 0) {
+      const activeRecords = activeConnections.map((conn) => ({
+        user_id: userId,
+        connection_id: conn.id,
+        toolkit: conn.toolkit.toUpperCase(),
+        status: conn.status,
+        connected_at: conn.connectedAt || null,
+        last_verified_at: now,
+        metadata: conn.metadata || {},
+      }));
+
       const { error: upsertError } = await supabase
         .from('composio_connection_cache')
-        .upsert(records, {
+        .upsert(activeRecords, {
           onConflict: 'user_id,toolkit',
           ignoreDuplicates: false,
         });
 
       if (upsertError) {
-        log.error('Failed to upsert connections to cache', { userId, error: upsertError.message });
+        log.error('Failed to upsert active connections to cache', {
+          userId,
+          error: upsertError.message,
+        });
         return;
       }
     }
 
-    // Get toolkits from the new connections
-    const activeToolkits = connections.map((c) => c.toolkit.toUpperCase());
+    // Only mark connections as disconnected if the API EXPLICITLY returned
+    // them with a non-active status (FAILED, EXPIRED, etc.)
+    // This is different from "absent from the response" — these were present
+    // but with a bad status.
+    if (inactiveConnections.length > 0) {
+      const inactiveRecords = inactiveConnections.map((conn) => ({
+        user_id: userId,
+        connection_id: conn.id,
+        toolkit: conn.toolkit.toUpperCase(),
+        status: conn.status,
+        connected_at: conn.connectedAt || null,
+        last_verified_at: now,
+        metadata: conn.metadata || {},
+      }));
 
-    // Safety check: Before marking connections as disconnected, verify this
-    // isn't a partial API response. If we previously had many connections
-    // and now get very few, the API may have returned incomplete data.
-    // Only mark as disconnected if we got a reasonable response.
-    const { data: existingCached } = await supabase
-      .from('composio_connection_cache')
-      .select('toolkit')
-      .eq('user_id', userId)
-      .in('status', ['connected', 'pending']);
-
-    const previousCount = existingCached?.length || 0;
-    const newCount = activeToolkits.length;
-
-    // If we had 3+ connections and the new list has less than half,
-    // this is likely a partial API response - don't mark others as disconnected
-    const isLikelyPartialResponse =
-      previousCount >= 3 && newCount > 0 && newCount < previousCount * 0.5;
-
-    if (isLikelyPartialResponse) {
-      log.warn('Possible partial API response detected - skipping disconnection marking', {
-        userId,
-        previousCount,
-        newCount,
-        activeToolkits,
-      });
-    } else if (activeToolkits.length > 0) {
-      // Mark any cached connections that are NOT in the new list as disconnected
-      // This handles the case where a connection was removed on Composio's side
-      const { error: updateError } = await supabase
+      const { error: inactiveError } = await supabase
         .from('composio_connection_cache')
-        .update({
-          status: 'disconnected',
-          last_verified_at: now,
-        })
-        .eq('user_id', userId)
-        .not('toolkit', 'in', `(${activeToolkits.join(',')})`)
-        .neq('status', 'disconnected');
-
-      if (updateError) {
-        log.warn('Failed to mark stale connections as disconnected', {
-          userId,
-          error: updateError.message,
+        .upsert(inactiveRecords, {
+          onConflict: 'user_id,toolkit',
+          ignoreDuplicates: false,
         });
-      }
-    } else {
-      // No active connections returned AND we had few/none before - mark all as disconnected
-      if (previousCount <= 2) {
-        const { error: updateAllError } = await supabase
-          .from('composio_connection_cache')
-          .update({
-            status: 'disconnected',
-            last_verified_at: now,
-          })
-          .eq('user_id', userId)
-          .neq('status', 'disconnected');
 
-        if (updateAllError) {
-          log.warn('Failed to mark all connections as disconnected', {
-            userId,
-            error: updateAllError.message,
-          });
-        }
-      } else {
-        log.warn('API returned 0 connections but user had many cached - preserving cache', {
+      if (inactiveError) {
+        log.warn('Failed to upsert inactive connections to cache', {
           userId,
-          previousCount,
+          error: inactiveError.message,
         });
       }
     }
 
-    log.info('Saved connections to cache', {
+    // NOTE: We intentionally do NOT mark cached connections as disconnected
+    // when they are absent from the API response. The Composio API may return
+    // partial lists, and marking absent connections as disconnected causes the
+    // "random disconnection" bug. Connections are only removed from cache when:
+    // - The user explicitly disconnects (removeConnectionFromCache)
+    // - The API explicitly returns them with FAILED/EXPIRED status (handled above)
+
+    log.info('Saved connections to cache (additive-only)', {
       userId,
-      count: connections.length,
-      toolkits: activeToolkits,
+      activeCount: activeConnections.length,
+      inactiveCount: inactiveConnections.length,
+      toolkits: activeConnections.map((c) => c.toolkit.toUpperCase()),
     });
   } catch (error) {
     log.error('Error saving connections to cache', { userId, error });

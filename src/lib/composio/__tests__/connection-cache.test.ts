@@ -159,12 +159,12 @@ beforeEach(() => {
 // ===========================================================================
 
 describe('CACHE_TTL_MS', () => {
-  it('should be 5 minutes in milliseconds', () => {
-    expect(CACHE_TTL_MS).toBe(5 * 60 * 1000);
+  it('should be 30 minutes in milliseconds', () => {
+    expect(CACHE_TTL_MS).toBe(30 * 60 * 1000);
   });
 
-  it('should equal exactly 300000', () => {
-    expect(CACHE_TTL_MS).toBe(300000);
+  it('should equal exactly 1800000', () => {
+    expect(CACHE_TTL_MS).toBe(1800000);
   });
 
   it('should be a positive number', () => {
@@ -395,115 +395,39 @@ describe('saveConnectionsToCache', () => {
     expect(mockBuilder.upsert).not.toHaveBeenCalled();
   });
 
-  it('should mark stale connections as disconnected', async () => {
+  it('should never mark absent connections as disconnected (additive-only)', async () => {
     const conn = makeConnection({ toolkit: 'GMAIL' });
 
-    // First call: upsert succeeds
-    // Second call: existing cached (returns one extra toolkit)
-    // Third call: update to mark disconnected
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        // This is the select for existing cached connections
-        mockResult = {
-          data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
-    // For upsert and update calls, succeed
+    // With additive-only caching, we only upsert what's present
+    // and never try to mark absent connections as disconnected
     mockResult = { data: null, error: null };
 
     await saveConnectionsToCache(TEST_USER_ID, [conn]);
 
-    // The update should have been called to mark SLACK as disconnected
-    expect(mockBuilder.update).toHaveBeenCalled();
-  });
-
-  it('should detect partial API response and skip disconnection marking', async () => {
-    const conn = makeConnection({ toolkit: 'GMAIL' });
-
-    // Simulate: previously had 5 connections, now only 1 returned
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [
-            { toolkit: 'GMAIL' },
-            { toolkit: 'SLACK' },
-            { toolkit: 'GITHUB' },
-            { toolkit: 'NOTION' },
-            { toolkit: 'JIRA' },
-          ],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
-    mockResult = { data: null, error: null };
-
-    await saveConnectionsToCache(TEST_USER_ID, [conn]);
-
-    // update should NOT have been called because partial response was detected
+    // update should NOT have been called — additive-only means no disconnection marking
     expect(mockBuilder.update).not.toHaveBeenCalled();
   });
 
-  it('should mark all as disconnected when API returns 0 and previous count <= 2', async () => {
-    // Simulate: previously had 1 connection, now 0 returned
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [{ toolkit: 'GMAIL' }],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
+  it('should handle empty connections array without side effects', async () => {
     mockResult = { data: null, error: null };
 
     await saveConnectionsToCache(TEST_USER_ID, []);
 
-    expect(mockBuilder.update).toHaveBeenCalled();
+    // No upsert or update should be called for empty array
+    expect(mockBuilder.upsert).not.toHaveBeenCalled();
+    expect(mockBuilder.update).not.toHaveBeenCalled();
   });
 
-  it('should preserve cache when API returns 0 but user had many cached', async () => {
-    // Simulate: previously had 5 connections, now 0 returned
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [
-            { toolkit: 'GMAIL' },
-            { toolkit: 'SLACK' },
-            { toolkit: 'GITHUB' },
-            { toolkit: 'NOTION' },
-            { toolkit: 'JIRA' },
-          ],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
+  it('should upsert explicitly-inactive connections with their status', async () => {
+    const activeConn = makeConnection({ toolkit: 'GMAIL', status: 'connected' });
+    const failedConn = makeConnection({ toolkit: 'SLACK', id: 'conn-2', status: 'failed' });
 
     mockResult = { data: null, error: null };
 
-    await saveConnectionsToCache(TEST_USER_ID, []);
+    await saveConnectionsToCache(TEST_USER_ID, [activeConn, failedConn]);
 
-    // update should NOT have been called — cache is preserved
-    expect(mockBuilder.update).not.toHaveBeenCalled();
+    // Should have called upsert twice: once for active, once for inactive
+    expect(mockBuilder.upsert).toHaveBeenCalled();
   });
 
   it('should handle upsert error gracefully', async () => {
@@ -606,29 +530,15 @@ describe('saveConnectionsToCache', () => {
     expect(upsertArg[2].toolkit).toBe('GITHUB');
   });
 
-  it('should handle update error when marking stale connections', async () => {
-    const conn = makeConnection({ toolkit: 'GMAIL' });
+  it('should handle upsert error for inactive connections gracefully', async () => {
+    const conn = makeConnection({ toolkit: 'GMAIL', status: 'failed' });
 
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
-    // Make the update call return an error
-    mockBuilder.update = vi.fn(() => {
+    mockBuilder.upsert = vi.fn(() => {
       return new Proxy(mockBuilder, {
         get(_, prop) {
           if (prop === 'then') {
             return (onFulfilled: (v: unknown) => unknown) =>
-              Promise.resolve({ data: null, error: { message: 'update failed' } }).then(
+              Promise.resolve({ data: null, error: { message: 'upsert failed' } }).then(
                 onFulfilled
               );
           }
@@ -637,40 +547,8 @@ describe('saveConnectionsToCache', () => {
       });
     });
 
-    // Should not throw despite update error
+    // Should not throw despite upsert error
     await saveConnectionsToCache(TEST_USER_ID, [conn]);
-  });
-
-  it('should handle error when marking all as disconnected', async () => {
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [{ toolkit: 'GMAIL' }],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
-    mockBuilder.update = vi.fn(() => {
-      return new Proxy(mockBuilder, {
-        get(_, prop) {
-          if (prop === 'then') {
-            return (onFulfilled: (v: unknown) => unknown) =>
-              Promise.resolve({ data: null, error: { message: 'update all failed' } }).then(
-                onFulfilled
-              );
-          }
-          return (mockBuilder as Record<string | symbol, unknown>)[prop];
-        },
-      });
-    });
-
-    // Should not throw despite update error
-    await saveConnectionsToCache(TEST_USER_ID, []);
   });
 
   it('should preserve connection status in upserted record', async () => {
@@ -683,29 +561,16 @@ describe('saveConnectionsToCache', () => {
     expect(upsertArg[0].status).toBe('pending');
   });
 
-  it('should not detect partial response when previous count is less than 3', async () => {
-    // 2 previous, 1 new => ratio is 0.5 but previousCount < 3 so not partial
+  it('should leave cached connections untouched when only some are returned', async () => {
+    // With additive-only, even if only 1 of 2 connections is returned,
+    // the absent one stays in cache
     const conn = makeConnection({ toolkit: 'GMAIL' });
-
-    let callCount = 0;
-    const originalSelect = mockBuilder.select;
-    mockBuilder.select = vi.fn((...args) => {
-      callCount++;
-      if (callCount === 1) {
-        mockResult = {
-          data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
-          error: null,
-        };
-      }
-      return originalSelect(...args);
-    });
-
     mockResult = { data: null, error: null };
 
     await saveConnectionsToCache(TEST_USER_ID, [conn]);
 
-    // update SHOULD have been called since previousCount (2) < 3
-    expect(mockBuilder.update).toHaveBeenCalled();
+    // update should NOT be called — additive only
+    expect(mockBuilder.update).not.toHaveBeenCalled();
   });
 });
 
