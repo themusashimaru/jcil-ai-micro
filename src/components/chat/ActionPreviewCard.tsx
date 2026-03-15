@@ -136,7 +136,7 @@ export default function ActionPreviewCard({
               <button
                 onClick={handleEdit}
                 disabled={!editInstruction.trim()}
-                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50 bg-blue-500"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg text-white disabled:opacity-50 bg-orange-500"
               >
                 Apply Edit
               </button>
@@ -157,16 +157,13 @@ export default function ActionPreviewCard({
           <button
             onClick={onSend}
             disabled={sending}
-            className="px-4 py-2 text-sm font-semibold rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-2 bg-green-500"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5 bg-zinc-700 text-white"
           >
             {sending ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Sending...
-              </>
+              'Sending...'
             ) : (
               <>
-                <span>✓</span>
+                <span className="text-green-400">&#10003;</span>
                 {config.buttonText}
               </>
             )}
@@ -174,14 +171,14 @@ export default function ActionPreviewCard({
           <button
             onClick={() => setEditMode(true)}
             disabled={sending}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 bg-zinc-700 text-white"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 bg-zinc-800 text-zinc-300 hover:text-white"
           >
-            ✏️ Edit
+            Edit
           </button>
           <button
             onClick={onCancel}
             disabled={sending}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 text-gray-400 hover:text-white"
+            className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 text-zinc-500 hover:text-white"
           >
             Cancel
           </button>

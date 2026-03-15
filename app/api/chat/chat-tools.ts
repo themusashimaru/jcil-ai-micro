@@ -7,6 +7,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { uploadDocument } from '@/lib/documents/storage';
 import {
   canExecuteTool,
   recordToolCost,
@@ -386,6 +387,98 @@ export async function loadAllTools(
   return { tools: uniqueTools, mcpToolNames, composioToolContext };
 }
 
+// ============================================================================
+// INLINE FILE UPLOAD (enables tool chaining)
+// ============================================================================
+
+/** Regex to find markdown links with base64 data URLs */
+const BASE64_LINK_PATTERN = /\[([^\]]+)\]\((data:([^;]+);base64,[A-Za-z0-9+/=]+)\)/g;
+
+/** MIME type → file extension */
+const MIME_TO_EXT: Record<string, string> = {
+  // Documents
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/rtf': 'rtf',
+  // Images
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/svg+xml': 'svg',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  // Data / Text
+  'text/csv': 'csv',
+  'text/plain': 'txt',
+  'text/markdown': 'md',
+  'text/html': 'html',
+  'application/json': 'json',
+  'application/xml': 'xml',
+  'text/xml': 'xml',
+  // Archives
+  'application/zip': 'zip',
+  'application/gzip': 'gz',
+  // Audio / Video (for transcription outputs, media tools)
+  'audio/mpeg': 'mp3',
+  'audio/wav': 'wav',
+  'audio/ogg': 'ogg',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+};
+
+/**
+ * Find base64 data URLs in tool output and upload them to Supabase storage.
+ * Replaces inline data URLs with hosted download URLs so they can be
+ * attached to emails, shared via Slack, etc.
+ */
+async function uploadInlineFiles(
+  userId: string,
+  content: string,
+  toolName: string
+): Promise<string> {
+  const matches = [...content.matchAll(BASE64_LINK_PATTERN)];
+  if (matches.length === 0) return content;
+
+  let updated = content;
+  for (const match of matches) {
+    const [fullMatch, linkText, dataUrl, mimeType] = match;
+    const ext = MIME_TO_EXT[mimeType];
+    if (!ext) continue; // Skip unknown MIME types
+
+    try {
+      // Extract the base64 data
+      const base64Part = dataUrl.split(',')[1];
+      if (!base64Part || base64Part.length < 100) continue; // Skip tiny/invalid
+
+      const buffer = Buffer.from(base64Part, 'base64');
+      const filename = `${linkText.replace(/[^a-zA-Z0-9_.-]/g, '_')}.${ext}`;
+
+      const result = await uploadDocument(userId, buffer, filename, mimeType);
+
+      if (result.storage === 'supabase') {
+        // Replace the base64 data URL with the hosted URL
+        updated = updated.replace(fullMatch, `[${linkText}](${result.url})`);
+        log.info('Uploaded inline file for chaining', {
+          tool: toolName,
+          filename,
+          size: buffer.length,
+        });
+      }
+    } catch (err) {
+      log.warn('Failed to upload inline file', {
+        tool: toolName,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      // Keep the original data URL on failure
+    }
+  }
+
+  return updated;
+}
+
 /**
  * Create a tool executor with rate limiting, cost control, and MCP/Composio dispatch.
  */
@@ -520,6 +613,12 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
         content: sanitizeToolError(toolName, errorMsg),
         isError: true,
       };
+    }
+
+    // Post-process: upload inline base64 files to storage so they get hosted URLs
+    // This enables chaining (e.g., create document → attach to email)
+    if (!result.isError && typeof result.content === 'string') {
+      result.content = await uploadInlineFiles(userId, result.content, toolName);
     }
 
     // Record cost if successful

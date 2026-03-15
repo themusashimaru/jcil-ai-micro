@@ -164,6 +164,13 @@ export {
   isEmailTemplateAvailable,
 } from './email-template-tool';
 
+// Task Scheduling
+export {
+  scheduleTaskTool,
+  executeScheduleTask,
+  isScheduleTaskAvailable,
+} from './schedule-task-tool';
+
 // Media Processing (FFmpeg.js)
 export { mediaTool, executeMedia, isMediaAvailable } from './media-tool';
 
@@ -287,48 +294,36 @@ async function initializeTools() {
   const { webSearchTool, executeWebSearch, isWebSearchAvailable } = await import('./web-search');
   const { fetchUrlTool, executeFetchUrl, isFetchUrlAvailable } = await import('./fetch-url');
   const { runCodeTool, executeRunCode, isRunCodeAvailable } = await import('./run-code');
-  const { visionAnalyzeTool, executeVisionAnalyze, isVisionAnalyzeAvailable } = await import(
-    './vision-analyze'
-  );
-  const { browserVisitTool, executeBrowserVisitTool, isBrowserVisitAvailable } = await import(
-    './browser-visit'
-  );
-  const { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } = await import(
-    './extract-pdf'
-  );
-  const { extractTableTool, executeExtractTable, isExtractTableAvailable } = await import(
-    './extract-table'
-  );
+  const { visionAnalyzeTool, executeVisionAnalyze, isVisionAnalyzeAvailable } =
+    await import('./vision-analyze');
+  const { browserVisitTool, executeBrowserVisitTool, isBrowserVisitAvailable } =
+    await import('./browser-visit');
+  const { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } =
+    await import('./extract-pdf');
+  const { extractTableTool, executeExtractTable, isExtractTableAvailable } =
+    await import('./extract-table');
   const { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } = await import('./mini-agent');
-  const { dynamicToolTool, executeDynamicTool, isDynamicToolAvailable } = await import(
-    './dynamic-tool'
-  );
+  const { dynamicToolTool, executeDynamicTool, isDynamicToolAvailable } =
+    await import('./dynamic-tool');
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
-  const { screenshotTool, executeScreenshot, isScreenshotAvailable } = await import(
-    './screenshot-tool'
-  );
+  const { screenshotTool, executeScreenshot, isScreenshotAvailable } =
+    await import('./screenshot-tool');
   const { chartTool, executeChart, isChartAvailable } = await import('./chart-tool');
   const { documentTool, executeDocument, isDocumentAvailable } = await import('./document-tool');
-  const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } = await import(
-    './audio-transcribe'
-  );
-  const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } = await import(
-    './spreadsheet-tool'
-  );
-  const { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } = await import(
-    './http-request-tool'
-  );
+  const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } =
+    await import('./audio-transcribe');
+  const { spreadsheetTool, executeSpreadsheet, isSpreadsheetAvailable } =
+    await import('./spreadsheet-tool');
+  const { httpRequestTool, executeHttpRequest, isHttpRequestAvailable } =
+    await import('./http-request-tool');
   const { qrCodeTool, executeQRCode, isQRCodeAvailable } = await import('./qr-code-tool');
-  const { imageTransformTool, executeImageTransform, isImageTransformAvailable } = await import(
-    './image-transform-tool'
-  );
-  const { fileConvertTool, executeFileConvert, isFileConvertAvailable } = await import(
-    './file-convert-tool'
-  );
-  const { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } = await import(
-    './link-shorten-tool'
-  );
+  const { imageTransformTool, executeImageTransform, isImageTransformAvailable } =
+    await import('./image-transform-tool');
+  const { fileConvertTool, executeFileConvert, isFileConvertAvailable } =
+    await import('./file-convert-tool');
+  const { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } =
+    await import('./link-shorten-tool');
 
   // Library-based tools
   const { fakerTool, executeFaker, isFakerAvailable } = await import('./faker-tool');
@@ -343,73 +338,62 @@ async function initializeTools() {
   const { prettierTool, executePrettier, isPrettierAvailable } = await import('./prettier-tool');
   const { cryptoTool, executeCryptoTool, isCryptoToolAvailable } = await import('./crypto-tool');
   const { zipTool, executeZip, isZipAvailable } = await import('./zip-tool');
-  const { webCaptureTool, executeWebCapture, isWebCaptureAvailable } = await import(
-    './web-capture-tool'
-  );
+  const { webCaptureTool, executeWebCapture, isWebCaptureAvailable } =
+    await import('./web-capture-tool');
   const { exifTool, executeExif, isExifAvailable } = await import('./exif-tool');
-  const { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } = await import(
-    './search-index-tool'
-  );
-  const { validatorTool, executeValidator, isValidatorAvailable } = await import(
-    './validator-tool'
-  );
+  const { searchIndexTool, executeSearchIndex, isSearchIndexAvailable } =
+    await import('./search-index-tool');
+  const { validatorTool, executeValidator, isValidatorAvailable } =
+    await import('./validator-tool');
   // Scientific & research tools
-  const { geospatialTool, executeGeospatial, isGeospatialAvailable } = await import(
-    './geospatial-tool'
-  );
+  const { geospatialTool, executeGeospatial, isGeospatialAvailable } =
+    await import('./geospatial-tool');
   const { phoneTool, executePhone, isPhoneAvailable } = await import('./phone-tool');
   const { dnaBioTool, executeDnaBio, isDnaBioAvailable } = await import('./dna-bio-tool');
   const { signalTool, executeSignal, isSignalAvailable } = await import('./signal-tool');
-  const { accessibilityTool, executeAccessibility, isAccessibilityAvailable } = await import(
-    './accessibility-tool'
-  );
+  const { accessibilityTool, executeAccessibility, isAccessibilityAvailable } =
+    await import('./accessibility-tool');
   const { parserTool, executeParser, isParserAvailable } = await import('./parser-tool');
-  const { constraintTool, executeConstraint, isConstraintAvailable } = await import(
-    './constraint-tool'
-  );
-  const { sequenceAnalyzeTool, executeSequenceAnalyze, isSequenceAnalyzeAvailable } = await import(
-    './sequence-analyze-tool'
-  );
-  const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } = await import(
-    './medical-calc-tool'
-  );
-  const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } = await import(
-    './graphics-3d-tool'
-  );
-  const { houghVisionTool, executeHoughVision, isHoughVisionAvailable } = await import(
-    './hough-vision-tool'
-  );
-  const { rayTracingTool, executeRayTracing, isRayTracingAvailable } = await import(
-    './ray-tracing-tool'
-  );
+  const { constraintTool, executeConstraint, isConstraintAvailable } =
+    await import('./constraint-tool');
+  const { sequenceAnalyzeTool, executeSequenceAnalyze, isSequenceAnalyzeAvailable } =
+    await import('./sequence-analyze-tool');
+  const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } =
+    await import('./medical-calc-tool');
+  const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } =
+    await import('./graphics-3d-tool');
+  const { houghVisionTool, executeHoughVision, isHoughVisionAvailable } =
+    await import('./hough-vision-tool');
+  const { rayTracingTool, executeRayTracing, isRayTracingAvailable } =
+    await import('./ray-tracing-tool');
 
   // AI-powered code tools
-  const { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } = await import(
-    './error-fixer-tool'
-  );
+  const { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } =
+    await import('./error-fixer-tool');
   const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
 
   // GitHub
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
 
   // Presentation / PowerPoint
-  const { presentationTool, executePresentation, isPresentationAvailable } = await import(
-    './presentation-tool'
-  );
+  const { presentationTool, executePresentation, isPresentationAvailable } =
+    await import('./presentation-tool');
 
   // Mail Merge / Batch Documents
-  const { mailMergeTool, executeMailMerge, isMailMergeAvailable } = await import(
-    './mail-merge-tool'
-  );
+  const { mailMergeTool, executeMailMerge, isMailMergeAvailable } =
+    await import('./mail-merge-tool');
 
   // Business Document Templates
   const { documentTemplatesTool, executeDocumentTemplate, isDocumentTemplateAvailable } =
     await import('./document-templates-tool');
 
   // HTML Email Templates
-  const { emailTemplateTool, executeEmailTemplate, isEmailTemplateAvailable } = await import(
-    './email-template-tool'
-  );
+  const { emailTemplateTool, executeEmailTemplate, isEmailTemplateAvailable } =
+    await import('./email-template-tool');
+
+  // Task Scheduling
+  const { scheduleTaskTool, executeScheduleTask, isScheduleTaskAvailable } =
+    await import('./schedule-task-tool');
 
   // Register all tools
   CHAT_TOOLS.push(
@@ -565,6 +549,13 @@ async function initializeTools() {
       tool: emailTemplateTool,
       executor: executeEmailTemplate,
       checkAvailability: isEmailTemplateAvailable,
+    },
+
+    // Task scheduling
+    {
+      tool: scheduleTaskTool,
+      executor: executeScheduleTask,
+      checkAvailability: isScheduleTaskAvailable,
     }
   );
 

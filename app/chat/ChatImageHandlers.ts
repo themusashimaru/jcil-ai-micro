@@ -5,6 +5,7 @@ import type { AgentModeId } from './agentModes';
 import type { Message, GeneratedImage, Attachment } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { DestructiveActionData } from '@/components/chat/DestructiveActionCard';
+import type { ScheduledActionData } from '@/components/chat/ScheduledActionCard';
 import type { SearchMode } from '@/components/chat/ChatComposer';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 
@@ -233,6 +234,75 @@ export function createImageHandlers({
     ]);
   };
 
+  const handleScheduledConfirm = async (data: ScheduledActionData): Promise<void> => {
+    try {
+      const response = await fetch('/api/scheduled-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${data.action} - ${data.summary}`.slice(0, 200),
+          description: data.summary,
+          platform: data.platform,
+          action: data.action,
+          toolName: data.toolName,
+          toolParams: data.toolParams,
+          scheduledFor: data.scheduledFor,
+          timezone: data.timezone || 'UTC',
+          recurring: data.recurring || 'once',
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok && result.task) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `scheduled-success-${Date.now()}`,
+            role: 'assistant',
+            content: `Scheduled! "${data.action}" will run at ${data.scheduledDisplay}${data.recurring && data.recurring !== 'once' ? ` (recurring ${data.recurring})` : ''}. You can manage it from the sidebar.`,
+            timestamp: new Date(),
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `scheduled-error-${Date.now()}`,
+            role: 'assistant',
+            content: `Failed to schedule: ${result.error || 'Unknown error'}`,
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `scheduled-error-${Date.now()}`,
+          role: 'assistant',
+          content: 'An error occurred while scheduling the task.',
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  };
+
+  const handleScheduledModifyTime = (data: ScheduledActionData): void => {
+    setQuickPromptText(`Change the schedule for "${data.action}" to `);
+  };
+
+  const handleScheduledCancel = (data: ScheduledActionData): void => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `scheduled-cancel-${Date.now()}`,
+        role: 'assistant',
+        content: `Okay, I've cancelled scheduling "${data.action}". Let me know if you'd like to reschedule.`,
+        timestamp: new Date(),
+      },
+    ]);
+  };
+
   const handleCarouselSelect = async (cardId: string) => {
     switch (cardId) {
       case 'create-image':
@@ -261,6 +331,9 @@ export function createImageHandlers({
     handleActionCancel,
     handleDestructiveConfirm,
     handleDestructiveCancel,
+    handleScheduledConfirm,
+    handleScheduledModifyTime,
+    handleScheduledCancel,
     handleCarouselSelect,
   };
 }

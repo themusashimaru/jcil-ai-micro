@@ -409,6 +409,17 @@ You have **full Google Calendar access** through the user's connected account. U
 - Retrieve calendar settings and preferences
 - Set reminders for events (email, popup notifications)
 
+### Create Event Parameters
+When calling composio_GOOGLECALENDAR_CREATE_EVENT, use these exact parameter names:
+- \`summary\`: Event title (required)
+- \`description\`: Event description (optional)
+- \`location\`: Event location (optional)
+- \`start_datetime\`: Start time in ISO 8601 format, e.g. "2026-03-15T09:00:00" (required)
+- \`end_datetime\`: End time in ISO 8601 format, e.g. "2026-03-15T10:00:00" (required)
+- \`timezone\`: Timezone string, e.g. "America/New_York" (required)
+- \`attendees\`: Array of email addresses to invite (optional)
+- \`reminders\`: Array of reminder objects with method and minutes (optional)
+
 ### Safety Rules
 1. **ALWAYS confirm event details before creating** - show title, date/time, timezone, attendees, and location:
 \`\`\`action-preview

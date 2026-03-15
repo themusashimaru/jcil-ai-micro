@@ -24,6 +24,11 @@ import DestructiveActionCard, {
   parseDestructiveAction,
   type DestructiveActionData,
 } from './DestructiveActionCard';
+import ChainProgressCard, { parseChainProgress } from './ChainProgressCard';
+import ScheduledActionCard, {
+  parseScheduledAction,
+  type ScheduledActionData,
+} from './ScheduledActionCard';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { logger } from '@/lib/logger';
 
@@ -45,6 +50,12 @@ interface MarkdownRendererProps {
   onDestructiveConfirm?: (data: DestructiveActionData) => Promise<void>;
   /** Callback when destructive action is cancelled */
   onDestructiveCancel?: (data: DestructiveActionData) => void;
+  /** Callback when scheduled action is confirmed */
+  onScheduledConfirm?: (data: ScheduledActionData) => Promise<void>;
+  /** Callback when scheduled action time is modified */
+  onScheduledModifyTime?: (data: ScheduledActionData, newTime: string) => void;
+  /** Callback when scheduled action is cancelled */
+  onScheduledCancel?: (data: ScheduledActionData) => void;
 }
 
 /**
@@ -390,9 +401,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   onActionCancel,
   onDestructiveConfirm,
   onDestructiveCancel,
+  onScheduledConfirm,
+  onScheduledModifyTime,
+  onScheduledCancel,
 }: MarkdownRendererProps) {
   const [actionSending, setActionSending] = useState(false);
   const [destructiveConfirming, setDestructiveConfirming] = useState(false);
+  const [scheduledConfirming, setScheduledConfirming] = useState(false);
 
   // Get code execution context (optional - gracefully handle if not in provider)
   const codeExecution = useCodeExecutionOptional();
@@ -485,6 +500,47 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
               onCancel={() => {
                 if (onDestructiveCancel) {
                   onDestructiveCancel(confirmData);
+                }
+              }}
+            />
+          );
+        }
+      }
+
+      // Check if this is a chain progress card
+      if (language === 'chain-progress') {
+        const progressData = parseChainProgress(`\`\`\`chain-progress\n${codeContent}\n\`\`\``);
+        if (progressData) {
+          return <ChainProgressCard data={progressData} />;
+        }
+      }
+
+      // Check if this is a scheduled action card
+      if (language === 'scheduled-action') {
+        const scheduleData = parseScheduledAction(`\`\`\`scheduled-action\n${codeContent}\n\`\`\``);
+        if (scheduleData) {
+          return (
+            <ScheduledActionCard
+              data={scheduleData}
+              confirming={scheduledConfirming}
+              onConfirm={async (data) => {
+                if (onScheduledConfirm) {
+                  setScheduledConfirming(true);
+                  try {
+                    await onScheduledConfirm(data);
+                  } finally {
+                    setScheduledConfirming(false);
+                  }
+                }
+              }}
+              onModifyTime={(data, newTime) => {
+                if (onScheduledModifyTime) {
+                  onScheduledModifyTime(data, newTime);
+                }
+              }}
+              onCancel={(data) => {
+                if (onScheduledCancel) {
+                  onScheduledCancel(data);
                 }
               }}
             />

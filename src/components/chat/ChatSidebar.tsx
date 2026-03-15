@@ -26,6 +26,7 @@ import { ChatItem } from './ChatSidebarItem';
 import { ChatSidebarFolderModal } from './ChatSidebarFolderModal';
 import { ChatSidebarFolderSection } from './ChatSidebarFolderSection';
 import { ChatSidebarAgentSessions } from './ChatSidebarAgentSessions';
+import { ChatSidebarScheduledTasks, type ScheduledTask } from './ChatSidebarScheduledTasks';
 import { ChatSidebarFooter } from './ChatSidebarFooter';
 
 // Strategy session type
@@ -93,6 +94,9 @@ export function ChatSidebar({
   const [strategySessions, setStrategySessions] = useState<StrategySession[]>([]);
   const [strategyCollapsed, setStrategyCollapsed] = useState(true);
 
+  // Scheduled tasks state
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+
   // Fetch folders on mount
   const fetchFolders = useCallback(async () => {
     try {
@@ -105,6 +109,63 @@ export function ChatSidebar({
       console.error('[ChatSidebar] Error fetching folders:', error);
     }
   }, []);
+
+  // Fetch scheduled tasks
+  const fetchScheduledTasks = useCallback(async () => {
+    try {
+      const response = await fetch('/api/scheduled-tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledTasks(data.tasks || []);
+      }
+    } catch (error) {
+      console.error('[ChatSidebar] Error fetching scheduled tasks:', error);
+    }
+  }, []);
+
+  const handlePauseTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch('/api/scheduled-tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: taskId, status: 'paused' }),
+        });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[ChatSidebar] Error pausing task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
+
+  const handleResumeTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch('/api/scheduled-tasks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: taskId, status: 'pending' }),
+        });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[ChatSidebar] Error resuming task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
+
+  const handleDeleteTask = useCallback(
+    async (taskId: string) => {
+      try {
+        await fetch(`/api/scheduled-tasks?id=${taskId}`, { method: 'DELETE' });
+        fetchScheduledTasks();
+      } catch (error) {
+        console.error('[ChatSidebar] Error deleting task:', error);
+      }
+    },
+    [fetchScheduledTasks]
+  );
 
   // Fetch agent sessions (admin only)
   const fetchStrategySessions = useCallback(async () => {
@@ -122,7 +183,8 @@ export function ChatSidebar({
 
   useEffect(() => {
     fetchFolders();
-  }, [fetchFolders]);
+    fetchScheduledTasks();
+  }, [fetchFolders, fetchScheduledTasks]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -507,6 +569,15 @@ export function ChatSidebar({
                 onSelectStrategySession={onSelectStrategySession}
               />
             )}
+
+            {/* Scheduled Tasks */}
+            <ChatSidebarScheduledTasks
+              tasks={scheduledTasks}
+              onPause={handlePauseTask}
+              onResume={handleResumeTask}
+              onDelete={handleDeleteTask}
+              onRefresh={fetchScheduledTasks}
+            />
 
             {unorganizedChats.length > 0 && (
               <div>

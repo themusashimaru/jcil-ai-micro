@@ -33,7 +33,15 @@ import type {
   UnifiedToolResult,
 } from './providers/types';
 import { logger } from '@/lib/logger';
-import { ArtifactStore, extractArtifacts, partitionParallelCalls } from './tools/orchestration';
+import {
+  ArtifactStore,
+  ChainTelemetry,
+  extractArtifacts,
+  partitionParallelCalls,
+  detectChainPattern,
+  getToolFallbacks,
+  buildRollbackContext,
+} from './tools/orchestration';
 
 const log = logger('ChatRouter');
 
@@ -255,9 +263,7 @@ export function createStreamFromChunks(
 
           // When we get a non-thinking chunk, flush any accumulated thinking first
           if (thinkingBuffer && chunk.type === 'text') {
-            controller.enqueue(
-              encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`)
-            );
+            controller.enqueue(encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`));
             thinkingBuffer = '';
           }
 
@@ -283,9 +289,7 @@ export function createStreamFromChunks(
 
         // Flush any remaining thinking content
         if (thinkingBuffer) {
-          controller.enqueue(
-            encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`)
-          );
+          controller.enqueue(encoder.encode(`\n<thinking>\n${thinkingBuffer}\n</thinking>\n`));
           thinkingBuffer = '';
         }
 
@@ -572,6 +576,12 @@ export async function routeChatWithTools(
 
   // Artifact store tracks outputs from tools for chaining
   const artifactStore = new ArtifactStore();
+  // Chain telemetry tracks multi-step workflow execution
+  const chainTelemetry = new ChainTelemetry();
+  // Track all tools executed this session for chain detection
+  const executedToolNames: string[] = [];
+  // Track completed tool calls with params for rollback context
+  const completedToolCalls: Array<{ name: string; params: Record<string, unknown> }> = [];
 
   // Create a stream that handles tool loops
   const stream = new ReadableStream<Uint8Array>({
@@ -790,6 +800,61 @@ export async function routeChatWithTools(
                     );
                   }
 
+                  // Track tool for chain detection and telemetry
+                  executedToolNames.push(toolCall.name);
+                  const detectedChain = detectChainPattern(executedToolNames);
+                  if (detectedChain) {
+                    // Auto-detect and track chain progress
+                    const existingChains = chainTelemetry.getAll();
+                    const isTracked = existingChains.some(
+                      (e) => e.chainName === detectedChain.name && e.status === 'running'
+                    );
+                    if (!isTracked) {
+                      chainTelemetry.startChain(detectedChain.name, detectedChain.tools);
+                    }
+                    chainTelemetry.stepCompleted(detectedChain.name);
+
+                    // Emit chain progress to stream for real-time UI
+                    try {
+                      const steps = detectedChain.tools.map((t) => {
+                        const executedIdx = executedToolNames.indexOf(t);
+                        const isExecuted = executedIdx >= 0;
+                        const isCurrent = t === toolCall.name;
+                        return {
+                          name: t,
+                          label: t.replace(/^composio_/, '').replace(/_/g, ' '),
+                          status: isExecuted
+                            ? 'complete'
+                            : isCurrent
+                              ? 'running'
+                              : ('pending' as const),
+                        };
+                      });
+                      const exec = chainTelemetry
+                        .getAll()
+                        .find((e) => e.chainName === detectedChain.name);
+                      const progressJson = JSON.stringify({
+                        chainName: detectedChain.name,
+                        steps,
+                        status: exec?.status || 'running',
+                      });
+                      controller.enqueue(
+                        encoder.encode(`\n\`\`\`chain-progress\n${progressJson}\n\`\`\`\n`)
+                      );
+                    } catch {
+                      // Non-critical — don't break the stream if progress emission fails
+                    }
+                  }
+
+                  // Track successful tool for rollback context
+                  if (!result.isError) {
+                    const parsedArgs =
+                      typeof toolCall.arguments === 'string'
+                        ? {}
+                        : (toolCall.arguments as Record<string, unknown>);
+                    completedToolCalls.push({ name: toolCall.name, params: parsedArgs });
+                  }
+
                   log.debug('Tool execution complete', {
                     name: toolCall.name,
                     resultLength: result.content.length,
@@ -798,14 +863,33 @@ export async function routeChatWithTools(
                   });
                   return result;
                 } catch (execErr) {
+                  const errorMsg = (execErr as Error).message;
                   log.error('Tool execution failed', {
                     name: toolCall.name,
-                    error: (execErr as Error).message,
+                    error: errorMsg,
                     timeout: toolTimeout,
                   });
+
+                  // Track failure in chain telemetry
+                  executedToolNames.push(toolCall.name);
+                  const detectedChain = detectChainPattern(executedToolNames);
+                  if (detectedChain) {
+                    chainTelemetry.stepFailed(detectedChain.name, toolCall.name, errorMsg);
+                  }
+
+                  // Build fallback hint for Claude
+                  const fallbacks = getToolFallbacks(toolCall.name);
+                  const fallbackHint =
+                    fallbacks.length > 0
+                      ? `\n\nFALLBACK: Try using ${fallbacks[0]} instead of ${toolCall.name} to accomplish the same goal.`
+                      : '';
+
+                  // Build rollback context if there are completed steps
+                  const rollbackHint = buildRollbackContext(completedToolCalls);
+
                   return {
                     toolCallId: toolCall.id,
-                    content: `Error executing tool: ${(execErr as Error).message}`,
+                    content: `Error executing tool: ${errorMsg}${fallbackHint}${rollbackHint}`,
                     isError: true,
                   } as UnifiedToolResult;
                 }
@@ -868,6 +952,15 @@ export async function routeChatWithTools(
 
         if (iteration >= MAX_TOOL_ITERATIONS) {
           log.warn('Max tool iterations reached', { iteration });
+        }
+
+        // Log chain telemetry summary
+        const chainStats = chainTelemetry.getStats();
+        if (chainStats.total > 0) {
+          log.info('Chain telemetry summary', {
+            ...chainStats,
+            executedTools: executedToolNames,
+          });
         }
 
         // Report accumulated usage for billing
