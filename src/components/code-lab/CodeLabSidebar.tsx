@@ -659,6 +659,9 @@ export function CodeLabSidebar({
               onResume={handleResumeTask}
               onDelete={handleDeleteTask}
               onRefresh={fetchScheduledTasks}
+              onCreateTask={() => {
+                window.location.href = '/chat';
+              }}
             />
           </div>
 
