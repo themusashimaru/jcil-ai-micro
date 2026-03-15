@@ -54,6 +54,8 @@ export default function MemoryFeedbackSection() {
   const [deletingTopic, setDeletingTopic] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   const fetchMemory = useCallback(async () => {
     try {
@@ -83,7 +85,10 @@ export default function MemoryFeedbackSection() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Removed "${CATEGORY_CONFIG[key]?.label || key}"` });
+        setMessage({
+          type: 'success',
+          text: `Removed "${CATEGORY_CONFIG[key]?.label || key}". To update, just tell the AI in chat.`,
+        });
         await fetchMemory();
       } else {
         setMessage({ type: 'error', text: 'Failed to update memory' });
@@ -92,7 +97,34 @@ export default function MemoryFeedbackSection() {
       setMessage({ type: 'error', text: 'Failed to update memory' });
     } finally {
       setDeletingKey(null);
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setMessage(null), 5000);
+    }
+  };
+
+  const savePreferenceEdit = async (key: string, value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setEditingKey(null);
+      return;
+    }
+    try {
+      const response = await fetch('/api/memory', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: trimmed }),
+      });
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: `Updated "${CATEGORY_CONFIG[key]?.label || key}"` });
+        await fetchMemory();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to update' });
+    } finally {
+      setEditingKey(null);
+      setTimeout(() => setMessage(null), 5000);
     }
   };
 
@@ -106,7 +138,10 @@ export default function MemoryFeedbackSection() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `Removed topic "${topic}"` });
+        setMessage({
+          type: 'success',
+          text: `Removed topic "${topic}". To update, just tell the AI in chat.`,
+        });
         await fetchMemory();
       } else {
         setMessage({ type: 'error', text: 'Failed to remove topic' });
@@ -115,7 +150,7 @@ export default function MemoryFeedbackSection() {
       setMessage({ type: 'error', text: 'Failed to remove topic' });
     } finally {
       setDeletingTopic(null);
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setMessage(null), 5000);
     }
   };
 
@@ -135,7 +170,7 @@ export default function MemoryFeedbackSection() {
       setMessage({ type: 'error', text: 'Failed to clear memory' });
     } finally {
       setClearing(false);
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setMessage(null), 5000);
     }
   };
 
@@ -231,36 +266,88 @@ export default function MemoryFeedbackSection() {
                   const value = (prefs as Record<string, unknown>)?.[key];
                   if (!value) return null;
 
+                  const isEditing = editingKey === key;
+
                   return (
                     <div
                       key={key}
                       className="flex items-center justify-between px-3 py-2 rounded-lg group bg-glass"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span aria-hidden="true">{config.icon}</span>
                         <span className="text-xs font-medium text-text-muted">{config.label}:</span>
-                        <span className="text-sm truncate text-text-primary">{String(value)}</span>
-                      </div>
-                      <button
-                        onClick={() => deletePreferenceKey(key)}
-                        disabled={deletingKey === key}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 transition-all"
-                        aria-label={`Remove ${config.label}`}
-                      >
-                        <svg
-                          className="h-3.5 w-3.5 text-red-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={() => savePreferenceEdit(key, editValue)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') savePreferenceEdit(key, editValue);
+                              if (e.key === 'Escape') setEditingKey(null);
+                            }}
+                            className="flex-1 text-sm bg-transparent border-b border-sky-400 outline-none text-text-primary px-0 py-0"
                           />
-                        </svg>
-                      </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingKey(key);
+                              setEditValue(String(value));
+                            }}
+                            className="text-sm truncate text-text-primary text-left hover:text-sky-300 transition-colors cursor-text"
+                            title="Click to edit"
+                          >
+                            {String(value)}
+                          </button>
+                        )}
+                      </div>
+                      {!isEditing && (
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              setEditingKey(key);
+                              setEditValue(String(value));
+                            }}
+                            className="p-1 rounded hover:bg-white/10 transition-all"
+                            aria-label={`Edit ${config.label}`}
+                          >
+                            <svg
+                              className="h-3.5 w-3.5 text-text-muted"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => deletePreferenceKey(key)}
+                            disabled={deletingKey === key}
+                            className="p-1 rounded hover:bg-red-500/10 transition-all"
+                            aria-label={`Remove ${config.label}`}
+                          >
+                            <svg
+                              className="h-3.5 w-3.5 text-red-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
