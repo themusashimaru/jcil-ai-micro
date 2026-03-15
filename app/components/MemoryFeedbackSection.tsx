@@ -76,14 +76,10 @@ export default function MemoryFeedbackSection() {
   const deletePreferenceKey = async (key: string) => {
     setDeletingKey(key);
     try {
-      // Update preferences by removing the key
-      const updated = { ...memory?.preferences };
-      delete (updated as Record<string, unknown>)[key];
-
-      const response = await fetch('/api/memory', {
-        method: 'PUT',
+      const response = await fetch('/api/memory/forget', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
+        body: JSON.stringify({ preference_keys: [key] }),
       });
 
       if (response.ok) {
@@ -103,19 +99,10 @@ export default function MemoryFeedbackSection() {
   const deleteTopic = async (topic: string) => {
     setDeletingTopic(topic);
     try {
-      // Remove topic from key_topics array
-      const updatedTopics = memory?.key_topics.filter((t) => t !== topic) || [];
-      const updatedTimestamps = { ...memory?.topic_timestamps };
-      delete updatedTimestamps[topic];
-
-      const response = await fetch('/api/memory', {
-        method: 'PUT',
+      const response = await fetch('/api/memory/forget', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...memory?.preferences,
-          _topics: updatedTopics,
-          _topic_timestamps: updatedTimestamps,
-        }),
+        body: JSON.stringify({ topics: [topic] }),
       });
 
       if (response.ok) {
