@@ -1,8 +1,11 @@
 /**
  * FIRST-RUN ONBOARDING MODAL
  *
- * Shown to new users on their first visit. Collects their name
- * and gives a brief overview of capabilities.
+ * Shown to new users on their first visit. A 4-step walkthrough:
+ *   1. Welcome — brief overview of what JCIL AI can do
+ *   2. Connectors — explain how integrations work (Gmail, Slack, Calendar, etc.)
+ *   3. Scheduled Tasks — show how to automate workflows in plain English
+ *   4. Name — collect user's name to personalize the experience
  */
 
 'use client';
@@ -15,13 +18,19 @@ interface FirstRunModalProps {
   onComplete: () => void;
 }
 
+type Step = 'welcome' | 'connectors' | 'scheduling' | 'name';
+
+const STEPS: Step[] = ['welcome', 'connectors', 'scheduling', 'name'];
+
 export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
   const { profile, updateProfile } = useUserProfile();
   const [name, setName] = useState(profile.name || '');
-  const [step, setStep] = useState<'welcome' | 'name'>('welcome');
+  const [step, setStep] = useState<Step>('welcome');
   const [isSaving, setIsSaving] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  const stepIndex = STEPS.indexOf(step);
 
   // Focus management
   useEffect(() => {
@@ -40,6 +49,16 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
       e.preventDefault();
     }
   }, []);
+
+  const goNext = () => {
+    const next = STEPS[stepIndex + 1];
+    if (next) setStep(next);
+  };
+
+  const goBack = () => {
+    const prev = STEPS[stepIndex - 1];
+    if (prev) setStep(prev);
+  };
 
   const handleComplete = async () => {
     setIsSaving(true);
@@ -75,8 +94,21 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-[480px] w-[90%] shadow-2xl">
-        {step === 'welcome' ? (
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-[520px] w-[90%] shadow-2xl">
+        {/* Progress indicator */}
+        <div className="flex items-center gap-1.5 mb-6">
+          {STEPS.map((s, i) => (
+            <div
+              key={s}
+              className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                i <= stepIndex ? 'bg-orange-500' : 'bg-zinc-700'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Step 1: Welcome */}
+        {step === 'welcome' && (
           <>
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">Welcome to JCIL AI</h2>
@@ -86,63 +118,174 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
             </div>
 
             <div className="flex flex-col gap-4 mb-6">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
-                  &#x1F50D;
-                </span>
-                <div>
-                  <strong className="block text-white text-sm mb-0.5">Web Search & Research</strong>
-                  <p className="text-zinc-400 text-xs leading-relaxed m-0">
-                    Get current information, analyze websites, and do deep research.
-                  </p>
+              {[
+                {
+                  icon: '\u{1F50D}',
+                  title: 'Web Search & Research',
+                  desc: 'Get current information, analyze websites, and do deep research.',
+                },
+                {
+                  icon: '\u{1F4BB}',
+                  title: 'Code Execution',
+                  desc: 'Run Python and JavaScript code in a secure sandbox.',
+                },
+                {
+                  icon: '\u{1F4C4}',
+                  title: 'Document Generation',
+                  desc: 'Create Excel spreadsheets, Word documents, and PDFs.',
+                },
+                {
+                  icon: '\u{1F5BC}',
+                  title: 'Image Generation & Analysis',
+                  desc: 'Create images and analyze visual content.',
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <div>
+                    <strong className="block text-white text-sm mb-0.5">{item.title}</strong>
+                    <p className="text-zinc-400 text-xs leading-relaxed m-0">{item.desc}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
-                  &#x1F4BB;
-                </span>
-                <div>
-                  <strong className="block text-white text-sm mb-0.5">Code Execution</strong>
-                  <p className="text-zinc-400 text-xs leading-relaxed m-0">
-                    Run Python and JavaScript code in a secure sandbox.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
-                  &#x1F4C4;
-                </span>
-                <div>
-                  <strong className="block text-white text-sm mb-0.5">Document Generation</strong>
-                  <p className="text-zinc-400 text-xs leading-relaxed m-0">
-                    Create Excel spreadsheets, Word documents, and PDFs.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
-                  &#x1F5BC;
-                </span>
-                <div>
-                  <strong className="block text-white text-sm mb-0.5">
-                    Image Generation & Analysis
-                  </strong>
-                  <p className="text-zinc-400 text-xs leading-relaxed m-0">
-                    Create images and analyze visual content.
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
 
             <button
-              className="w-full py-2.5 px-6 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-50"
-              onClick={() => setStep('name')}
-              aria-label="Get started"
+              className="w-full py-2.5 px-6 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+              onClick={goNext}
+              aria-label="Continue to connectors"
             >
-              Get Started
+              Next
             </button>
           </>
-        ) : (
+        )}
+
+        {/* Step 2: Connectors */}
+        {step === 'connectors' && (
+          <>
+            <div className="text-center mb-5">
+              <h2 className="text-2xl font-bold text-white mb-2">Connect Your Apps</h2>
+              <p className="text-sm text-zinc-400">
+                JCIL connects to 67+ apps so you can work across all your tools from one place.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {[
+                { icon: '\u2709\uFE0F', name: 'Gmail', desc: 'Read, send, and manage emails' },
+                { icon: '\u{1F4AC}', name: 'Slack', desc: 'Send messages and automate channels' },
+                { icon: '\u{1F4C5}', name: 'Google Calendar', desc: 'View and create events' },
+                { icon: '\u{1F41B}', name: 'GitHub', desc: 'Repos, issues, and pull requests' },
+                { icon: '\u{1F4B3}', name: 'Stripe', desc: 'Payments and subscriptions' },
+                { icon: '\u{1F4C1}', name: 'Google Drive', desc: 'Files, docs, and sheets' },
+              ].map((app) => (
+                <div
+                  key={app.name}
+                  className="flex items-start gap-2.5 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/50"
+                >
+                  <span className="text-lg shrink-0 mt-0.5">{app.icon}</span>
+                  <div className="min-w-0">
+                    <strong className="block text-white text-xs">{app.name}</strong>
+                    <p className="text-zinc-500 text-[11px] leading-snug m-0">{app.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-zinc-800/40 rounded-lg p-3 mb-5 border border-zinc-700/30">
+              <p className="text-zinc-400 text-xs leading-relaxed m-0">
+                <strong className="text-zinc-300">How to connect:</strong> Just ask in the chat —
+                for example, &ldquo;Connect my Gmail&rdquo; — and JCIL will walk you through it
+                securely.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-between">
+              <button
+                className="py-2.5 px-6 rounded-lg text-sm font-semibold bg-transparent text-zinc-400 border border-zinc-600 hover:border-zinc-500 transition-colors"
+                onClick={goBack}
+                aria-label="Go back"
+              >
+                Back
+              </button>
+              <button
+                className="py-2.5 px-6 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                onClick={goNext}
+                aria-label="Continue to scheduling"
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Step 3: Scheduled Tasks */}
+        {step === 'scheduling' && (
+          <>
+            <div className="text-center mb-5">
+              <h2 className="text-2xl font-bold text-white mb-2">Automate Your Day</h2>
+              <p className="text-sm text-zinc-400">
+                Schedule tasks in plain English. JCIL handles the rest.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 mb-5">
+              {[
+                {
+                  icon: '\u2709\uFE0F',
+                  example: 'Send me a weekly email summary every Monday at 9 AM',
+                },
+                {
+                  icon: '\u{1F4C5}',
+                  example: 'Remind me to review my goals every Friday at 5 PM',
+                },
+                {
+                  icon: '\u{1F4AC}',
+                  example: 'Post a standup reminder in Slack every morning at 9',
+                },
+              ].map((item) => (
+                <div
+                  key={item.example}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/50"
+                >
+                  <span className="text-lg shrink-0">{item.icon}</span>
+                  <p className="text-zinc-300 text-xs italic leading-snug m-0">
+                    &ldquo;{item.example}&rdquo;
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-zinc-800/40 rounded-lg p-3 mb-5 border border-zinc-700/30">
+              <p className="text-zinc-400 text-xs leading-relaxed m-0">
+                <strong className="text-zinc-300">Daily, weekly, or one-time</strong> — your
+                scheduled tasks appear in the sidebar. Pause, edit, or delete them anytime.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-between">
+              <button
+                className="py-2.5 px-6 rounded-lg text-sm font-semibold bg-transparent text-zinc-400 border border-zinc-600 hover:border-zinc-500 transition-colors"
+                onClick={goBack}
+                aria-label="Go back"
+              >
+                Back
+              </button>
+              <button
+                className="py-2.5 px-6 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                onClick={goNext}
+                aria-label="Continue to name"
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Step 4: Name */}
+        {step === 'name' && (
           <>
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-white mb-2">What should we call you?</h2>
@@ -170,10 +313,10 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
               />
             </div>
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-3 justify-between">
               <button
                 className="py-2.5 px-6 rounded-lg text-sm font-semibold bg-transparent text-zinc-400 border border-zinc-600 hover:border-zinc-500 transition-colors"
-                onClick={() => setStep('welcome')}
+                onClick={goBack}
                 aria-label="Go back"
               >
                 Back

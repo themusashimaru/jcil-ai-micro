@@ -3,6 +3,7 @@
 import { HeroSection } from './HeroSection';
 import { SignalsSection } from './SignalsSection';
 import { WorkSection } from './WorkSection';
+import { AutomationSection } from './AutomationSection';
 import { PrinciplesSection } from './PrinciplesSection';
 import { ColophonSection } from './ColophonSection';
 import { TopNav } from './TopNav';
@@ -21,6 +22,7 @@ export function LandingV2() {
           <HeroSection />
           <SignalsSection />
           <WorkSection />
+          <AutomationSection />
           <PrinciplesSection />
           <ColophonSection />
         </div>
