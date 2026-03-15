@@ -126,6 +126,15 @@ export function ChatMainArea({
     (suggestion: string) => handleSendMessageRef.current(suggestion, []),
     []
   );
+  const handleCreateScheduledTask = useCallback(
+    async (promptHint?: string) => {
+      await handleNewChat();
+      if (promptHint) {
+        setQuickPromptText(promptHint);
+      }
+    },
+    [handleNewChat, setQuickPromptText]
+  );
   const handleClearReply = useCallback(() => setReplyingTo(null), [setReplyingTo]);
   const handleRetry = useCallback(() => {
     if (lastUserMessage) {
@@ -160,6 +169,7 @@ export function ChatMainArea({
           collapsed={sidebarCollapsed}
           loadError={conversationLoadError}
           onNewChat={handleNewChat}
+          onCreateScheduledTask={handleCreateScheduledTask}
           onSelectChat={handleSelectChat}
           onRenameChat={handleRenameChat}
           onDeleteChat={handleDeleteChat}

@@ -49,6 +49,8 @@ interface ChatSidebarProps {
   collapsed: boolean;
   loadError?: string | null;
   onNewChat: () => void;
+  /** Called when user wants to create a scheduled task, with optional prompt hint for the input */
+  onCreateScheduledTask?: (promptHint?: string) => void;
   onSelectChat: (chatId: string) => void;
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
@@ -67,6 +69,7 @@ export function ChatSidebar({
   collapsed,
   loadError,
   onNewChat,
+  onCreateScheduledTask,
   onSelectChat,
   onRenameChat,
   onDeleteChat,
@@ -577,7 +580,7 @@ export function ChatSidebar({
               onResume={handleResumeTask}
               onDelete={handleDeleteTask}
               onRefresh={fetchScheduledTasks}
-              onCreateTask={onNewChat}
+              onCreateTask={onCreateScheduledTask ?? onNewChat}
             />
 
             {unorganizedChats.length > 0 && (
