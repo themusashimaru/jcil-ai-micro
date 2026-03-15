@@ -1905,3 +1905,40 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================================
+   NEW FEATURE BADGE — subtle ambient pulse for new features
+   ============================================================ */
+
+.new-feature-badge {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  animation: badge-pulse 2s ease-in-out 3;
+  flex-shrink: 0;
+}
+
+@keyframes badge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 8px 2px rgba(56, 189, 248, 0.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-feature-badge {
+    animation: none;
+  }
+}

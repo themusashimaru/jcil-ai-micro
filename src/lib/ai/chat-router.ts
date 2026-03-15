@@ -41,6 +41,7 @@ import {
   detectChainPattern,
   getToolFallbacks,
   buildRollbackContext,
+  getToolDisplayLabel,
 } from './tools/orchestration';
 
 const log = logger('ChatRouter');
@@ -822,7 +823,7 @@ export async function routeChatWithTools(
                         const isCurrent = t === toolCall.name;
                         return {
                           name: t,
-                          label: t.replace(/^composio_/, '').replace(/_/g, ' '),
+                          label: getToolDisplayLabel(t),
                           status: isExecuted
                             ? 'complete'
                             : isCurrent

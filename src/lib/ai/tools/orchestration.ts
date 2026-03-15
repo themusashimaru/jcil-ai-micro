@@ -142,6 +142,76 @@ export class ArtifactStore {
 }
 
 // ============================================================================
+// TOOL DISPLAY LABELS (shared between backend chain progress + frontend UI)
+// ============================================================================
+
+/** Human-readable labels for tool execution status messages */
+const TOOL_DISPLAY_LABELS: Record<string, string> = {
+  // Research & content
+  parallel_research: 'Researching',
+  web_search: 'Searching the web',
+  fetch_url: 'Fetching page',
+  // Documents & media
+  create_chart: 'Creating chart',
+  create_document: 'Generating document',
+  create_presentation: 'Building presentation',
+  create_spreadsheet: 'Creating spreadsheet',
+  excel_advanced: 'Processing spreadsheet',
+  pdf_manipulate: 'Processing PDF',
+  extract_pdf: 'Extracting PDF',
+  extract_table: 'Extracting table data',
+  // Code & analysis
+  run_code: 'Running code',
+  create_and_run_tool: 'Running custom tool',
+  analyze_text_nlp: 'Analyzing text',
+  analyze_sequence: 'Analyzing sequence',
+  sql_query: 'Querying data',
+  math_compute: 'Computing',
+  // Media
+  screenshot: 'Taking screenshot',
+  capture_webpage: 'Capturing page',
+  analyze_image: 'Analyzing image',
+  transform_image: 'Transforming image',
+  generate_qr_code: 'Generating QR code',
+  generate_barcode: 'Generating barcode',
+  generate_diagram: 'Generating diagram',
+  audio_transcribe: 'Transcribing audio',
+  ocr_extract_text: 'Reading text from image',
+  process_media: 'Processing media',
+  // File operations
+  convert_file: 'Converting file',
+  zip_files: 'Creating ZIP',
+  // Composio tools
+  composio_GMAIL_SEND_EMAIL: 'Sending email',
+  composio_GMAIL_CREATE_EMAIL_DRAFT: 'Creating draft',
+  composio_GMAIL_FETCH_EMAILS: 'Fetching emails',
+  composio_GMAIL_LIST_EMAILS: 'Listing emails',
+  composio_GMAIL_FORWARD_MESSAGE: 'Forwarding email',
+  composio_GMAIL_REPLY_TO_THREAD: 'Replying to thread',
+  composio_GOOGLECALENDAR_CREATE_EVENT: 'Creating calendar event',
+  composio_GOOGLECALENDAR_LIST_EVENTS: 'Listing events',
+  composio_GOOGLECALENDAR_FIND_EVENT: 'Finding event',
+  composio_SLACK_SEND_MESSAGE: 'Sending to Slack',
+  composio_GITHUB_CREATE_AN_ISSUE: 'Creating GitHub issue',
+  composio_GOOGLEDRIVE_UPLOAD_FILE: 'Uploading to Drive',
+};
+
+/**
+ * Get a human-readable display label for a tool name.
+ * Falls back to cleaned-up tool name if no mapping exists.
+ */
+export function getToolDisplayLabel(toolName: string): string {
+  if (TOOL_DISPLAY_LABELS[toolName]) return TOOL_DISPLAY_LABELS[toolName];
+
+  // Clean up composio prefix for display
+  return toolName
+    .replace(/^composio_/, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// ============================================================================
 // ARTIFACT EXTRACTION FROM TOOL RESULTS
 // ============================================================================
 
@@ -1130,10 +1200,19 @@ When a tool fails:
 When a user asks for multiple things in one message (e.g., "create a resume,
 update my calendar, and email it to me"), handle ALL tasks sequentially:
 1. Generate the document first (create_document) — note the download URL from the result
-2. Use the download URL as attachment_urls in composio_GMAIL_SEND_EMAIL
-3. Create calendar events with composio_GOOGLECALENDAR_CREATE_EVENT
-4. Show action-preview cards for each action that needs user approval (emails, calendar events)
+2. **IMPORTANT: Show the user the document preview** — display the download link so they can review it before you proceed to email/share it
+3. Use the download URL as attachment_urls in composio_GMAIL_SEND_EMAIL
+4. Create calendar events with composio_GOOGLECALENDAR_CREATE_EVENT
+5. Show action-preview cards for each action that needs user approval (emails, calendar events)
 Never stop after completing only the first task — complete the ENTIRE request.
+
+## DOCUMENT PREVIEW BEFORE SHARING
+When creating a document AND then emailing/sharing it:
+1. After create_document succeeds, display the document to the user with its download link
+2. Briefly describe the document content (title, format, key sections)
+3. Then proceed to compose the email with the document attached via attachment_urls
+4. Show the email action-preview card so the user can review and approve before sending
+This ensures the user can verify the document before it gets shared.
 
 ## CROSS-PLATFORM DISTRIBUTION
 Any generated file can be distributed to ANY connected platform:

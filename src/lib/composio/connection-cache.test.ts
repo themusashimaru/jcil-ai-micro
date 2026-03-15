@@ -175,8 +175,8 @@ afterEach(() => {
 // ============================================================================
 
 describe('CACHE_TTL_MS', () => {
-  it('should be 5 minutes in milliseconds', () => {
-    expect(CACHE_TTL_MS).toBe(5 * 60 * 1000);
+  it('should be 30 minutes in milliseconds', () => {
+    expect(CACHE_TTL_MS).toBe(30 * 60 * 1000);
   });
 });
 
@@ -338,43 +338,23 @@ describe('saveConnectionsToCache', () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('upserts connections and marks stale ones as disconnected', async () => {
+  it('upserts active connections without marking absent ones as disconnected', async () => {
     const conn = makeConnectedAccount({ toolkit: 'GMAIL' });
 
-    // Call sequence:
-    // 1. upsert (records) -> success
-    // 2. select existing cached -> returns GMAIL + SLACK
-    // 3. update stale connections -> success
+    // Only one DB call: upsert active connections (no select/update for stale marking)
     const upsertBuilder = createChainBuilder({ data: null, error: null });
     upsertBuilder.upsert = vi.fn().mockReturnValue(createChainBuilder({ data: null, error: null }));
 
-    const selectExistingBuilder = createChainBuilder({
-      data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }],
-      error: null,
-    });
-
-    const updateStaleBuilder = createChainBuilder({ data: null, error: null });
-
-    mockFromSequence = [upsertBuilder, selectExistingBuilder, updateStaleBuilder];
+    mockFromSequence = [upsertBuilder];
 
     await saveConnectionsToCache(TEST_USER_ID, [conn]);
     expect(mockFrom).toHaveBeenCalled();
   });
 
-  it('skips upsert when connections array is empty', async () => {
-    // When no connections, it should still check existing and potentially mark all disconnected
-    // Call 1: select existing cached -> returns 1 existing
-    // Call 2: update all as disconnected
-    const selectBuilder = createChainBuilder({
-      data: [{ toolkit: 'GMAIL' }],
-      error: null,
-    });
-    const updateBuilder = createChainBuilder({ data: null, error: null });
-
-    mockFromSequence = [selectBuilder, updateBuilder];
-
+  it('does nothing when connections array is empty', async () => {
+    // With additive-only caching, empty response means nothing to upsert
     await saveConnectionsToCache(TEST_USER_ID, []);
-    // Should not attempt upsert since records.length === 0
+    // No DB calls expected since no active or inactive connections
   });
 
   it('handles upsert error gracefully', async () => {
@@ -391,55 +371,42 @@ describe('saveConnectionsToCache', () => {
     await saveConnectionsToCache(TEST_USER_ID, [conn]);
   });
 
-  it('preserves cache when API returns 0 connections but user had many cached', async () => {
-    // No active connections, but previousCount > 2 -> preserve cache
-    const selectBuilder = createChainBuilder({
-      data: [{ toolkit: 'GMAIL' }, { toolkit: 'SLACK' }, { toolkit: 'GITHUB' }],
-      error: null,
-    });
+  it('upserts explicitly-inactive connections with their non-active status', async () => {
+    // When Composio API returns a connection with FAILED/EXPIRED status,
+    // we should upsert it with that status (but not mark absent ones)
+    const activeConn = makeConnectedAccount({ toolkit: 'GMAIL' });
+    const failedConn = makeConnectedAccount({ toolkit: 'SLACK', id: 'conn-2', status: 'failed' });
 
-    mockFromSequence = [selectBuilder];
+    // Two upsert calls: one for active, one for inactive
+    const upsertBuilder1 = createChainBuilder({ data: null, error: null });
+    upsertBuilder1.upsert = vi
+      .fn()
+      .mockReturnValue(createChainBuilder({ data: null, error: null }));
 
-    await saveConnectionsToCache(TEST_USER_ID, []);
-    // Should log warning and NOT mark all as disconnected
+    const upsertBuilder2 = createChainBuilder({ data: null, error: null });
+    upsertBuilder2.upsert = vi
+      .fn()
+      .mockReturnValue(createChainBuilder({ data: null, error: null }));
+
+    mockFromSequence = [upsertBuilder1, upsertBuilder2];
+
+    await saveConnectionsToCache(TEST_USER_ID, [activeConn, failedConn]);
+    expect(mockFrom).toHaveBeenCalled();
   });
 
-  it('marks all disconnected when API returns 0 and user had few cached', async () => {
-    const selectBuilder = createChainBuilder({
-      data: [{ toolkit: 'GMAIL' }],
-      error: null,
-    });
-    const updateBuilder = createChainBuilder({ data: null, error: null });
-
-    mockFromSequence = [selectBuilder, updateBuilder];
-
-    await saveConnectionsToCache(TEST_USER_ID, []);
-  });
-
-  it('detects partial API response and skips disconnection marking', async () => {
-    // Previously had 5 connections, now only 2 -> partial response
+  it('preserves cache when API returns partial results (additive-only)', async () => {
+    // With additive-only caching, partial responses just update what's present
+    // and leave everything else untouched — no marking absent as disconnected
     const conn1 = makeConnectedAccount({ toolkit: 'GMAIL' });
-    const conn2 = makeConnectedAccount({ toolkit: 'SLACK', id: 'conn-2' });
 
     const upsertBuilder = createChainBuilder({ data: null, error: null });
     upsertBuilder.upsert = vi.fn().mockReturnValue(createChainBuilder({ data: null, error: null }));
 
-    // Select existing: 5 cached connections
-    const selectBuilder = createChainBuilder({
-      data: [
-        { toolkit: 'GMAIL' },
-        { toolkit: 'SLACK' },
-        { toolkit: 'GITHUB' },
-        { toolkit: 'NOTION' },
-        { toolkit: 'JIRA' },
-      ],
-      error: null,
-    });
+    mockFromSequence = [upsertBuilder];
 
-    mockFromSequence = [upsertBuilder, selectBuilder];
-
-    await saveConnectionsToCache(TEST_USER_ID, [conn1, conn2]);
-    // Should detect partial response (2 < 5 * 0.5) and skip disconnection
+    await saveConnectionsToCache(TEST_USER_ID, [conn1]);
+    // Should only upsert GMAIL, leave other cached connections alone
+    expect(mockFrom).toHaveBeenCalledTimes(1);
   });
 
   it('handles exception in the entire save flow', async () => {

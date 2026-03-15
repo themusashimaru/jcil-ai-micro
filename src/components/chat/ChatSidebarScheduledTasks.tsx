@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { NewBadge, dismissNewBadge } from '@/components/ui/NewBadge';
 
 export interface ScheduledTask {
   id: string;
@@ -132,7 +133,11 @@ export function ChatSidebarScheduledTasks({
       {/* Section Header */}
       <div className="flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer group bg-glass">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => {
+            const next = !isCollapsed;
+            setIsCollapsed(next);
+            if (!next) dismissNewBadge('scheduled-tasks');
+          }}
           className="flex items-center gap-2 flex-1 text-left"
         >
           <svg
@@ -147,6 +152,7 @@ export function ChatSidebarScheduledTasks({
           <span className="text-xs font-semibold uppercase truncate text-text-muted">
             Scheduled
           </span>
+          <NewBadge storageKey="scheduled-tasks" />
           {pendingCount > 0 && (
             <span className="text-xs px-1.5 py-0.5 rounded-full bg-orange-900/40 text-orange-300 font-medium">
               {pendingCount}

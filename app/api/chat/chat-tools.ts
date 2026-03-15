@@ -30,6 +30,7 @@ import {
   executeComposioTool,
   isComposioTool,
   isComposioConfigured,
+  getComposioClient,
 } from '@/lib/composio';
 import {
   ensureServerRunning,
@@ -725,6 +726,48 @@ async function executeMCPTool(
   }
 }
 
+/**
+ * Resolve attachment_urls into Composio's s3key-based attachment format.
+ * Downloads each URL, uploads to Composio S3, and returns the attachment object.
+ */
+async function resolveAttachmentUrls(
+  attachmentUrls: string[]
+): Promise<{ s3key: string; mimetype: string; name: string } | null> {
+  if (!attachmentUrls || attachmentUrls.length === 0) return null;
+
+  // Process the first attachment (Gmail API supports one attachment object)
+  const url = attachmentUrls[0];
+
+  try {
+    const client = getComposioClient();
+
+    // Composio's files.upload accepts a URL string directly
+    const fileData = await client.files.upload({
+      file: url,
+      toolSlug: 'GMAIL_SEND_EMAIL',
+      toolkitSlug: 'gmail',
+    });
+
+    log.info('Uploaded attachment to Composio S3', {
+      name: fileData.name,
+      mimetype: fileData.mimetype,
+      s3key: fileData.s3key,
+    });
+
+    return {
+      s3key: fileData.s3key,
+      mimetype: fileData.mimetype,
+      name: fileData.name,
+    };
+  } catch (err) {
+    log.error('Failed to upload attachment to Composio', {
+      url: url.substring(0, 100),
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
 async function executeComposioToolCall(
   toolName: string,
   toolCall: { id: string; arguments: string | Record<string, unknown> },
@@ -748,6 +791,27 @@ async function executeComposioToolCall(
         content: `Invalid JSON arguments for Composio tool ${toolName}`,
         isError: true,
       };
+    }
+
+    // Handle attachment_urls for Gmail email tools
+    if (
+      (toolName === 'composio_GMAIL_SEND_EMAIL' ||
+        toolName === 'composio_GMAIL_CREATE_EMAIL_DRAFT') &&
+      Array.isArray(parsedArgs.attachment_urls) &&
+      parsedArgs.attachment_urls.length > 0
+    ) {
+      const attachment = await resolveAttachmentUrls(parsedArgs.attachment_urls as string[]);
+      if (attachment) {
+        parsedArgs.attachment = attachment;
+        log.info('Resolved attachment_urls to Composio attachment', {
+          name: attachment.name,
+          mimetype: attachment.mimetype,
+        });
+      } else {
+        log.warn('Failed to resolve attachment_urls, sending email without attachment');
+      }
+      // Remove attachment_urls — Composio doesn't understand this param
+      delete parsedArgs.attachment_urls;
     }
 
     const composioResult = await executeComposioTool(userId || 'anonymous', toolName, parsedArgs);

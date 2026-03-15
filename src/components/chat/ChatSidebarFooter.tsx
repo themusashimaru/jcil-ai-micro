@@ -12,6 +12,7 @@
 'use client';
 
 import { useTheme } from '@/contexts/ThemeContext';
+import { NewBadge, dismissNewBadge } from '@/components/ui/NewBadge';
 
 export interface ChatSidebarFooterProps {
   isAdmin: boolean;
@@ -33,16 +34,11 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
 
   return (
     <div className={`p-3 space-y-2 border-t ${editorial ? 'border-accent/12' : 'border-theme'}`}>
-      {editorial && (
-        <div className="editorial-section-label mb-2 px-1">02 / NAVIGATE</div>
-      )}
+      {editorial && <div className="editorial-section-label mb-2 px-1">02 / NAVIGATE</div>}
 
       {/* Code Lab (Admin only) */}
       {isAdmin && (
-        <button
-          onClick={() => (window.location.href = '/code-lab')}
-          className={btnClass}
-        >
+        <button onClick={() => (window.location.href = '/code-lab')} className={btnClass}>
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
@@ -56,10 +52,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
       )}
 
       {isAdmin && (
-        <button
-          onClick={() => (window.location.href = '/admin')}
-          className={btnClass}
-        >
+        <button onClick={() => (window.location.href = '/admin')} className={btnClass}>
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
@@ -72,9 +65,24 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
         </button>
       )}
       <button
-        onClick={() => (window.location.href = '/settings')}
+        onClick={() => {
+          dismissNewBadge('connectors');
+          window.location.href = '/settings?tab=connectors';
+        }}
         className={btnClass}
       >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+          />
+        </svg>
+        <span>Connectors</span>
+        <NewBadge storageKey="connectors" />
+      </button>
+      <button onClick={() => (window.location.href = '/settings')} className={btnClass}>
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
@@ -91,11 +99,7 @@ export function ChatSidebarFooter({ isAdmin, isLoggingOut, handleLogout }: ChatS
         </svg>
         <span>Settings</span>
       </button>
-      <button
-        onClick={handleLogout}
-        disabled={isLoggingOut}
-        className={logoutClass}
-      >
+      <button onClick={handleLogout} disabled={isLoggingOut} className={logoutClass}>
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
