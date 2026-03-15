@@ -274,18 +274,26 @@ describe('extractArtifacts', () => {
 
   // create_document
   describe('create_document', () => {
-    it('detects PDF base64 content', () => {
+    it('detects PDF base64 content via data:application/ fallback', () => {
       const result = extractArtifacts('create_document', 'data:application/pdf;base64,abc', false);
-      expect(result.some((a) => a.type === 'file' && a.label === 'PDF document')).toBe(true);
+      expect(result.some((a) => a.type === 'file' && a.label === 'Document')).toBe(true);
     });
 
-    it('detects DOCX content', () => {
-      const result = extractArtifacts('create_document', 'generated file.docx successfully', false);
+    it('detects DOCX via HTTP URL containing .docx', () => {
+      const result = extractArtifacts(
+        'create_document',
+        'Download at https://storage.example.com/file.docx',
+        false
+      );
       expect(result.some((a) => a.label === 'Word document')).toBe(true);
     });
 
-    it('detects openxml content', () => {
-      const result = extractArtifacts('create_document', 'application/vnd.openxml content', false);
+    it('detects openxml via HTTP URL with DOCX keyword', () => {
+      const result = extractArtifacts(
+        'create_document',
+        'DOCX file at https://storage.example.com/doc',
+        false
+      );
       expect(result.some((a) => a.label === 'Word document')).toBe(true);
     });
 
@@ -295,34 +303,39 @@ describe('extractArtifacts', () => {
         'Download at https://storage.example.com/doc.pdf',
         false
       );
-      expect(result.some((a) => a.label === 'Document download')).toBe(true);
+      expect(result.some((a) => a.label === 'PDF document')).toBe(true);
     });
 
-    it('extracts both PDF indicator and URL', () => {
+    it('extracts both data URL fallback and HTTP URL', () => {
       const result = extractArtifacts(
         'create_document',
         'data:application/pdf;base64,x at https://cdn.example.com/file.pdf',
         false
       );
-      // Should have PDF artifact + URL artifact
-      expect(result.length).toBeGreaterThanOrEqual(2);
+      // Should have the HTTP URL artifact (PDF document)
+      expect(result.length).toBeGreaterThanOrEqual(1);
+      expect(result.some((a) => a.label === 'PDF document')).toBe(true);
     });
   });
 
   // create_presentation
   describe('create_presentation', () => {
-    it('detects pptx content', () => {
-      const result = extractArtifacts('create_presentation', 'Generated file.pptx', false);
-      expect(result.some((a) => a.label === 'PowerPoint presentation')).toBe(true);
-    });
-
-    it('detects presentation keyword', () => {
+    it('detects pptx via HTTP URL', () => {
       const result = extractArtifacts(
         'create_presentation',
-        'presentation created successfully',
+        'File at https://storage.com/file.pptx',
         false
       );
       expect(result.some((a) => a.label === 'PowerPoint presentation')).toBe(true);
+    });
+
+    it('detects presentation via data:application/ fallback', () => {
+      const result = extractArtifacts(
+        'create_presentation',
+        'data:application/vnd.openxml presentation',
+        false
+      );
+      expect(result.some((a) => a.label === 'Presentation')).toBe(true);
     });
 
     it('extracts download URLs', () => {
@@ -331,23 +344,36 @@ describe('extractArtifacts', () => {
         'https://storage.com/deck.pptx',
         false
       );
-      expect(result.some((a) => a.label === 'Presentation download')).toBe(true);
+      expect(result.some((a) => a.label === 'PowerPoint presentation')).toBe(true);
     });
   });
 
   // create_spreadsheet / excel_advanced
   describe('create_spreadsheet / excel_advanced', () => {
-    it('always produces a file artifact for create_spreadsheet', () => {
-      const result = extractArtifacts('create_spreadsheet', 'done', false);
+    it('produces a file artifact for create_spreadsheet with URL', () => {
+      const result = extractArtifacts(
+        'create_spreadsheet',
+        'https://storage.example.com/file.xlsx',
+        false
+      );
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('file');
       expect(result[0].label).toBe('Excel spreadsheet');
     });
 
-    it('always produces a file artifact for excel_advanced', () => {
-      const result = extractArtifacts('excel_advanced', 'spreadsheet ready', false);
+    it('produces a file artifact for excel_advanced with data URL fallback', () => {
+      const result = extractArtifacts(
+        'excel_advanced',
+        'data:application/vnd.openxml spreadsheet ready',
+        false
+      );
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('file');
+    });
+
+    it('returns empty when no URL or data URL present', () => {
+      const result = extractArtifacts('create_spreadsheet', 'done', false);
+      expect(result).toHaveLength(0);
     });
   });
 
@@ -472,14 +498,14 @@ describe('extractArtifacts', () => {
 
   // Default case
   describe('default (unknown tool)', () => {
-    it('extracts Supabase URLs as image artifacts', () => {
+    it('extracts Supabase URLs as file artifacts', () => {
       const result = extractArtifacts(
         'unknown_tool',
         'File at https://abc.supabase.co/storage/file.png',
         false
       );
       expect(result).toHaveLength(1);
-      expect(result[0].type).toBe('image');
+      expect(result[0].type).toBe('file');
       expect(result[0].label).toBe('File from unknown_tool');
     });
 
@@ -505,8 +531,8 @@ describe('extractArtifacts', () => {
         'https://example.com/other https://myapp.supabase.co/file.png',
         false
       );
-      // Should only have supabase URL as image, not the generic one
-      expect(result.every((a) => a.type === 'image')).toBe(true);
+      // Should only have supabase URL as file, not the generic one
+      expect(result.every((a) => a.type === 'file')).toBe(true);
     });
 
     it('returns empty for no URLs at all', () => {
