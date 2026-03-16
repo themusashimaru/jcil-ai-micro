@@ -37,8 +37,8 @@ interface ChatSidebarScheduledTasksProps {
   onResume: (taskId: string) => void;
   onDelete: (taskId: string) => void;
   onRefresh: () => void;
-  /** Called when user clicks the "+" button to create a new task */
-  onCreateTask?: () => void;
+  /** Called when user clicks the "+" button to create a new task. Receives an optional prompt hint. */
+  onCreateTask?: (promptHint?: string) => void;
 }
 
 const PLATFORM_ICONS: Record<string, string> = {
@@ -203,20 +203,47 @@ export function ChatSidebarScheduledTasks({
 
       {/* Task List or Empty State */}
       {!isCollapsed && activeTasks.length === 0 && (
-        <div className="mt-1 px-2 py-3 text-center">
-          <p className="text-[11px] text-text-muted leading-relaxed">
-            No scheduled tasks yet.
-            {onCreateTask ? (
-              <button
-                onClick={onCreateTask}
-                className="ml-1 text-sky-400 hover:text-sky-300 transition-colors"
-              >
-                Create one
-              </button>
-            ) : (
-              <span className="ml-1">Ask the AI to schedule something for you.</span>
-            )}
+        <div className="mt-1 mx-1 px-3 py-3 rounded-lg bg-glass border border-white/5">
+          <p className="text-xs font-medium text-text-primary mb-1.5">No scheduled tasks yet</p>
+          <p className="text-[11px] text-text-muted leading-relaxed mb-3">
+            Just describe what you want in the chat. JCIL chains your apps together and does the
+            work for you.
           </p>
+          <div className="space-y-1.5 mb-3">
+            {[
+              {
+                icon: '\u2709\uFE0F',
+                text: '"Every morning, read my emails and calendar and send me a briefing of what\u2019s important today"',
+              },
+              {
+                icon: '\u{1F4DD}',
+                text: '"Write me a blog post every day at 9 AM and email me the draft"',
+              },
+              {
+                icon: '\u{1F4CA}',
+                text: '"Pull my Stripe revenue every morning and send my team a summary before standup"',
+              },
+            ].map((example) => (
+              <button
+                key={example.text}
+                onClick={() => onCreateTask?.(example.text.replace(/["\u201C\u201D\u2019]/g, ''))}
+                className="w-full flex items-start gap-2 px-2 py-1.5 rounded-md text-left hover:bg-white/5 transition-colors group/example"
+              >
+                <span className="text-xs flex-shrink-0 mt-px">{example.icon}</span>
+                <span className="text-[11px] text-text-muted italic group-hover/example:text-sky-300 transition-colors leading-snug">
+                  {example.text}
+                </span>
+              </button>
+            ))}
+          </div>
+          {onCreateTask && (
+            <button
+              onClick={() => onCreateTask()}
+              className="w-full py-1.5 rounded-md text-xs font-medium text-sky-400 hover:text-sky-300 bg-sky-400/5 hover:bg-sky-400/10 transition-colors"
+            >
+              Start a new chat to schedule
+            </button>
+          )}
         </div>
       )}
 
