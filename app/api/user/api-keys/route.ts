@@ -39,7 +39,7 @@ const PROVIDER_INFO: Record<
     name: 'Anthropic (Claude)',
     keyPrefix: 'sk-ant-',
     testUrl: 'https://api.anthropic.com/v1/messages',
-    defaultModel: 'claude-sonnet-4-6',
+    defaultModel: 'claude-opus-4-6',
   },
   openai: {
     name: 'OpenAI',
@@ -96,7 +96,7 @@ async function testApiKey(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'test' }],
         }),

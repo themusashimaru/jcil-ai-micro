@@ -396,7 +396,7 @@ describe('/api/user/api-keys', () => {
       const body = await parseResponse(response);
 
       const claude = body.data.providers.find((p: { provider: string }) => p.provider === 'claude');
-      expect(claude.defaultModel).toBe('claude-sonnet-4-6');
+      expect(claude.defaultModel).toBe('claude-opus-4-6');
 
       const openai = body.data.providers.find((p: { provider: string }) => p.provider === 'openai');
       expect(openai.defaultModel).toBe('gpt-4o');

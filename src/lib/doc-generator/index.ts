@@ -178,7 +178,7 @@ export class AIDocGenerator {
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a technical writer creating a professional README.md file.
 
@@ -343,7 +343,7 @@ ${files
 
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           max_tokens: 8192,
           system: `You are a documentation expert. Add comprehensive JSDoc/TSDoc comments to code.
 
@@ -404,7 +404,7 @@ Return the complete file with documentation added.`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a software architect creating architecture documentation.
 
@@ -478,7 +478,7 @@ ${files
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are generating a CHANGELOG.md file following Keep a Changelog format.
 
@@ -537,7 +537,7 @@ Be specific and user-friendly in descriptions.`,
   ): Promise<GeneratedDoc> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a technical writer creating a user guide.
 
@@ -602,7 +602,7 @@ Use clear, simple language. Include screenshots placeholders where helpful.`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 16384,
         system: `You are an API documentation expert. Generate an OpenAPI 3.0 specification.
 

@@ -583,7 +583,7 @@ describe('strategy-db', () => {
       );
       expect(vi.mocked(trackTokenUsage)).toHaveBeenCalledWith(
         expect.objectContaining({
-          modelName: 'claude-sonnet-4-6',
+          modelName: 'claude-opus-4-6',
           inputTokens: 5000,
           source: 'strategy',
         })

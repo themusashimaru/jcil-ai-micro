@@ -1129,164 +1129,40 @@ export function suggestNextTool(executedTools: string[]): string | null {
 
 /**
  * Generate orchestration instructions for the system prompt.
- * Teaches the model about tool chaining, fallbacks, and artifact reuse.
+ *
+ * DESIGN PHILOSOPHY (Updated Mar 2026):
+ * Opus 4.6 / Sonnet 4.6 inherently understand tool chaining, fallback strategies,
+ * and artifact reuse. We no longer enumerate chain definitions or step-by-step
+ * workflows in the prompt. Instead, we provide only the minimal context the model
+ * cannot infer from tool schemas alone (scheduled action JSON format for the
+ * frontend parser, and artifact context from the current session).
+ *
+ * The TOOL_CHAINS, TOOL_FALLBACKS, and other data structures above are still used
+ * by server-side code (telemetry, chain detection, rollback) — they just aren't
+ * injected into the system prompt anymore.
  */
 export function getOrchestrationPrompt(artifactStore?: ArtifactStore): string {
   const sections: string[] = [];
 
-  // Group chains by category for readable system prompt
-  const byCategory = new Map<string, ToolChain[]>();
-  for (const chain of TOOL_CHAINS) {
-    const list = byCategory.get(chain.category) || [];
-    list.push(chain);
-    byCategory.set(chain.category, list);
-  }
-
-  const chainLines: string[] = [];
-  for (const [category, chains] of byCategory) {
-    chainLines.push(`\n  [${category.toUpperCase()}]`);
-    for (const chain of chains) {
-      chainLines.push(`  - **${chain.name}**: ${chain.tools.join(' → ')} — ${chain.trigger}`);
-    }
-  }
-
-  // Build fallback table
-  const fallbackLines = Object.entries(TOOL_FALLBACKS)
-    .map(([tool, fallbacks]) => `  - ${tool} → try: ${fallbacks.join(', ')}`)
-    .join('\n');
-
   sections.push(`<tool_orchestration>
-You have access to a powerful set of tools that work TOGETHER as an integrated system.
-When a user makes a complex request, you should chain multiple tools together to deliver
-complete results — don't just use one tool when a combination would be better.
-
-KEY PRINCIPLE: Tool outputs are artifacts. URLs, files, data, and text from one tool
-can be passed as input to another tool. Always look for opportunities to chain tools.
-Any tool that generates a file (PDF, DOCX, XLSX, PPTX, images, CSV, etc.) automatically
-gets a hosted download URL — you can use that URL in emails, Slack messages, calendar
-events, or as input to other tools.
-
-## TOOL CHAIN LIBRARY (${TOOL_CHAINS.length} chains)
-${chainLines.join('\n')}
-
-## ARTIFACT CHAINING RULES
-1. When create_chart returns a URL, pass it as image_url in create_presentation slides
-2. When parallel_research returns findings, use them as content for create_document or create_presentation
-3. When run_code produces data, feed it into create_chart for visualization
-4. When screenshot or capture_webpage returns an image, pass it to analyze_image for analysis
-5. When extract_pdf returns text, feed it to analyze_text_nlp or run_code for analysis
-6. When any tool returns a URL, it can be embedded in documents, presentations, or emails
-7. When fetch_url returns HTML with tables, use extract_table to structure the data
-8. When create_document/create_spreadsheet/create_presentation generates a file, use the download URL as attachment_urls in email or as a link in Slack/calendar
-9. When a user asks to create something AND email/share/send it, complete ALL tasks in sequence
-10. For multi-task requests, handle each task in order using the appropriate tools
-11. When audio_transcribe produces text, it can feed into create_document, analyze_text_nlp, or be emailed directly
-12. When sql_query returns data, it can feed into create_chart, create_spreadsheet, or create_document
-13. When ocr_extract_text extracts text from an image, use it to create an editable document
-14. When generate_qr_code produces an image URL, embed it in documents or email it
-15. When composio_GMAIL_FETCH_EMAILS returns email data, it can be compiled into documents or fed to analysis tools
-
-## TOOL FALLBACKS (Automatic Recovery)
-When a tool fails, try the alternative instead of giving up:
-${fallbackLines}
-
-When a tool fails:
-1. Check if there's a fallback tool listed above
-2. Try the fallback with equivalent parameters
-3. If the fallback also fails, explain the issue to the user
-4. NEVER silently skip a step — either recover or explain
-
-## MULTI-TASK WORKFLOW
-When a user asks for multiple things in one message (e.g., "create a resume,
-update my calendar, and email it to me"), handle ALL tasks sequentially:
-1. Generate the document first (create_document) — note the download URL from the result
-2. **IMPORTANT: Show the user the document preview** — display the download link so they can review it before you proceed to email/share it
-3. Use the download URL as attachment_urls in composio_GMAIL_SEND_EMAIL
-4. Create calendar events with composio_GOOGLECALENDAR_CREATE_EVENT
-5. Show action-preview cards for each action that needs user approval (emails, calendar events)
-Never stop after completing only the first task — complete the ENTIRE request.
-
-## DOCUMENT PREVIEW BEFORE SHARING
-When creating a document AND then emailing/sharing it:
-1. After create_document succeeds, display the document to the user with its download link
-2. Briefly describe the document content (title, format, key sections)
-3. Then proceed to compose the email with the document attached via attachment_urls
-4. Show the email action-preview card so the user can review and approve before sending
-This ensures the user can verify the document before it gets shared.
-
-## CROSS-PLATFORM DISTRIBUTION
-Any generated file can be distributed to ANY connected platform:
-- **Email**: Use attachment_urls with composio_GMAIL_SEND_EMAIL or composio_OUTLOOK_SEND_EMAIL
-- **Slack**: Share the download URL in a composio_SLACK_SEND_MESSAGE
-- **Calendar**: Include the URL in calendar event description
-- **GitHub**: Reference in issue/PR descriptions via composio_GITHUB_*
-- **Google Drive**: Upload via composio_GOOGLEDRIVE_* tools
-- **Discord**: Share URL in composio_DISCORD_* message
-
-## PARALLEL EXECUTION
-When tool calls are independent (don't depend on each other's results),
-call them simultaneously. Examples:
-- Generate multiple charts at once from different datasets
-- Run web_search AND create_chart simultaneously if they're independent
-- Fetch multiple URLs in parallel
-- Create a document AND schedule a calendar event if document content is already known
-
-## BATCH OPERATIONS
-For repetitive tasks, maximize efficiency:
-- Use composio_GMAIL_BATCH_MODIFY_MESSAGES for bulk email operations
-- Create multiple documents by calling create_document multiple times with different formats
-- Use parallel_research to gather info from multiple sources simultaneously
-- Process multiple data sets in parallel with run_code
-
-## SCHEDULED ACTIONS
-When a user asks to do something at a specific time (e.g., "send this email at 3pm",
-"remind me tomorrow", "post this tweet on Monday"), use the schedule_task tool OR show
-a scheduled-action code block for user confirmation.
-
-### Option A: Use the schedule_task tool (preferred when you have all the details)
-Call \`schedule_task\` with the tool name, parameters, and scheduled time.
-The user will see a confirmation card and can approve, modify, or cancel.
-
-### Option B: Show a scheduled-action code block (for previewing before scheduling)
+When a user asks to schedule an action for a specific time, show a scheduled-action block:
 \`\`\`scheduled-action
 {
-  "action": "Send Email",
-  "platform": "Gmail",
-  "summary": "Send weekly report to team",
-  "scheduledFor": "2026-03-14T15:00:00",
-  "scheduledDisplay": "Today at 3:00 PM",
-  "timezone": "America/New_York",
-  "toolName": "composio_GMAIL_SEND_EMAIL",
-  "toolParams": { "recipient_email": "...", "subject": "...", "body": "..." },
-  "recurring": "weekly"
+  "action": "Action name",
+  "platform": "Platform",
+  "summary": "What will happen",
+  "scheduledFor": "ISO 8601 datetime",
+  "scheduledDisplay": "Human-readable time",
+  "timezone": "IANA timezone",
+  "toolName": "tool_name",
+  "toolParams": {},
+  "recurring": "once|daily|weekly|biweekly|monthly|quarterly"
 }
 \`\`\`
-
-### Rules for scheduling:
-1. Always wait for user confirmation before scheduling
-2. Support recurring schedules: "once", "daily", "weekly", "biweekly", "monthly", "quarterly"
-3. Always show the timezone
-4. Use ISO 8601 datetime for scheduledFor
-5. The user can manage scheduled tasks from the sidebar
-
-## ERROR RECOVERY & ROLLBACK
-When a multi-step workflow fails partway:
-1. Tell the user exactly which step failed and why
-2. List what was already completed successfully
-3. For reversible actions, offer to undo:
-   - Email sent → "I can move it to Trash"
-   - Calendar event created → "I can delete the event"
-   - Draft created → "I can delete the draft"
-   - Document generated → files persist (not reversible, but harmless)
-4. For non-reversible actions, clearly state they cannot be undone
-5. Offer to retry the failed step or skip it and continue
-
-IMPORTANT: Always complete the full chain. If a user asks for "a presentation about AI trends,"
-don't just research — research, THEN create charts, THEN build the presentation with those charts.
-If they say "and email it to me," the chain isn't done until the email is sent.
+Wait for user confirmation before scheduling.
 </tool_orchestration>`);
 
-  // Add artifact context if there are any
+  // Add artifact context if there are any from the current session
   if (artifactStore?.hasArtifacts()) {
     sections.push(artifactStore.buildContextString());
   }

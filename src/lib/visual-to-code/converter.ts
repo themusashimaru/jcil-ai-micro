@@ -63,7 +63,7 @@ export async function convertVisualToCode(
  */
 async function analyzeDesign(imageData: string) {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 2048,
     messages: [
       {
@@ -354,7 +354,7 @@ export async function quickConvert(
   componentName: string = 'Component'
 ): Promise<string> {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 4096,
     messages: [
       {

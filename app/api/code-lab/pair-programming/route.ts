@@ -195,7 +195,7 @@ export async function GET() {
   return successResponse({
     status: 'active',
     capabilities: ['edit', 'open', 'complete', 'analyze'],
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     rateLimit: {
       limit: 60, // Centralized rate limit: 60 requests per minute
       window: '1 minute',

@@ -127,7 +127,7 @@ describe('POST /api/chat/generate-title', () => {
     mockCompleteChat.mockResolvedValue({
       text: 'Python Code Review',
       providerId: 'claude',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       usedFallback: false,
     });
 

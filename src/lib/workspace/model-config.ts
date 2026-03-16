@@ -69,7 +69,7 @@ export interface ModelPreferences {
 
 // Default preferences
 export const DEFAULT_PREFERENCES: ModelPreferences = {
-  defaultModel: 'claude-sonnet-4-6',
+  defaultModel: 'claude-opus-4-6',
   extendedThinking: false,
   thinkingBudget: 10000,
   temperature: 0.7,

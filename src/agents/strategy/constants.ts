@@ -22,7 +22,7 @@ import type { ModelConfig, StrategyLimits } from './types';
  */
 export const CLAUDE_OPUS_46 = process.env.CLAUDE_OPUS_MODEL || 'claude-opus-4-6';
 export const CLAUDE_SONNET_46 = process.env.CLAUDE_SONNET_MODEL || 'claude-sonnet-4-6';
-export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-sonnet-4-6';
+export const CLAUDE_HAIKU_45 = process.env.CLAUDE_HAIKU_MODEL || 'claude-opus-4-6';
 
 /**
  * Model configurations with pricing

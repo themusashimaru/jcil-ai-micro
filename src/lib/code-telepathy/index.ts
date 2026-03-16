@@ -152,7 +152,7 @@ export class CodeTelepathy {
       .join('\n\n---\n\n');
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 2048,
       system: `You are analyzing code to understand a developer's patterns and preferences.
 Extract:
@@ -331,7 +331,7 @@ Return JSON:
     if (!profile) return [];
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 1500,
       messages: [
         {

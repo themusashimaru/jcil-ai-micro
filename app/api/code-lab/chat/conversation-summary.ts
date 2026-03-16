@@ -28,7 +28,7 @@ export async function generateConversationSummary(
     .join('\n\n');
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6', // Use Sonnet for efficient summarization
+    model: 'claude-opus-4-6', // Use Opus for high-quality summarization
     max_tokens: 1024,
     system: `You are summarizing a developer conversation for context continuation.
 Create a concise technical summary that captures:

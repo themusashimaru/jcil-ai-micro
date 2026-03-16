@@ -64,7 +64,7 @@ function trackDocTokens(
   const totalTokens = (result.usage.inputTokens || 0) + (result.usage.outputTokens || 0);
   trackTokenUsage({
     userId,
-    modelName: result.model || 'claude-sonnet-4-6',
+    modelName: result.model || 'claude-opus-4-6',
     inputTokens: result.usage.inputTokens || 0,
     outputTokens: result.usage.outputTokens || 0,
     source,
@@ -121,7 +121,7 @@ export async function handleExplicitDocumentGeneration(
     ];
     const result = await completeChat(docMessages, {
       systemPrompt: schemaPrompt,
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       maxTokens: 4096,
       temperature: 0.3,
     });
@@ -348,7 +348,7 @@ If information is missing, make reasonable professional assumptions or leave opt
     },
   ];
   const extractionResult = await completeChat(extractionMessages, {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     maxTokens: 4096,
     temperature: 0.1,
   });
@@ -463,14 +463,14 @@ Keep responses focused and concise. Ask ONE question at a time when gathering in
 
   const streamResult = await routeChat(truncatedMessages, {
     systemPrompt: resumeSystemPrompt,
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     maxTokens: 1024,
     temperature: 0.7,
     onUsage: (usage) => {
       const totalTokens = (usage.inputTokens || 0) + (usage.outputTokens || 0);
       trackTokenUsage({
         userId: ctx.userId,
-        modelName: 'claude-sonnet-4-6',
+        modelName: 'claude-opus-4-6',
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
         source: 'chat-resume',
@@ -659,7 +659,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
       ];
       const result = await completeChat(retryMessages, {
         systemPrompt: retryPrompt,
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         maxTokens: 4096,
         temperature: attempt > 0 ? 0.1 : 0.3,
       });

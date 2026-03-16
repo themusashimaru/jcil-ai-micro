@@ -22,8 +22,8 @@ import { logger } from '@/lib/logger';
 
 const log = logger('Anthropic');
 
-// Default model: Sonnet 4.6 for all calls (chat, title gen, memory extraction)
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+// Default model: Opus 4.6 for all calls (chat, title gen, memory extraction)
+const DEFAULT_MODEL = 'claude-opus-4-6';
 
 // ========================================
 // DUAL-POOL API KEY SYSTEM (DYNAMIC)
