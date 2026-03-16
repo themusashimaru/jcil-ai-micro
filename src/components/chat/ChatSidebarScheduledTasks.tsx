@@ -206,17 +206,27 @@ export function ChatSidebarScheduledTasks({
         <div className="mt-1 mx-1 px-3 py-3 rounded-lg bg-glass border border-white/5">
           <p className="text-xs font-medium text-text-primary mb-1.5">No scheduled tasks yet</p>
           <p className="text-[11px] text-text-muted leading-relaxed mb-3">
-            You can schedule tasks by describing what you need in the chat. For example:
+            Just describe what you want in the chat. JCIL chains your apps together and does the
+            work for you.
           </p>
           <div className="space-y-1.5 mb-3">
             {[
-              { icon: '\u2709\uFE0F', text: '"Send me a weekly email summary every Monday"' },
-              { icon: '\u{1F4C5}', text: '"Remind me to review my goals every Friday at 5 PM"' },
-              { icon: '\u{1F4AC}', text: '"Post a daily standup reminder in Slack at 9 AM"' },
+              {
+                icon: '\u2709\uFE0F',
+                text: '"Every morning, read my emails and calendar and send me a briefing of what\u2019s important today"',
+              },
+              {
+                icon: '\u{1F4DD}',
+                text: '"Write me a blog post every day at 9 AM and email me the draft"',
+              },
+              {
+                icon: '\u{1F4CA}',
+                text: '"Pull my Stripe revenue every morning and send my team a summary before standup"',
+              },
             ].map((example) => (
               <button
                 key={example.text}
-                onClick={() => onCreateTask?.(example.text.replace(/["\u201C\u201D]/g, ''))}
+                onClick={() => onCreateTask?.(example.text.replace(/["\u201C\u201D\u2019]/g, ''))}
                 className="w-full flex items-start gap-2 px-2 py-1.5 rounded-md text-left hover:bg-white/5 transition-colors group/example"
               >
                 <span className="text-xs flex-shrink-0 mt-px">{example.icon}</span>

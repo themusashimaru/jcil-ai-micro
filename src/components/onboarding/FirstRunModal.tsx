@@ -227,7 +227,7 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
             <div className="text-center mb-5">
               <h2 className="text-2xl font-bold text-white mb-2">Automate Your Day</h2>
               <p className="text-sm text-zinc-400">
-                Schedule tasks in plain English. JCIL handles the rest.
+                Tell JCIL what you need and when. It chains your apps together and does real work.
               </p>
             </div>
 
@@ -235,23 +235,32 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
               {[
                 {
                   icon: '\u2709\uFE0F',
-                  example: 'Send me a weekly email summary every Monday at 9 AM',
+                  label: 'Morning Briefing',
+                  example:
+                    "Every morning at 7 AM, read all my emails, check my calendar, and send me a briefing of what's urgent and what I have today",
                 },
                 {
-                  icon: '\u{1F4C5}',
-                  example: 'Remind me to review my goals every Friday at 5 PM',
+                  icon: '\u{1F4DD}',
+                  label: 'Auto Blog Post',
+                  example:
+                    'Write me a blog post every day at 9 AM on a trending topic in my industry and email me the draft',
                 },
                 {
-                  icon: '\u{1F4AC}',
-                  example: 'Post a standup reminder in Slack every morning at 9',
+                  icon: '\u{1F4CA}',
+                  label: 'Revenue Report',
+                  example:
+                    'Pull my Stripe revenue every morning and send my team a summary email before standup',
                 },
               ].map((item) => (
                 <div
-                  key={item.example}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/50"
+                  key={item.label}
+                  className="p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/50"
                 >
-                  <span className="text-lg shrink-0">{item.icon}</span>
-                  <p className="text-zinc-300 text-xs italic leading-snug m-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-base shrink-0">{item.icon}</span>
+                    <strong className="text-white text-xs">{item.label}</strong>
+                  </div>
+                  <p className="text-zinc-400 text-[11px] italic leading-snug m-0 pl-6">
                     &ldquo;{item.example}&rdquo;
                   </p>
                 </div>
@@ -260,8 +269,9 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
 
             <div className="bg-zinc-800/40 rounded-lg p-3 mb-5 border border-zinc-700/30">
               <p className="text-zinc-400 text-xs leading-relaxed m-0">
-                <strong className="text-zinc-300">Daily, weekly, or one-time</strong> — your
-                scheduled tasks appear in the sidebar. Pause, edit, or delete them anytime.
+                <strong className="text-zinc-300">Not just reminders</strong> — JCIL researches,
+                writes, analyzes, and delivers real work. Your scheduled tasks appear in the sidebar
+                where you can pause, edit, or delete them anytime.
               </p>
             </div>
 

@@ -17,55 +17,62 @@ interface TimelineEvent {
 
 const timeline: TimelineEvent[] = [
   {
-    time: '8:00 AM',
+    time: '7:00 AM',
     icon: '\u2709\uFE0F',
-    platform: 'Gmail',
-    action: 'Morning Digest',
-    detail: 'AI summarizes overnight emails and highlights action items.',
+    platform: 'Gmail + Calendar',
+    action: 'Morning Briefing',
+    detail:
+      "Reads all overnight emails, checks your calendar for the day, and writes you a morning briefing — what's urgent, what's scheduled, and what needs your attention first.",
   },
   {
     time: '9:00 AM',
-    icon: '\u{1F4AC}',
-    platform: 'Slack',
-    action: 'Standup Reminder',
-    detail: 'Posts a team standup prompt to your #engineering channel.',
+    icon: '\u{1F4CA}',
+    platform: 'Stripe + Gmail',
+    action: 'Daily Revenue Report',
+    detail:
+      "Pulls yesterday's revenue, new subscriptions, and churn from Stripe. Writes a clean summary and emails it to your team before standup.",
   },
   {
     time: '12:00 PM',
-    icon: '\u{1F4C5}',
-    platform: 'Google Calendar',
-    action: 'Afternoon Prep',
-    detail: 'Reviews your afternoon meetings and prepares talking points.',
+    icon: '\u{1F4DD}',
+    platform: 'JCIL AI + Gmail',
+    action: 'Blog Post Draft',
+    detail:
+      'Researches a trending topic in your industry, writes a draft blog post, and sends it to your inbox for review. Every day, on autopilot.',
   },
   {
-    time: '5:00 PM',
-    icon: '\u{1F4CA}',
-    platform: 'Stripe',
-    action: 'Daily Revenue Report',
-    detail: 'Generates a revenue summary and sends it to your inbox.',
+    time: '3:00 PM',
+    icon: '\u{1F4AC}',
+    platform: 'Slack + GitHub',
+    action: 'Team Progress Update',
+    detail:
+      "Scans today's GitHub commits and open PRs, summarizes what shipped, and posts a progress update to your Slack #team channel.",
   },
   {
     time: 'Friday',
-    icon: '\u{1F514}',
-    platform: 'JCIL AI',
-    action: 'Weekly Reflection',
-    detail: 'Prompts you to review goals, wins, and prayer requests for the week.',
+    icon: '\u{1F4C8}',
+    platform: 'Research + Gmail',
+    action: 'Weekly Stock Research',
+    detail:
+      'Conducts deep research on your watchlist stocks, analyzes market trends, and sends you a detailed weekly report with key insights.',
   },
 ];
 
 const capabilities = [
   {
-    title: 'Natural Language',
+    title: 'Chain Everything',
     description:
-      'Just say "Email me a summary every Monday at 9 AM." No cron syntax, no config files.',
+      'Read emails, check your calendar, research a topic, and send the results — all in one task. Your apps work together.',
   },
   {
-    title: '67+ Connectors',
-    description: 'Gmail, Slack, Calendar, GitHub, Stripe, Salesforce — your tools, automated.',
+    title: 'Plain English',
+    description:
+      'No code. No config. Just tell JCIL what you want and when. It figures out which connectors to use.',
   },
   {
-    title: 'Recurring or One-Time',
-    description: 'Daily, weekly, monthly — or just once. Pause, resume, or delete anytime.',
+    title: 'Real AI Work',
+    description:
+      'Not just reminders. JCIL researches, writes, analyzes, and delivers — then sends the results wherever you need them.',
   },
 ];
 
