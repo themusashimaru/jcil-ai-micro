@@ -463,7 +463,7 @@ describe('MCPClient', () => {
       const samplingResult = {
         role: 'assistant',
         content: { type: 'text', text: 'Hi there' },
-        model: 'claude-3',
+        model: 'claude-opus-4-6',
         stopReason: 'end_turn',
       };
       mockFetch.mockReturnValueOnce(makeJsonResponse(samplingResult));
@@ -476,7 +476,7 @@ describe('MCPClient', () => {
         makeJsonResponse({
           role: 'assistant',
           content: { type: 'text', text: 'ok' },
-          model: 'claude-3',
+          model: 'claude-opus-4-6',
         })
       );
       await client.createSamplingRequest({
