@@ -6,10 +6,9 @@
  */
 
 import { useState, useRef, useMemo } from 'react';
-import { useAgentMode } from '@/hooks/useAgentMode';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { usePasskeyPrompt } from '@/components/auth/PasskeyPromptModal';
-import type { AgentModeRegistry } from './agentModes';
+// Agent mode imports removed — agent system deprecated
 import type { Chat, Message } from './types';
 import type { SuggestedAction } from '@/lib/response-analysis';
 import type { ProviderId } from '@/lib/ai/providers';
@@ -73,25 +72,9 @@ export function useChatState() {
   const isStreamingRef = useRef(false);
   const isProcessingRef = useRef(false);
 
-  // Agent modes
-  const strategy = useAgentMode();
-  const deepResearch = useAgentMode();
-  const quickResearch = useAgentMode();
-  const quickStrategy = useAgentMode();
-  const deepWriter = useAgentMode();
-  const quickWriter = useAgentMode();
-
-  const modes: AgentModeRegistry = useMemo(
-    () => ({
-      strategy,
-      'deep-research': deepResearch,
-      'quick-research': quickResearch,
-      'quick-strategy': quickStrategy,
-      'deep-writer': deepWriter,
-      'quick-writer': quickWriter,
-    }),
-    [strategy, deepResearch, quickResearch, quickStrategy, deepWriter, quickWriter]
-  );
+  // Agent modes removed — stub for backward compat with ChatMainArea props
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modes: Record<string, any> = useMemo(() => ({}), []);
 
   // External hooks
   const { profile, hasProfile } = useUserProfile();

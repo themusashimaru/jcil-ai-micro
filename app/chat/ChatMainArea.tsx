@@ -9,9 +9,7 @@ import {
   ChatContinuationBanner,
   CHAT_LENGTH_WARNING,
 } from '@/components/chat/ChatContinuationBanner';
-// Agent UI removed — skills system replaces agent orchestration
-// import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
-import { type AgentModeId } from './agentModes';
+// Agent system removed — skills replace agent orchestration
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Message, Attachment, GeneratedImage } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
@@ -31,7 +29,6 @@ interface ChatMainAreaProps {
     folderId: string | null,
     folderData?: { id: string; name: string; color: string | null }
   ) => Promise<void>;
-  handleSelectStrategySession: (sessionId: string) => Promise<void>;
   handleSendMessage: (
     content: string,
     attachments: Attachment[],
@@ -55,8 +52,8 @@ interface ChatMainAreaProps {
   handleScheduledModifyTime: (data: ScheduledActionData, newTime: string) => void;
   handleScheduledCancel: (data: ScheduledActionData) => void;
   handleCarouselSelect: (cardId: string) => Promise<void>;
-  startAgentMode: (modeId: AgentModeId) => Promise<void>;
-  cancelAgentMode: (modeId: AgentModeId) => Promise<void>;
+  startAgentMode: (modeId: string) => Promise<void>;
+  cancelAgentMode: (modeId: string) => Promise<void>;
   exitAllAgentModes: () => Promise<void>;
 }
 
@@ -68,7 +65,6 @@ export function ChatMainArea({
   handleDeleteChat,
   handlePinChat,
   handleMoveToFolder,
-  handleSelectStrategySession,
   handleSendMessage,
   handleStop,
   handleChatContinuation,
@@ -176,7 +172,6 @@ export function ChatMainArea({
           onDeleteChat={handleDeleteChat}
           onPinChat={handlePinChat}
           onMoveToFolder={handleMoveToFolder}
-          onSelectStrategySession={handleSelectStrategySession}
         />
       </ErrorBoundary>
 

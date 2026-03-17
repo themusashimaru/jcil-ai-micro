@@ -34,7 +34,7 @@ import { useChatConversations } from './useChatConversations';
 import { useChatMessaging } from './useChatMessaging';
 import { createImageHandlers } from './ChatImageHandlers';
 import { ChatMainArea } from './ChatMainArea';
-import { useAgentOperations } from './useAgentOperations';
+// Agent operations removed — skills system replaces agent orchestration
 
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
@@ -63,23 +63,13 @@ function ChatClientInner() {
     handleStop,
   } = useChatConversations({ state, toast });
 
-  const {
-    startAgentMode,
-    cancelAgentMode,
-    exitAllAgentModes,
-    handleAgentInput,
-    handleSelectStrategySession,
-  } = useAgentOperations({
-    modes: state.modes,
-    setMessages: state.setMessages,
-    setIsStreaming: state.setIsStreaming,
-    handleNewChat,
-  });
-
+  // Agent operations stubbed — agent system deprecated, replaced by skills
+  const startAgentMode = async (_modeId: string) => {};
+  const cancelAgentMode = async (_modeId: string) => {};
+  const exitAllAgentModes = async () => {};
   const { handleSendMessage } = useChatMessaging({
     state,
     handleChatContinuation,
-    handleAgentInput,
   });
 
   const {
@@ -123,7 +113,6 @@ function ChatClientInner() {
           handleDeleteChat={handleDeleteChat}
           handlePinChat={handlePinChat}
           handleMoveToFolder={handleMoveToFolder}
-          handleSelectStrategySession={handleSelectStrategySession}
           handleSendMessage={handleSendMessage}
           handleStop={handleStop}
           handleChatContinuation={handleChatContinuation}

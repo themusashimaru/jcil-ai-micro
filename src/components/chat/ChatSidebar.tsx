@@ -25,23 +25,9 @@ import { CodeLabLazyList } from '@/components/code-lab/CodeLabVirtualizedList';
 import { ChatItem } from './ChatSidebarItem';
 import { ChatSidebarFolderModal } from './ChatSidebarFolderModal';
 import { ChatSidebarFolderSection } from './ChatSidebarFolderSection';
-import { ChatSidebarAgentSessions } from './ChatSidebarAgentSessions';
+// Agent sessions sidebar removed — agent system deprecated
 import { ChatSidebarScheduledTasks, type ScheduledTask } from './ChatSidebarScheduledTasks';
 import { ChatSidebarFooter } from './ChatSidebarFooter';
-
-// Strategy session type
-interface StrategySession {
-  session_id: string;
-  phase: 'intake' | 'executing' | 'complete' | 'cancelled' | 'error';
-  started_at: string;
-  completed_at?: string;
-  problem_summary?: string;
-  total_agents: number;
-  completed_agents: number;
-  total_searches: number;
-  total_cost: number;
-  isActive?: boolean;
-}
 
 interface ChatSidebarProps {
   chats: Chat[];
@@ -60,7 +46,6 @@ interface ChatSidebarProps {
     folderId: string | null,
     folderData?: { id: string; name: string; color: string | null }
   ) => void;
-  onSelectStrategySession?: (sessionId: string) => void;
 }
 
 export function ChatSidebar({
@@ -75,7 +60,6 @@ export function ChatSidebar({
   onDeleteChat,
   onPinChat,
   onMoveToFolder,
-  onSelectStrategySession,
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -92,10 +76,6 @@ export function ChatSidebar({
   const [folderForm, setFolderForm] = useState({ name: '', color: '' });
   const [folderMenuId, setFolderMenuId] = useState<string | null>(null);
   const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
-
-  // Strategy sessions state
-  const [strategySessions, setStrategySessions] = useState<StrategySession[]>([]);
-  const [strategyCollapsed, setStrategyCollapsed] = useState(true);
 
   // Scheduled tasks state
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
@@ -170,30 +150,10 @@ export function ChatSidebar({
     [fetchScheduledTasks]
   );
 
-  // Fetch agent sessions (admin only)
-  const fetchStrategySessions = useCallback(async () => {
-    if (!isAdmin) return;
-    try {
-      const response = await fetch('/api/strategy');
-      if (response.ok) {
-        const data = await response.json();
-        setStrategySessions(data.sessions || []);
-      }
-    } catch (error) {
-      console.error('[ChatSidebar] Error fetching strategy sessions:', error);
-    }
-  }, [isAdmin]);
-
   useEffect(() => {
     fetchFolders();
     fetchScheduledTasks();
   }, [fetchFolders, fetchScheduledTasks]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchStrategySessions();
-    }
-  }, [isAdmin, fetchStrategySessions]);
 
   // Check admin status on mount
   useEffect(() => {
@@ -561,16 +521,6 @@ export function ChatSidebar({
                   />
                 ))}
               </div>
-            )}
-
-            {/* Agent Sessions (Admin Only) */}
-            {isAdmin && (
-              <ChatSidebarAgentSessions
-                strategySessions={strategySessions}
-                strategyCollapsed={strategyCollapsed}
-                setStrategyCollapsed={setStrategyCollapsed}
-                onSelectStrategySession={onSelectStrategySession}
-              />
             )}
 
             {/* Scheduled Tasks */}
