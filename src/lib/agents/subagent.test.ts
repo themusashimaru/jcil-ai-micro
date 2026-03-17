@@ -441,9 +441,9 @@ describe('Model Selection', () => {
       };
 
       const result = await manager.spawn(config, mockContext);
-      // All models now map to sonnet or opus (haiku maps to sonnet)
+      // All models now map to opus or sonnet (haiku maps to opus)
       if (model === 'haiku') {
-        expect(result.model).toContain('sonnet');
+        expect(result.model).toContain('opus');
       } else {
         expect(result.model).toContain(model);
       }
@@ -459,7 +459,7 @@ describe('Model Selection', () => {
     };
 
     const result = await manager.spawn(config, mockContext);
-    // Explore defaults to haiku which now maps to claude-sonnet-4-6
-    expect(result.model).toContain('sonnet');
+    // Explore defaults to haiku which now maps to claude-opus-4-6
+    expect(result.model).toContain('opus');
   });
 });
