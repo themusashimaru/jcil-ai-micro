@@ -15,7 +15,6 @@ import type { Attachment, Message, GeneratedImage } from '@/app/chat/types';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useToastActions } from '@/components/ui/Toast';
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
-import { type CreativeMode } from './CreativeButton';
 import { ComposerAttachmentPreview } from './ComposerAttachmentPreview';
 import { ComposerAttachmentMenu } from './ComposerAttachmentMenu';
 import { useFileUpload } from './useFileUpload';
@@ -51,31 +50,6 @@ interface ChatComposerProps {
   replyingTo?: Message | null;
   onClearReply?: () => void;
   initialText?: string;
-  activeAgent?:
-    | 'research'
-    | 'strategy'
-    | 'deep-research'
-    | 'quick-research'
-    | 'quick-strategy'
-    | 'deep-writer'
-    | 'quick-writer'
-    | null;
-  onAgentSelect?: (
-    agent:
-      | 'research'
-      | 'strategy'
-      | 'deep-research'
-      | 'quick-research'
-      | 'quick-strategy'
-      | 'deep-writer'
-      | 'quick-writer'
-  ) => Promise<void> | void;
-  strategyLoading?: boolean;
-  deepResearchLoading?: boolean;
-  quickResearchLoading?: boolean;
-  quickStrategyLoading?: boolean;
-  deepWriterLoading?: boolean;
-  quickWriterLoading?: boolean;
   openCreateImage?: boolean;
   openEditImage?: boolean;
   onCloseCreateImage?: () => void;
@@ -93,14 +67,6 @@ export const ChatComposer = memo(function ChatComposer({
   replyingTo,
   onClearReply,
   initialText,
-  activeAgent,
-  onAgentSelect,
-  strategyLoading,
-  deepResearchLoading,
-  quickResearchLoading: _quickResearchLoading,
-  quickStrategyLoading: _quickStrategyLoading,
-  deepWriterLoading,
-  quickWriterLoading,
   openCreateImage,
   openEditImage,
   onCloseCreateImage,
@@ -132,9 +98,6 @@ export const ChatComposer = memo(function ChatComposer({
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [showAgentsMenu, setShowAgentsMenu] = useState(false);
-  const agentsButtonRef = useRef<HTMLButtonElement>(null);
-  const [creativeMode, setCreativeMode] = useState<CreativeMode | null>(null);
   const [showCreateImageModal, setShowCreateImageModal] = useState(false);
   const [showEditImageModal, setShowEditImageModal] = useState(false);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -213,8 +176,7 @@ export const ChatComposer = memo(function ChatComposer({
   };
 
   const handleSend = () => {
-    if ((!message.trim() && attachments.length === 0) || isStreaming || disabled || strategyLoading)
-      return;
+    if ((!message.trim() && attachments.length === 0) || isStreaming || disabled) return;
     const repoInfo = selectedRepo
       ? {
           owner: selectedRepo.owner,
@@ -234,8 +196,6 @@ export const ChatComposer = memo(function ChatComposer({
   };
 
   const getPlaceholderText = (): string => {
-    if (activeAgent === 'strategy') return 'Describe your complex problem or decision...';
-    if (activeAgent === 'deep-research') return 'What topic do you want to research in depth?';
     if (toolMode === 'search') return 'Search the web...';
     if (toolMode === 'factcheck') return 'What do you want to fact check?';
     if (toolMode === 'research') return 'What would you like to research?';
@@ -247,11 +207,10 @@ export const ChatComposer = memo(function ChatComposer({
   const hasContent = message.trim() || attachments.length > 0;
   const canSend = hasContent && !isStreaming && !disabled;
 
-  const handleCreativeModeInternal = (mode: CreativeMode) => {
+  const handleCreativeModeInternal = (mode: 'create-image' | 'edit-image' | 'view-gallery') => {
     if (mode === 'view-gallery') {
       setShowGalleryModal(true);
     } else {
-      setCreativeMode(mode);
       if (mode === 'create-image') setShowCreateImageModal(true);
       else if (mode === 'edit-image') setShowEditImageModal(true);
     }
@@ -281,9 +240,7 @@ export const ChatComposer = memo(function ChatComposer({
                   <span
                     className="font-medium"
                     style={{
-                      color:
-                        toolInfo?.color ||
-                        'var(--primary)',
+                      color: toolInfo?.color || 'var(--primary)',
                     }}
                   >
                     {placeholderText}
@@ -317,23 +274,12 @@ export const ChatComposer = memo(function ChatComposer({
             disabled={disabled}
             toolMode={toolMode}
             onClearToolMode={() => setToolMode('none')}
-            activeAgent={activeAgent}
-            onAgentSelect={onAgentSelect}
-            strategyLoading={strategyLoading}
-            deepResearchLoading={deepResearchLoading}
-            deepWriterLoading={deepWriterLoading}
-            quickWriterLoading={quickWriterLoading}
             onToggleAttachMenu={() => setShowAttachMenu(!showAttachMenu)}
-            showAgentsMenu={showAgentsMenu}
-            onToggleAgentsMenu={() => setShowAgentsMenu(!showAgentsMenu)}
-            onCloseAgentsMenu={() => setShowAgentsMenu(false)}
-            agentsButtonRef={agentsButtonRef}
             cameraInputRef={cameraInputRef}
             photoInputRef={photoInputRef}
             fileInputRef={fileInputRef}
             handleFileSelect={handleFileSelect}
             onCreativeMode={onCreativeMode}
-            creativeMode={creativeMode}
             onCreativeModeInternal={handleCreativeModeInternal}
             isVoiceSupported={isVoiceSupported}
             isRecording={isRecording}
@@ -372,19 +318,16 @@ export const ChatComposer = memo(function ChatComposer({
         showGalleryModal={showGalleryModal}
         onCloseCreateImage={() => {
           setShowCreateImageModal(false);
-          setCreativeMode(null);
           onCloseCreateImage?.();
         }}
         onCloseEditImage={() => {
           setShowEditImageModal(false);
-          setCreativeMode(null);
           onCloseEditImage?.();
         }}
         onCloseGallery={() => setShowGalleryModal(false)}
         onReusePrompt={(prompt) => {
           setMessage(prompt);
           setShowGalleryModal(false);
-          setCreativeMode('create-image');
           setShowCreateImageModal(true);
         }}
         conversationId={conversationId}

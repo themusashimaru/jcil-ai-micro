@@ -1,13 +1,15 @@
 /**
  * AGENTS HEALTH CHECK ROUTE
  *
- * Comprehensive health check for all AI agents in the system.
- * Reports status, configuration, and availability of each agent.
- * Also checks critical infrastructure: Supabase (database) and Redis (cache).
+ * Health check for AI agents and critical infrastructure.
+ * Reports status of Code Agent, Supabase (database), and Redis (cache).
  *
  * GET /api/agents/health
  *
  * PROTECTED: Requires admin authentication
+ *
+ * NOTE: Strategy Agent removed — agent system deprecated, replaced by skills.
+ * Brave Search removed — replaced by Anthropic native web search.
  */
 
 import { requireAdmin } from '@/lib/auth/admin-guard';
@@ -20,7 +22,6 @@ import { isCodeAgentEnabled, shouldUseCodeAgent, isCodeReviewRequest } from '@/a
 
 // Tools availability
 import { isWebSearchAvailable } from '@/lib/ai/tools/web-search';
-import { isBraveConfigured } from '@/lib/brave';
 
 const log = logger('AgentsHealth');
 
@@ -48,7 +49,6 @@ interface HealthResponse {
   infrastructure: {
     database: ComponentHealth;
     redis: ComponentHealth;
-    braveSearch: boolean;
     webSearchTool: boolean;
   };
   summary: {
@@ -178,45 +178,8 @@ export async function GET() {
     issues.push(`Code Agent: ${(error as Error).message}`);
   }
 
-  // 2. Strategy Agent Health Check (Deep Strategy, Deep Research, Quick Research)
-  try {
-    // Dynamic import to test availability
-    const strategyModule = await import('@/agents/strategy');
-    const toolsModule = await import('@/agents/strategy/tools');
-
-    const agentAvailable = typeof strategyModule.createStrategyAgent === 'function';
-    const toolsAvailable = typeof toolsModule.executeScoutTool === 'function';
-
-    agents.push({
-      name: 'Strategy Agent',
-      enabled: true,
-      available: agentAvailable && toolsAvailable,
-      detectionWorking: true,
-      details: {
-        strategyAgentAvailable: agentAvailable,
-        scoutToolsAvailable: toolsAvailable,
-        executionQueueAvailable: typeof strategyModule.createExecutionQueue === 'function',
-        modes: ['strategy', 'research', 'quick-research'],
-      },
-    });
-  } catch (error) {
-    agents.push({
-      name: 'Strategy Agent',
-      enabled: false,
-      available: false,
-      detectionWorking: false,
-      error: (error as Error).message,
-    });
-    issues.push(`Strategy Agent: ${(error as Error).message}`);
-  }
-
   // Additional infrastructure checks
-  const braveConfigured = isBraveConfigured();
   const webSearchAvailable = isWebSearchAvailable();
-
-  if (!braveConfigured) {
-    issues.push('Infrastructure: BRAVE_API_KEY not configured');
-  }
 
   // Calculate overall health — infrastructure DOWN = unhealthy
   const enabledCount = agents.filter((a) => a.enabled).length;
@@ -246,7 +209,6 @@ export async function GET() {
     infrastructure: {
       database: dbHealth,
       redis: redisHealth,
-      braveSearch: braveConfigured,
       webSearchTool: webSearchAvailable,
     },
     summary: {

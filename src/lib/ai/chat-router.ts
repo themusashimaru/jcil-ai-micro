@@ -740,7 +740,7 @@ export async function routeChatWithTools(
             web_search: 45000, // Web search can be slow
             browser_visit: 45000, // Browser automation needs time
             run_code: 45000, // Code execution can take time
-            parallel_research: 60000, // Multiple parallel agents
+            // parallel_research removed — agent pattern replaced by skills
             create_and_run_tool: 45000, // Dynamic tool creation
             fetch_url: 30000, // URL fetching
             analyze_image: 30000, // Vision analysis

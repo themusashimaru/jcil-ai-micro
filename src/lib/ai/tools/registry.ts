@@ -49,7 +49,9 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 56 tools total — all with real implementations.
+ * 51 tools total — all with real implementations.
+ * Consolidated 2026-03-17: removed redundant screenshot, capture_webpage,
+ * create_spreadsheet (use excel_advanced), and parallel_research (agent pattern).
  */
 export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   // =========================================================================
@@ -61,8 +63,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'core',
     tier: 'core',
-    description: 'Web search via Brave/Google API (native Anthropic server tool)',
-    dependencies: ['Brave Search API'],
+    description: 'Web search via Anthropic native server tool (web_search_20260209)',
+    dependencies: ['Anthropic API'],
   },
   {
     name: 'fetch_url',
@@ -91,15 +93,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Analyze images using Claude vision capabilities',
     dependencies: ['Anthropic API'],
   },
-  {
-    name: 'parallel_research',
-    file: 'mini-agent.ts',
-    status: 'active',
-    category: 'core',
-    tier: 'core',
-    description: 'Orchestrate parallel sub-agent research tasks',
-    dependencies: ['Anthropic API'],
-  },
+  // parallel_research removed 2026-03-17 — agent pattern replaced by skills
   {
     name: 'create_and_run_tool',
     file: 'dynamic-tool.ts',
@@ -122,24 +116,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Visit and interact with web pages via Puppeteer',
     dependencies: ['puppeteer'],
   },
-  {
-    name: 'screenshot',
-    file: 'screenshot-tool.ts',
-    status: 'active',
-    category: 'web',
-    tier: 'extended',
-    description: 'Capture screenshots of web pages',
-    dependencies: ['puppeteer'],
-  },
-  {
-    name: 'capture_webpage',
-    file: 'web-capture-tool.ts',
-    status: 'beta',
-    category: 'web',
-    tier: 'extended',
-    description: 'Full-page capture and archival of web pages (requires local Chrome)',
-    dependencies: ['puppeteer', 'chrome'],
-  },
+  // screenshot removed 2026-03-17 — use browser_visit with action=screenshot
+  // capture_webpage removed 2026-03-17 — redundant with browser_visit
   {
     name: 'youtube_transcript',
     file: 'youtube-transcript.ts',
@@ -303,15 +281,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Create and manipulate PDF documents',
     dependencies: ['pdf-lib'],
   },
-  {
-    name: 'create_spreadsheet',
-    file: 'spreadsheet-tool.ts',
-    status: 'active',
-    category: 'document',
-    tier: 'extended',
-    description: 'Generate spreadsheet files',
-    dependencies: [],
-  },
+  // create_spreadsheet removed 2026-03-17 — use excel_advanced (superset)
   {
     name: 'excel_advanced',
     file: 'excel-tool.ts',

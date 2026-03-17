@@ -1,9 +1,6 @@
 'use client';
 
 import { RefObject } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
-import { CreativeButton, type CreativeMode } from './CreativeButton';
-import { ComposerAgentsMenu } from './ComposerAgentsMenu';
 import type { ToolMode } from './ChatComposer';
 
 export const TOOL_MODE_INFO: Record<string, { label: string; color: string }> = {
@@ -17,41 +14,13 @@ interface ComposerActionBarProps {
   disabled?: boolean;
   toolMode: ToolMode;
   onClearToolMode: () => void;
-  activeAgent?:
-    | 'research'
-    | 'strategy'
-    | 'deep-research'
-    | 'quick-research'
-    | 'quick-strategy'
-    | 'deep-writer'
-    | 'quick-writer'
-    | null;
-  onAgentSelect?: (
-    agent:
-      | 'research'
-      | 'strategy'
-      | 'deep-research'
-      | 'quick-research'
-      | 'quick-strategy'
-      | 'deep-writer'
-      | 'quick-writer'
-  ) => Promise<void> | void;
-  strategyLoading?: boolean;
-  deepResearchLoading?: boolean;
-  deepWriterLoading?: boolean;
-  quickWriterLoading?: boolean;
   onToggleAttachMenu: () => void;
-  showAgentsMenu: boolean;
-  onToggleAgentsMenu: () => void;
-  onCloseAgentsMenu: () => void;
-  agentsButtonRef: RefObject<HTMLButtonElement>;
   cameraInputRef: RefObject<HTMLInputElement>;
   photoInputRef: RefObject<HTMLInputElement>;
   fileInputRef: RefObject<HTMLInputElement>;
   handleFileSelect: (files: FileList | null) => void;
   onCreativeMode?: (mode: 'create-image' | 'edit-image' | 'view-gallery') => void;
-  creativeMode: CreativeMode | null;
-  onCreativeModeInternal: (mode: CreativeMode) => void;
+  onCreativeModeInternal: (mode: 'create-image' | 'edit-image' | 'view-gallery') => void;
   isVoiceSupported: boolean;
   isRecording: boolean;
   isTranscribing: boolean;
@@ -66,23 +35,12 @@ export function ComposerActionBar({
   disabled,
   toolMode,
   onClearToolMode,
-  activeAgent,
-  onAgentSelect,
-  strategyLoading,
-  deepResearchLoading,
-  deepWriterLoading,
-  quickWriterLoading,
   onToggleAttachMenu,
-  showAgentsMenu,
-  onToggleAgentsMenu,
-  onCloseAgentsMenu,
-  agentsButtonRef,
   cameraInputRef,
   photoInputRef,
   fileInputRef,
   handleFileSelect,
   onCreativeMode,
-  creativeMode,
   onCreativeModeInternal,
   isVoiceSupported,
   isRecording,
@@ -92,8 +50,15 @@ export function ComposerActionBar({
   onSend,
   onStop,
 }: ComposerActionBarProps) {
-  const { theme } = useTheme();
   const toolInfo = toolMode !== 'none' ? TOOL_MODE_INFO[toolMode] : null;
+
+  const handleCreativeClick = (mode: 'create-image' | 'edit-image' | 'view-gallery') => {
+    if (onCreativeMode) {
+      onCreativeMode(mode);
+      return;
+    }
+    onCreativeModeInternal(mode);
+  };
 
   return (
     <div className="flex items-center justify-between px-2 pb-2">
@@ -167,38 +132,63 @@ export function ComposerActionBar({
           </div>
         )}
 
-        {/* Agents dropdown */}
-        {onAgentSelect && (
-          <ComposerAgentsMenu
-            isOpen={showAgentsMenu}
-            onToggle={onToggleAgentsMenu}
-            onClose={onCloseAgentsMenu}
-            activeAgent={activeAgent}
-            onAgentSelect={onAgentSelect}
-            toolMode={toolMode}
-            onClearToolMode={onClearToolMode}
-            isStreaming={isStreaming}
-            disabled={disabled}
-            strategyLoading={strategyLoading}
-            deepResearchLoading={deepResearchLoading}
-            deepWriterLoading={deepWriterLoading}
-            quickWriterLoading={quickWriterLoading}
-            buttonRef={agentsButtonRef}
-          />
-        )}
-
-        {/* Creative button */}
-        <CreativeButton
+        {/* Create Image button */}
+        <button
+          onClick={() => handleCreativeClick('create-image')}
           disabled={isStreaming || disabled}
-          activeMode={creativeMode}
-          onSelect={(mode) => {
-            if (onCreativeMode) {
-              onCreativeMode(mode);
-              return;
-            }
-            onCreativeModeInternal(mode);
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 hover:brightness-110"
+          style={{
+            backgroundColor: 'var(--primary)',
+            color: 'white',
           }}
-        />
+          aria-label="Create image"
+          title="Generate an image with AI"
+        >
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <span>Image</span>
+        </button>
+
+        {/* Create Video button */}
+        <button
+          onClick={() => {
+            /* Video creation - coming soon */
+          }}
+          disabled={true}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-40 hover:brightness-110"
+          style={{
+            backgroundColor: 'var(--primary)',
+            color: 'white',
+          }}
+          aria-label="Create video"
+          title="Video creation coming soon"
+        >
+          <svg
+            className="h-3.5 w-3.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+          </svg>
+          <span>Video</span>
+        </button>
       </div>
 
       {/* Right side - mic and send */}
@@ -279,7 +269,7 @@ export function ComposerActionBar({
             className={`rounded-full p-2 transition-all flex items-center justify-center send-btn ${!canSend ? 'send-btn-disabled bg-btn-disabled text-text-muted' : 'send-btn-enabled bg-primary'}`}
             aria-label="Send message"
             title="Send message"
-            style={canSend ? { color: theme === 'light' ? 'white' : 'black' } : undefined}
+            style={canSend ? { color: 'var(--primary-contrast, white)' } : undefined}
           >
             <svg
               className="h-5 w-5"

@@ -118,39 +118,30 @@ export const MessageBubble = memo(
 
       // Deduplicate: extended thinking often includes the full answer at the end
       // of the thinking block, then the same answer is in the text response.
-      // Strategy: strip overlap from the response AND trim the thinking to just reasoning.
-      if (thinkingParts.length > 0 && cleaned) {
-        for (const part of thinkingParts) {
-          const trimmedPart = part.trim();
-          if (!trimmedPart) continue;
-
-          // Exact prefix match
-          if (cleaned.startsWith(trimmedPart)) {
-            cleaned = cleaned.slice(trimmedPart.length).trim();
-            continue;
-          }
-
-          // Find overlap: thinking often ends with the same text the response starts with.
-          // Check successive lines of thinking to find where it starts matching the response.
-          const lines = trimmedPart.split('\n');
-          for (let i = 1; i < lines.length; i++) {
-            const suffix = lines.slice(i).join('\n').trim();
-            if (suffix.length > 40 && cleaned.startsWith(suffix)) {
-              cleaned = cleaned.slice(suffix.length).trim();
-              break;
-            }
-          }
-        }
-      }
-
-      // Trim thinking to just the reasoning — remove any portion that duplicates the response.
+      // Strategy: trim the thinking display to just reasoning; NEVER strip the response.
       let thinkingDisplay = thinkingParts.join('\n\n');
       if (thinkingDisplay && cleaned) {
-        const responseStart = cleaned.slice(0, 120).trim();
-        if (responseStart.length > 30) {
+        // Try to find where the response text appears in the thinking block
+        // and trim thinking to just the reasoning portion before it.
+        const responseStart = cleaned.slice(0, 200).trim();
+        if (responseStart.length > 20) {
           const overlapIdx = thinkingDisplay.indexOf(responseStart);
           if (overlapIdx > 0) {
             thinkingDisplay = thinkingDisplay.slice(0, overlapIdx).trim();
+          }
+        }
+
+        // Fallback: check line-by-line overlap from thinking end matching response start
+        if (thinkingDisplay === thinkingParts.join('\n\n')) {
+          for (const part of thinkingParts) {
+            const lines = part.trim().split('\n');
+            for (let i = 1; i < lines.length; i++) {
+              const suffix = lines.slice(i).join('\n').trim();
+              if (suffix.length > 40 && cleaned.startsWith(suffix)) {
+                thinkingDisplay = lines.slice(0, i).join('\n').trim();
+                break;
+              }
+            }
           }
         }
       }

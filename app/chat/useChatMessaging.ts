@@ -3,7 +3,7 @@
 import { logger } from '@/lib/logger';
 import { parseSlashCommand } from '@/lib/slashCommands';
 import { analyzeResponse, isConfirmation, isDecline } from '@/lib/response-analysis';
-import { isAnyModeInPhase, isAnyModeExecuting, type AgentModeId } from './agentModes';
+// Agent mode imports removed — agent system deprecated
 import type { SearchMode } from '@/components/chat/ChatComposer';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Message } from './types';
@@ -31,14 +31,9 @@ const CONTINUATION_RETRY_DELAY_MS = 500;
 interface UseChatMessagingArgs {
   state: ChatState;
   handleChatContinuation: () => Promise<void>;
-  handleAgentInput: (modeId: AgentModeId, content: string) => Promise<void>;
 }
 
-export function useChatMessaging({
-  state,
-  handleChatContinuation,
-  handleAgentInput,
-}: UseChatMessagingArgs) {
+export function useChatMessaging({ state, handleChatContinuation }: UseChatMessagingArgs) {
   const {
     chats,
     setChats,
@@ -58,7 +53,6 @@ export function useChatMessaging({
     abortControllerRef,
     isMountedRef,
     currentChatIdRef,
-    modes,
     profile,
     hasProfile,
   } = state;
@@ -90,7 +84,8 @@ export function useChatMessaging({
           {
             id: crypto.randomUUID(),
             role: 'assistant',
-            content: 'This conversation has reached its limit and I was unable to continue automatically. Please start a new chat to continue.',
+            content:
+              'This conversation has reached its limit and I was unable to continue automatically. Please start a new chat to continue.',
             timestamp: new Date(),
           },
         ]);
@@ -116,58 +111,7 @@ export function useChatMessaging({
       if (parsed.prompt) content = parsed.prompt;
     }
 
-    // Agent mode intake
-    const intakeMode = isAnyModeInPhase(modes, 'intake');
-    if (intakeMode.active && intakeMode.modeId) {
-      await handleAgentInput(intakeMode.modeId, content);
-      return;
-    }
-
-    // Agent mode steering
-    const execMode = isAnyModeExecuting(modes);
-    if (execMode.executing && execMode.sessionId) {
-      setMessages((prev) => [
-        ...prev,
-        { id: crypto.randomUUID(), role: 'user', content, timestamp: new Date() },
-      ]);
-      try {
-        const res = await fetch('/api/strategy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'context',
-            sessionId: execMode.sessionId,
-            message: content,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: 'assistant',
-              content: data.steeringApplied
-                ? `**Steering Applied** (${data.steeringAction})\n\n${data.message}`
-                : `Context received.`,
-              timestamp: new Date(),
-            },
-          ]);
-        }
-      } catch (err) {
-        log.warn('Agent steering failed', { error: err instanceof Error ? err.message : String(err) });
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: 'I received your input but was unable to apply it to the current task. Please try again.',
-            timestamp: new Date(),
-          },
-        ]);
-      }
-      return;
-    }
+    // Agent mode intake/steering removed — agent system deprecated
 
     // Tool suggestion confirmation
     let contentForAI = content;

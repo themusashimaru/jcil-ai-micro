@@ -29,14 +29,19 @@ const RATE_LIMIT_ANONYMOUS = safeParseInt(process.env.RATE_LIMIT_ANON, 30);
 const RATE_LIMIT_RESEARCH = safeParseInt(process.env.RATE_LIMIT_RESEARCH, 500);
 const RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-// CHAT-016: Per-tool rate limiting for expensive operations
+// CHAT-016: Per-tool rate limiting for expensive operations.
+// All tools are now auto-enabled for Opus — rate limits prevent runaway costs.
 export const TOOL_RATE_LIMITS: Record<string, number> = {
   run_code: 100, // code executions per hour
   browser_visit: 50, // browser visits per hour
+  desktop_sandbox: 30, // desktop sandbox actions per hour
   generate_image: 30, // image generations per hour
   generate_video: 10, // video generations per hour
   extract_pdf: 60, // PDF extractions per hour
   analyze_image: 60, // image analyses per hour
+  create_and_run_tool: 30, // dynamic tool creations per hour
+  e2b_visualize: 50, // E2B chart renders per hour
+  transcribe_audio: 30, // audio transcriptions per hour
 };
 
 /**

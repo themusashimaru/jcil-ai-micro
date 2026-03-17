@@ -94,14 +94,18 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 - **app/api/chat/route.ts** at 554 lines — uses `validateCSRF` directly (requireUser built into auth.ts module)
 - **105 component files** exceed the 300-line threshold
 
-### Key Metrics (Verified Mar 5, 2026)
+### Key Metrics (Verified Mar 17, 2026)
 
 | Metric                    | Actual Value                                              |
 | ------------------------- | --------------------------------------------------------- |
 | Test coverage             | 41.25% lines (12,107 tests across 410 files)              |
 | ARIA attributes           | 428+ (but unevenly distributed)                           |
 | Inline styles             | 161 (down from 554)                                       |
-| Real tools                | 51/51 (100%)                                              |
+| Real tools                | 52/52 active (100%), consolidated from 56                 |
+| Tool loading              | All tiers always loaded — Opus decides what to use        |
+| MCP servers               | 4 auto-enabled (filesystem, github, puppeteer, postgres)  |
+| Skills                    | 6 (.claude/skills/) replacing agent orchestration         |
+| Agent system              | Deprecated — UI removed, API returns 410                  |
 | Largest route file        | 1,435 lines (code-lab/chat/route.ts, decomposed)          |
 | Routes with auth guards   | 46 files — 100% use requireUser/requireAdmin/optionalUser |
 | Routes with raw auth      | 0 (all migrated)                                          |

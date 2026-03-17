@@ -7,11 +7,12 @@
  * - Degraded state (partial failures)
  * - Unhealthy state (critical infrastructure down)
  * - Code Agent health check (success and error)
- * - Strategy Agent health check (success and error)
  * - Database connectivity check (up, degraded, down, unconfigured)
  * - Redis connectivity check (up, degraded, down)
- * - Brave/web search availability reporting
+ * - Web search availability reporting
  * - Overall health calculation logic
+ *
+ * NOTE: Strategy Agent and Brave Search tests removed — agent system deprecated.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -74,26 +75,9 @@ vi.mock('@/lib/ai/tools/web-search', () => ({
   isWebSearchAvailable: (...args: unknown[]) => mockIsWebSearchAvailable(...args),
 }));
 
-const mockIsBraveConfigured = vi.fn();
-vi.mock('@/lib/brave', () => ({
-  isBraveConfigured: (...args: unknown[]) => mockIsBraveConfigured(...args),
-}));
-
 const mockCreateClient = vi.fn();
 vi.mock('@supabase/supabase-js', () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
-}));
-
-const mockCreateStrategyAgent = vi.fn();
-const mockCreateExecutionQueue = vi.fn();
-vi.mock('@/agents/strategy', () => ({
-  createStrategyAgent: (...args: unknown[]) => mockCreateStrategyAgent(...args),
-  createExecutionQueue: (...args: unknown[]) => mockCreateExecutionQueue(...args),
-}));
-
-const mockExecuteScoutTool = vi.fn();
-vi.mock('@/agents/strategy/tools', () => ({
-  executeScoutTool: (...args: unknown[]) => mockExecuteScoutTool(...args),
 }));
 
 // ============================================================================
@@ -142,8 +126,7 @@ function setupHealthyAgents() {
     return query.toLowerCase().includes('review');
   });
 
-  // Brave + web search
-  mockIsBraveConfigured.mockReturnValue(true);
+  // Web search
   mockIsWebSearchAvailable.mockReturnValue(true);
 }
 
@@ -215,7 +198,7 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       const body = await response.json();
 
       expect(body.data.agents).toBeInstanceOf(Array);
-      expect(body.data.agents.length).toBeGreaterThanOrEqual(2);
+      expect(body.data.agents.length).toBeGreaterThanOrEqual(1);
 
       const codeAgent = body.data.agents.find((a: { name: string }) => a.name === 'Code Agent');
       expect(codeAgent).toBeDefined();
@@ -235,7 +218,6 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       expect(body.data.infrastructure.database.status).toBe('up');
       expect(body.data.infrastructure.database.latency).toBeDefined();
       expect(body.data.infrastructure.redis.status).toBe('up');
-      expect(body.data.infrastructure.braveSearch).toBe(true);
       expect(body.data.infrastructure.webSearchTool).toBe(true);
     });
 
@@ -247,9 +229,9 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       const response = await importAndCallGET();
       const body = await response.json();
 
-      expect(body.data.summary.total).toBeGreaterThanOrEqual(2);
-      expect(body.data.summary.enabled).toBeGreaterThanOrEqual(2);
-      expect(body.data.summary.available).toBeGreaterThanOrEqual(2);
+      expect(body.data.summary.total).toBeGreaterThanOrEqual(1);
+      expect(body.data.summary.enabled).toBeGreaterThanOrEqual(1);
+      expect(body.data.summary.available).toBeGreaterThanOrEqual(1);
       expect(body.data.summary.issues).toEqual([]);
     });
   });
@@ -374,18 +356,16 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
   // --------------------------------------------------------------------------
 
   describe('Code Agent health check', () => {
-    it('should report code agent as disabled when not enabled', async () => {
+    it('should return unhealthy (503) when code agent is disabled (only agent)', async () => {
       setupAdminAuth();
       setupHealthyInfrastructure();
       setupHealthyAgents();
       mockIsCodeAgentEnabled.mockReturnValue(false);
 
       const response = await importAndCallGET();
-      const body = await response.json();
 
-      const codeAgent = body.data.agents.find((a: { name: string }) => a.name === 'Code Agent');
-      expect(codeAgent.enabled).toBe(false);
-      expect(codeAgent.available).toBe(false);
+      // With only one agent and it disabled, availableCount = 0 → unhealthy → 503
+      expect(response.status).toBe(503);
     });
 
     it('should report detection as not working when detection functions fail', async () => {
@@ -402,7 +382,7 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       expect(codeAgent.detectionWorking).toBe(false);
     });
 
-    it('should handle code agent throwing an error', async () => {
+    it('should return unhealthy (503) when code agent throws an error (only agent)', async () => {
       setupAdminAuth();
       setupHealthyInfrastructure();
       setupHealthyAgents();
@@ -411,34 +391,9 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       });
 
       const response = await importAndCallGET();
-      const body = await response.json();
 
-      const codeAgent = body.data.agents.find((a: { name: string }) => a.name === 'Code Agent');
-      expect(codeAgent.enabled).toBe(false);
-      expect(codeAgent.available).toBe(false);
-      expect(codeAgent.error).toBe('Code agent config error');
-    });
-  });
-
-  // --------------------------------------------------------------------------
-  // STRATEGY AGENT HEALTH CHECKS
-  // --------------------------------------------------------------------------
-
-  describe('Strategy Agent health check', () => {
-    it('should report strategy agent as available when module loads', async () => {
-      setupAdminAuth();
-      setupHealthyInfrastructure();
-      setupHealthyAgents();
-
-      const response = await importAndCallGET();
-      const body = await response.json();
-
-      const strategyAgent = body.data.agents.find(
-        (a: { name: string }) => a.name === 'Strategy Agent'
-      );
-      expect(strategyAgent).toBeDefined();
-      expect(strategyAgent.enabled).toBe(true);
-      expect(strategyAgent.available).toBe(true);
+      // With only one agent and it erroring, availableCount = 0 → unhealthy → 503
+      expect(response.status).toBe(503);
     });
   });
 
@@ -471,20 +426,6 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       const response = await importAndCallGET();
 
       expect(response.status).toBe(503);
-    });
-
-    it('should return degraded when brave is not configured', async () => {
-      setupAdminAuth();
-      setupHealthyInfrastructure();
-      setupHealthyAgents();
-      mockIsBraveConfigured.mockReturnValue(false);
-
-      const response = await importAndCallGET();
-      const body = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(body.data.overall).toBe('degraded');
-      expect(body.data.summary.issues).toContain('Infrastructure: BRAVE_API_KEY not configured');
     });
 
     it('should return degraded when database is degraded (not down)', async () => {

@@ -29,17 +29,14 @@ interface ChainProgressCardProps {
 
 // Tool name → human-readable label + icon
 const TOOL_DISPLAY: Record<string, { label: string; icon: string }> = {
-  parallel_research: { label: 'Researching', icon: '\u{1F50D}' },
   web_search: { label: 'Searching the web', icon: '\u{1F310}' },
   fetch_url: { label: 'Fetching page', icon: '\u{1F4E5}' },
   create_chart: { label: 'Creating chart', icon: '\u{1F4CA}' },
   create_document: { label: 'Generating document', icon: '\u{1F4C4}' },
   create_presentation: { label: 'Building presentation', icon: '\u{1F4CA}' },
-  create_spreadsheet: { label: 'Creating spreadsheet', icon: '\u{1F4CA}' },
   excel_advanced: { label: 'Processing spreadsheet', icon: '\u{1F4CA}' },
   run_code: { label: 'Running code', icon: '\u{1F4BB}' },
-  screenshot: { label: 'Taking screenshot', icon: '\u{1F4F7}' },
-  capture_webpage: { label: 'Capturing page', icon: '\u{1F4F7}' },
+  browser_visit: { label: 'Browsing page', icon: '\u{1F310}' },
   analyze_image: { label: 'Analyzing image', icon: '\u{1F441}\uFE0F' },
   extract_pdf: { label: 'Extracting PDF', icon: '\u{1F4C3}' },
   extract_table: { label: 'Extracting table data', icon: '\u{1F5C2}\uFE0F' },

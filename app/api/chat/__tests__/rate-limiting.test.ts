@@ -230,10 +230,14 @@ describe('rate-limiting (chat route layer)', () => {
       const expectedLimits: Record<string, number> = {
         run_code: 100,
         browser_visit: 50,
+        desktop_sandbox: 30,
         generate_image: 30,
         generate_video: 10,
         extract_pdf: 60,
         analyze_image: 60,
+        create_and_run_tool: 30,
+        e2b_visualize: 50,
+        transcribe_audio: 30,
       };
 
       for (const [toolName, expectedLimit] of Object.entries(expectedLimits)) {
@@ -275,10 +279,14 @@ describe('rate-limiting (chat route layer)', () => {
       const expectedTools = [
         'run_code',
         'browser_visit',
+        'desktop_sandbox',
         'generate_image',
         'generate_video',
         'extract_pdf',
         'analyze_image',
+        'create_and_run_tool',
+        'e2b_visualize',
+        'transcribe_audio',
       ];
 
       expect(Object.keys(TOOL_RATE_LIMITS).sort()).toEqual(expectedTools.sort());

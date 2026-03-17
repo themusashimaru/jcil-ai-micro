@@ -1,7 +1,7 @@
 'use client';
 
 import { formatActionSuccessMessage } from './chatUtils';
-import type { AgentModeId } from './agentModes';
+// string removed — agent system deprecated
 import type { Message, GeneratedImage, Attachment } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
 import type { DestructiveActionData } from '@/components/chat/DestructiveActionCard';
@@ -13,7 +13,7 @@ interface ChatImageHandlersArgs {
   currentChatId: string | null;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setQuickPromptText: React.Dispatch<React.SetStateAction<string>>;
-  startAgentMode: (modeId: AgentModeId) => Promise<void>;
+  startAgentMode: (modeId: string) => Promise<void>;
   handleSendMessage: (
     content: string,
     attachments: Attachment[],

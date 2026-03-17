@@ -148,14 +148,12 @@ export class ArtifactStore {
 /** Human-readable labels for tool execution status messages */
 const TOOL_DISPLAY_LABELS: Record<string, string> = {
   // Research & content
-  parallel_research: 'Researching',
   web_search: 'Searching the web',
   fetch_url: 'Fetching page',
   // Documents & media
   create_chart: 'Creating chart',
   create_document: 'Generating document',
   create_presentation: 'Building presentation',
-  create_spreadsheet: 'Creating spreadsheet',
   excel_advanced: 'Processing spreadsheet',
   pdf_manipulate: 'Processing PDF',
   extract_pdf: 'Extracting PDF',
@@ -168,8 +166,7 @@ const TOOL_DISPLAY_LABELS: Record<string, string> = {
   sql_query: 'Querying data',
   math_compute: 'Computing',
   // Media
-  screenshot: 'Taking screenshot',
-  capture_webpage: 'Capturing page',
+  browser_visit: 'Browsing page',
   analyze_image: 'Analyzing image',
   transform_image: 'Transforming image',
   generate_qr_code: 'Generating QR code',
@@ -283,7 +280,6 @@ export function extractArtifacts(
       break;
     }
 
-    case 'create_spreadsheet':
     case 'excel_advanced': {
       const xlsxUrls = resultContent.match(URL_PATTERN) || [];
       for (const url of xlsxUrls) {
@@ -317,17 +313,7 @@ export function extractArtifacts(
       break;
     }
 
-    case 'screenshot':
-    case 'capture_webpage': {
-      const screenshotUrls = resultContent.match(URL_PATTERN) || [];
-      for (const url of screenshotUrls) {
-        artifacts.push({ type: 'image', content: url, label: 'Screenshot' });
-      }
-      break;
-    }
-
     case 'web_search':
-    case 'parallel_research':
     case 'fetch_url': {
       if (resultContent.length > 100) {
         artifacts.push({
@@ -521,35 +507,35 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Research to Presentation',
     description: 'Research a topic, create charts from data, build a presentation',
-    tools: ['parallel_research', 'create_chart', 'create_presentation'],
+    tools: ['web_search', 'create_chart', 'create_presentation'],
     trigger: 'when user asks to create a presentation/deck about a topic',
     category: 'research',
   },
   {
     name: 'Research to Document',
     description: 'Research a topic, create charts/visuals, generate a PDF or DOCX report',
-    tools: ['parallel_research', 'create_chart', 'create_document'],
+    tools: ['web_search', 'create_chart', 'create_document'],
     trigger: 'when user asks for a report or document about a topic',
     category: 'research',
   },
   {
     name: 'Research to Spreadsheet',
     description: 'Research data, organize findings into a structured spreadsheet',
-    tools: ['parallel_research', 'run_code', 'create_spreadsheet'],
+    tools: ['web_search', 'run_code', 'excel_advanced'],
     trigger: 'when user asks for research data in spreadsheet form',
     category: 'research',
   },
   {
     name: 'Research to Email Digest',
     description: 'Research a topic, summarize findings, email the digest',
-    tools: ['parallel_research', 'composio_GMAIL_SEND_EMAIL'],
+    tools: ['web_search', 'composio_GMAIL_SEND_EMAIL'],
     trigger: 'when user asks to research something and email the results',
     category: 'research',
   },
   {
     name: 'Full Creative Pipeline',
     description: 'Research → charts → presentation → export as PDF',
-    tools: ['parallel_research', 'create_chart', 'create_presentation', 'pdf_manipulate'],
+    tools: ['web_search', 'create_chart', 'create_presentation', 'pdf_manipulate'],
     trigger: 'when user asks for a comprehensive creative deliverable',
     category: 'research',
   },
@@ -558,7 +544,7 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Data Analysis Pipeline',
     description: 'Run code to analyze data, create charts from results, build a spreadsheet',
-    tools: ['run_code', 'create_chart', 'create_spreadsheet'],
+    tools: ['run_code', 'create_chart', 'excel_advanced'],
     trigger: 'when user asks to analyze data and visualize it',
     category: 'data',
   },
@@ -572,7 +558,7 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Web Scrape to Spreadsheet',
     description: 'Fetch a webpage, extract tables, export to Excel',
-    tools: ['fetch_url', 'extract_table', 'create_spreadsheet'],
+    tools: ['fetch_url', 'extract_table', 'excel_advanced'],
     trigger: 'when user asks to export website data to a spreadsheet',
     category: 'data',
   },
@@ -600,7 +586,7 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'SQL to Spreadsheet',
     description: 'Query data, export results to Excel',
-    tools: ['sql_query', 'create_spreadsheet'],
+    tools: ['sql_query', 'excel_advanced'],
     trigger: 'when user asks to export query results to a spreadsheet',
     category: 'data',
   },
@@ -616,7 +602,7 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'PDF to Spreadsheet',
     description: 'Extract PDF tables, convert to Excel spreadsheet',
-    tools: ['extract_pdf', 'extract_table', 'create_spreadsheet'],
+    tools: ['extract_pdf', 'extract_table', 'excel_advanced'],
     trigger: 'when user wants to extract PDF tables into a spreadsheet',
     category: 'documents',
   },
@@ -630,14 +616,14 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Screenshot to Report',
     description: 'Take a screenshot, analyze it with vision, generate a document',
-    tools: ['screenshot', 'analyze_image', 'create_document'],
+    tools: ['browser_visit', 'analyze_image', 'create_document'],
     trigger: 'when user asks to document or analyze a webpage visually',
     category: 'documents',
   },
   {
     name: 'Screenshot to Email',
     description: 'Capture a webpage screenshot and email it',
-    tools: ['screenshot', 'composio_GMAIL_SEND_EMAIL'],
+    tools: ['browser_visit', 'composio_GMAIL_SEND_EMAIL'],
     trigger: 'when user asks to screenshot a page and send it',
     category: 'documents',
   },
@@ -727,7 +713,7 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Spreadsheet and Email',
     description: 'Create a spreadsheet and email it to recipients',
-    tools: ['create_spreadsheet', 'composio_GMAIL_SEND_EMAIL'],
+    tools: ['excel_advanced', 'composio_GMAIL_SEND_EMAIL'],
     trigger: 'when user asks to create a spreadsheet and email it',
     category: 'communication',
   },
@@ -786,7 +772,7 @@ export const TOOL_CHAINS: ToolChain[] = [
     name: 'Research and Distribute',
     description: 'Research a topic, create a report, email it AND post to Slack',
     tools: [
-      'parallel_research',
+      'web_search',
       'create_document',
       'composio_GMAIL_SEND_EMAIL',
       'composio_SLACK_SEND_MESSAGE',
@@ -798,7 +784,7 @@ export const TOOL_CHAINS: ToolChain[] = [
     name: 'Meeting Prep Workflow',
     description: 'Research topic, create presentation, email attendees, add calendar event',
     tools: [
-      'parallel_research',
+      'web_search',
       'create_chart',
       'create_presentation',
       'composio_GMAIL_SEND_EMAIL',
@@ -817,14 +803,14 @@ export const TOOL_CHAINS: ToolChain[] = [
   {
     name: 'Competitive Analysis',
     description: 'Research competitors, scrape data, create comparison charts, build report',
-    tools: ['parallel_research', 'fetch_url', 'extract_table', 'create_chart', 'create_document'],
+    tools: ['web_search', 'fetch_url', 'extract_table', 'create_chart', 'create_document'],
     trigger: 'when user asks for competitive analysis or comparison',
     category: 'workflow',
   },
   {
     name: 'Website Audit',
     description: 'Screenshot pages, check accessibility, analyze images, generate report',
-    tools: ['screenshot', 'check_accessibility', 'analyze_image', 'create_document'],
+    tools: ['browser_visit', 'check_accessibility', 'analyze_image', 'create_document'],
     trigger: 'when user asks for a website audit or review',
     category: 'workflow',
   },
@@ -840,18 +826,16 @@ export const TOOL_CHAINS: ToolChain[] = [
  */
 export const TOOL_FALLBACKS: Record<string, string[]> = {
   // Research fallbacks
-  web_search: ['parallel_research', 'fetch_url'],
-  parallel_research: ['web_search', 'fetch_url'],
-  fetch_url: ['web_search', 'screenshot'],
+  web_search: ['fetch_url'],
+  fetch_url: ['web_search', 'browser_visit'],
 
   // Document generation fallbacks
-  create_document: ['create_spreadsheet'], // if DOCX fails, try spreadsheet
+  create_document: ['excel_advanced'], // if DOCX fails, try spreadsheet
   create_presentation: ['create_document'], // if PPTX fails, create doc instead
-  create_spreadsheet: ['create_document'], // if XLSX fails, export as doc
+  excel_advanced: ['create_document'], // if XLSX fails, export as doc
 
   // Image/media fallbacks
-  screenshot: ['capture_webpage', 'fetch_url'],
-  capture_webpage: ['screenshot', 'fetch_url'],
+  browser_visit: ['fetch_url'],
   analyze_image: ['ocr_extract_text'],
   ocr_extract_text: ['analyze_image'],
   transform_image: ['create_chart'], // if image transform fails, try chart
@@ -1187,12 +1171,12 @@ export function partitionParallelCalls(
   // Tools that produce artifacts others might consume
   const PRODUCER_TOOLS = new Set([
     'web_search',
-    'parallel_research',
+    'web_search',
     'fetch_url',
     'run_code',
     'create_chart',
-    'screenshot',
-    'capture_webpage',
+    'browser_visit',
+    'browser_visit',
     'extract_pdf',
     'extract_table',
     'analyze_image',
@@ -1215,7 +1199,7 @@ export function partitionParallelCalls(
   const CONSUMER_TOOLS = new Set([
     'create_presentation',
     'create_document',
-    'create_spreadsheet',
+    'excel_advanced',
     'excel_advanced',
     'pdf_manipulate',
     'transform_image',
