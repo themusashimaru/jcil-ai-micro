@@ -289,10 +289,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     amount: amount,
     currency: subscription.currency?.toUpperCase() || 'USD',
     billing_cycle_start: new Date(
-      (subscription.current_period_start || Date.now() / 1000) * 1000
+      ((subscription as unknown as Record<string, number>).current_period_start ||
+        Date.now() / 1000) * 1000
     ).toISOString(),
     billing_cycle_end: new Date(
-      (subscription.current_period_end || Date.now() / 1000) * 1000
+      ((subscription as unknown as Record<string, number>).current_period_end ||
+        Date.now() / 1000) * 1000
     ).toISOString(),
   });
 

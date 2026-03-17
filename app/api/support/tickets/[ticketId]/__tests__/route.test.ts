@@ -103,7 +103,6 @@ describe('GET /api/support/tickets/[ticketId]', () => {
     ];
 
     // Mock ticket query
-    const _ticketCallIndex = { current: 0 };
     mockSupabaseFrom.mockImplementation((table: string) => {
       if (table === 'support_tickets') {
         return {

@@ -32,8 +32,6 @@ vi.mock('@/lib/api/utils', async () => {
   };
 });
 
-const _mockSupabaseSelect = vi.fn();
-const _mockSupabaseDelete = vi.fn();
 const mockSupabaseFrom = vi.fn();
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({

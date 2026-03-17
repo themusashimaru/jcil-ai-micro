@@ -178,7 +178,6 @@ describe('GET /api/admin/users/[userId]/conversations', () => {
     // With date filters the chain is: .select().eq().is().order().gte().lt() — but actually:
     // query = query.order(...) then query = query.gte(...) then query = query.lt(...)
     // So the chain is: select -> eq -> is -> order -> gte -> lt (each returns the builder)
-    const _chainable: Record<string, ReturnType<typeof vi.fn>> = {};
     const mockResult = { data: mockConversations, error: null };
 
     // Create a proxy-like chainable object where every method returns itself,

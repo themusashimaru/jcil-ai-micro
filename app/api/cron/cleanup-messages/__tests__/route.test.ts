@@ -45,27 +45,6 @@ function createAuthorizedRequest() {
   return createRequest({ authorization: `Bearer ${CRON_SECRET}` });
 }
 
-function _mockDeleteChain(result: { data: unknown[] | null; error: unknown }) {
-  return {
-    delete: vi.fn().mockReturnValue({
-      not: vi.fn().mockReturnValue({
-        lt: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(result),
-          }),
-        }),
-      }),
-      lt: vi.fn().mockReturnValue({
-        is: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(result),
-          }),
-        }),
-      }),
-    }),
-  };
-}
-
 // ========================================
 // TESTS
 // ========================================

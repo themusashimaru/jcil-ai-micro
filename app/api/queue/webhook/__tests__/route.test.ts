@@ -67,7 +67,7 @@ describe('POST /api/queue/webhook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Default: not production
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'test';
     mockSupabaseInsert.mockResolvedValue({ error: null });
   });
 
@@ -149,7 +149,7 @@ describe('POST /api/queue/webhook', () => {
 
   it('verifies signature in production', async () => {
     const origEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     mockVerifyWebhookSignature.mockResolvedValue(false);
 
     const request = createWebhookRequest({ type: 'chat' }, 'bad-sig');
@@ -157,12 +157,12 @@ describe('POST /api/queue/webhook', () => {
     expect(response.status).toBe(401);
     expect(mockVerifyWebhookSignature).toHaveBeenCalledWith('bad-sig', expect.any(String));
 
-    process.env.NODE_ENV = origEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = origEnv;
   });
 
   it('allows requests with valid signature in production', async () => {
     const origEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     mockVerifyWebhookSignature.mockResolvedValue(true);
     mockCreateAnthropicCompletion.mockResolvedValue({
       text: 'ok',
@@ -182,7 +182,7 @@ describe('POST /api/queue/webhook', () => {
     const response = await POST(request);
     expect(response.status).toBe(200);
 
-    process.env.NODE_ENV = origEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = origEnv;
   });
 
   it('returns 500 when processing throws an error', async () => {

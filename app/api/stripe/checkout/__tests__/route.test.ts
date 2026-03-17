@@ -125,7 +125,8 @@ describe('POST /api/stripe/checkout', () => {
 
     // Default: successResponse returns a proper NextResponse
     mockSuccessResponse.mockImplementation(
-      (data: unknown) => new Response(JSON.stringify({ ok: true, ...data }), { status: 200 })
+      (data: unknown) =>
+        new Response(JSON.stringify({ ok: true, ...(data as object) }), { status: 200 })
     );
 
     // Default: errors return proper responses

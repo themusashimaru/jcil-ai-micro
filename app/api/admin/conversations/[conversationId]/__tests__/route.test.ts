@@ -41,7 +41,6 @@ vi.mock('@/lib/api/utils', async () => {
 });
 
 // Mock Supabase createClient
-const _mockSelect = vi.fn();
 const mockFrom = vi.fn();
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({ from: mockFrom }),
@@ -136,7 +135,6 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
     ];
 
     // First call: conversations query
-    const _callCount = 0;
     mockFrom.mockImplementation((table: string) => {
       if (table === 'conversations') {
         return {

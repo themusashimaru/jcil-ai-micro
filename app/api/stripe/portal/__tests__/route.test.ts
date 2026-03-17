@@ -63,7 +63,7 @@ vi.mock('@/lib/validation/schemas', async () => {
 // ========================================
 
 function makeRequest(body?: unknown): NextRequest {
-  const init: RequestInit = {
+  const init: { method: string; headers: Record<string, string>; body?: string } = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   };
@@ -129,7 +129,8 @@ describe('POST /api/stripe/portal', () => {
 
     // Default: successResponse returns a proper Response
     mockSuccessResponse.mockImplementation(
-      (data: unknown) => new Response(JSON.stringify({ ok: true, ...data }), { status: 200 })
+      (data: unknown) =>
+        new Response(JSON.stringify({ ok: true, ...(data as object) }), { status: 200 })
     );
 
     // Default: errors return proper responses

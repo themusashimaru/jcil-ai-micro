@@ -376,7 +376,7 @@ describe('POST /api/folders', () => {
 
     expect(response.status).toBe(201);
     expect(insertedData).not.toBeNull();
-    expect((insertedData as Record<string, unknown>).position).toBe(6);
+    expect((insertedData as unknown as Record<string, unknown>).position).toBe(6);
     expect(json.ok).toBe(true);
   });
 });
