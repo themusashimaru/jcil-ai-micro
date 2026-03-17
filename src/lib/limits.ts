@@ -4,8 +4,10 @@
  * Tracks per-user token usage and enforces limits
  * Warns at 80%, hard stops at 100%
  *
+ * All users get Opus 4.6 — free users are token-capped, not model-capped.
+ *
  * Plan Configuration:
- * - free: 10,000 tokens ONE-TIME (trial, never resets - upgrade to continue)
+ * - free: 50,000 tokens ONE-TIME (trial, never resets - upgrade to continue)
  * - plus: $18/mo, 1,000,000 tokens/month (resets monthly)
  * - pro: $30/mo, 3,000,000 tokens/month (resets monthly)
  * - executive: $99/mo, 5,000,000 tokens/month (resets monthly)
@@ -21,20 +23,20 @@ const log = logger('Limits');
 
 // Plan limits (tokens per month)
 const TOKEN_LIMITS: Record<string, number> = {
-  free: 10_000,          // 10K tokens - free trial (~2-3 days)
-  plus: 1_000_000,       // 1M tokens
-  basic: 1_000_000,      // 1M tokens (legacy alias for plus)
-  pro: 3_000_000,        // 3M tokens
-  executive: 5_000_000,  // 5M tokens
+  free: 50_000, // 50K tokens - free trial with full Opus 4.6
+  plus: 1_000_000, // 1M tokens
+  basic: 1_000_000, // 1M tokens (legacy alias for plus)
+  pro: 3_000_000, // 3M tokens
+  executive: 5_000_000, // 5M tokens
 };
 
 // Image generation limits per plan (monthly)
 const IMAGE_LIMITS: Record<string, number> = {
-  free: 5,           // 5 images/month for free users
-  plus: 20,          // 20 images/month
-  basic: 20,         // 20 images/month (legacy alias)
-  pro: 50,           // 50 images/month
-  executive: 100,    // 100 images/month
+  free: 5, // 5 images/month for free users
+  plus: 20, // 20 images/month
+  basic: 20, // 20 images/month (legacy alias)
+  pro: 50, // 50 images/month
+  executive: 100, // 100 images/month
 };
 
 // Redis client (optional - graceful fallback if not configured)
@@ -108,8 +110,8 @@ export interface TokenUsageResult {
   used: number;
   limit: number;
   remaining: number;
-  warn: boolean;      // at 80%
-  stop: boolean;      // at 100%
+  warn: boolean; // at 80%
+  stop: boolean; // at 100%
   percentage: number;
 }
 
@@ -146,7 +148,7 @@ export async function incrementTokenUsage(
   const isFreeUser = planKey === 'free';
   const monthKey = getMonthKey();
   const key = isFreeUser
-    ? `tokens:${userId}:lifetime`  // Free: lifetime limit, never resets
+    ? `tokens:${userId}:lifetime` // Free: lifetime limit, never resets
     : `tokens:${userId}:${monthKey}`; // Paid: monthly reset
 
   try {
@@ -182,15 +184,16 @@ export async function incrementTokenUsage(
 /**
  * Get current token usage without incrementing
  */
-export async function getTokenUsage(userId: string, planKey: string = 'free'): Promise<TokenUsageResult> {
+export async function getTokenUsage(
+  userId: string,
+  planKey: string = 'free'
+): Promise<TokenUsageResult> {
   const limit = getTokenLimit(planKey);
 
   // Free users: lifetime key, Paid users: monthly key
   const isFreeUser = planKey === 'free';
   const monthKey = getMonthKey();
-  const key = isFreeUser
-    ? `tokens:${userId}:lifetime`
-    : `tokens:${userId}:${monthKey}`;
+  const key = isFreeUser ? `tokens:${userId}:lifetime` : `tokens:${userId}:${monthKey}`;
 
   try {
     const r = await getRedis();
@@ -241,7 +244,10 @@ export async function resetTokenUsage(userId: string): Promise<void> {
 /**
  * Format token limit warning message
  */
-export function getTokenLimitWarningMessage(usage: TokenUsageResult, isFreeUser: boolean = false): string | null {
+export function getTokenLimitWarningMessage(
+  usage: TokenUsageResult,
+  isFreeUser: boolean = false
+): string | null {
   if (usage.stop) {
     if (isFreeUser) {
       return `You've used your free trial tokens! 🎉 Get 50% OFF your first month on any plan - Plus ($9), Pro ($15), or Executive ($49). Upgrade now to keep chatting with unlimited AI assistance!`;

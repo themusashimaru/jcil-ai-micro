@@ -23,27 +23,42 @@ vi.mock('@/lib/logger', () => ({
 // AVAILABLE_MODELS
 // -------------------------------------------------------------------
 describe('AVAILABLE_MODELS', () => {
-  it('should have 2 models (haiku removed)', () => {
-    expect(AVAILABLE_MODELS).toHaveLength(2);
+  it('should have 3 models (opus, sonnet, haiku)', () => {
+    expect(AVAILABLE_MODELS).toHaveLength(3);
   });
 
-  it('should include sonnet and opus types', () => {
+  it('should include opus, sonnet, and haiku types', () => {
     const types = AVAILABLE_MODELS.map((m) => m.type);
-    expect(types).toContain('sonnet');
     expect(types).toContain('opus');
+    expect(types).toContain('sonnet');
+    expect(types).toContain('haiku');
   });
 
-  it('should have sonnet as recommended', () => {
-    const sonnet = AVAILABLE_MODELS.find((m) => m.type === 'sonnet');
-    expect(sonnet?.recommended).toBe(true);
+  it('should have opus as recommended', () => {
+    const opus = AVAILABLE_MODELS.find((m) => m.type === 'opus');
+    expect(opus?.recommended).toBe(true);
   });
 
   it('should all support vision', () => {
     AVAILABLE_MODELS.forEach((m) => expect(m.supportsVision).toBe(true));
   });
 
-  it('should all have 200K context window', () => {
-    AVAILABLE_MODELS.forEach((m) => expect(m.contextWindow).toBe(200000));
+  it('should have correct context windows', () => {
+    const opus = AVAILABLE_MODELS.find((m) => m.type === 'opus');
+    const sonnet = AVAILABLE_MODELS.find((m) => m.type === 'sonnet');
+    const haiku = AVAILABLE_MODELS.find((m) => m.type === 'haiku');
+    expect(opus?.contextWindow).toBe(1000000);
+    expect(sonnet?.contextWindow).toBe(1000000);
+    expect(haiku?.contextWindow).toBe(200000);
+  });
+
+  it('should have correct max output tokens', () => {
+    const opus = AVAILABLE_MODELS.find((m) => m.type === 'opus');
+    const sonnet = AVAILABLE_MODELS.find((m) => m.type === 'sonnet');
+    const haiku = AVAILABLE_MODELS.find((m) => m.type === 'haiku');
+    expect(opus?.maxOutput).toBe(128000);
+    expect(sonnet?.maxOutput).toBe(64000);
+    expect(haiku?.maxOutput).toBe(64000);
   });
 });
 
@@ -88,8 +103,8 @@ describe('ModelConfigManager', () => {
       expect(mgr.getModelByType('opus').id).toBe('claude-opus-4-6');
     });
 
-    it('should default to first model (sonnet) for unknown type', () => {
-      expect(mgr.getModelByType('unknown' as 'sonnet').id).toBe('claude-sonnet-4-6');
+    it('should default to first model (opus) for unknown type', () => {
+      expect(mgr.getModelByType('unknown' as 'sonnet').id).toBe('claude-opus-4-6');
     });
   });
 
@@ -187,11 +202,11 @@ describe('ModelConfigManager', () => {
       expect(opus?.badge).toBe('Most Capable');
     });
 
-    it('should mark sonnet as recommended', () => {
+    it('should mark opus as recommended', () => {
       const m = new ModelConfigManager();
       const options = m.getModelOptions();
-      const sonnet = options.find((o) => o.type === 'sonnet');
-      expect(sonnet?.recommended).toBe(true);
+      const opus = options.find((o) => o.type === 'opus');
+      expect(opus?.recommended).toBe(true);
     });
   });
 });

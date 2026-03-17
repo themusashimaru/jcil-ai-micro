@@ -16,7 +16,7 @@ import type { TokenUsageResult, ImageUsageResult } from './limits';
 
 describe('getTokenLimit', () => {
   it('returns correct limit for free tier', () => {
-    expect(getTokenLimit('free')).toBe(10_000);
+    expect(getTokenLimit('free')).toBe(50_000);
   });
 
   it('returns correct limit for plus tier', () => {
@@ -36,8 +36,8 @@ describe('getTokenLimit', () => {
   });
 
   it('returns free tier limit for unknown plans', () => {
-    expect(getTokenLimit('unknown')).toBe(10_000);
-    expect(getTokenLimit('')).toBe(10_000);
+    expect(getTokenLimit('unknown')).toBe(50_000);
+    expect(getTokenLimit('')).toBe(50_000);
   });
 });
 
@@ -127,8 +127,8 @@ describe('getTokenLimitWarningMessage', () => {
 
   it('returns free trial message for free users', () => {
     const usage: TokenUsageResult = {
-      used: 10_001,
-      limit: 10_000,
+      used: 50_001,
+      limit: 50_000,
       remaining: 0,
       warn: false,
       stop: true,
@@ -141,16 +141,16 @@ describe('getTokenLimitWarningMessage', () => {
 
   it('returns free trial warning for free users at 80%', () => {
     const usage: TokenUsageResult = {
-      used: 8_000,
-      limit: 10_000,
-      remaining: 2_000,
+      used: 40_000,
+      limit: 50_000,
+      remaining: 10_000,
       warn: true,
       stop: false,
       percentage: 80,
     };
     const message = getTokenLimitWarningMessage(usage, true);
     expect(message).toContain('almost out of free trial');
-    expect(message).toContain('2K remaining');
+    expect(message).toContain('10K remaining');
   });
 });
 

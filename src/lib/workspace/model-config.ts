@@ -29,31 +29,44 @@ export interface ModelConfig {
   recommended?: boolean;
 }
 
-// Available models - Claude 4.6 family (latest generation)
+// Available models - Claude 4.6/4.5 family (latest generation)
+// Pricing in cents per 1K tokens (e.g., 0.5 = $0.005/1K = $5/1M)
 export const AVAILABLE_MODELS: ModelConfig[] = [
-  {
-    id: 'claude-sonnet-4-6',
-    name: 'Claude Sonnet 4.6',
-    type: 'sonnet',
-    description: 'Best balance of speed and intelligence. Recommended for most coding tasks.',
-    contextWindow: 200000,
-    maxOutput: 16384,
-    costPer1kInput: 0.3,
-    costPer1kOutput: 1.5,
-    supportsExtendedThinking: true,
-    supportsVision: true,
-    recommended: true,
-  },
   {
     id: 'claude-opus-4-6',
     name: 'Claude Opus 4.6',
     type: 'opus',
     description: 'Most capable model. Best for complex reasoning and difficult problems.',
-    contextWindow: 200000,
-    maxOutput: 16384,
+    contextWindow: 1000000,
+    maxOutput: 128000,
     costPer1kInput: 0.5,
     costPer1kOutput: 2.5,
     supportsExtendedThinking: true,
+    supportsVision: true,
+    recommended: true,
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet 4.6',
+    type: 'sonnet',
+    description: 'Fast and intelligent. Great balance of speed and capability.',
+    contextWindow: 1000000,
+    maxOutput: 64000,
+    costPer1kInput: 0.3,
+    costPer1kOutput: 1.5,
+    supportsExtendedThinking: true,
+    supportsVision: true,
+  },
+  {
+    id: 'claude-haiku-4-5',
+    name: 'Claude Haiku 4.5',
+    type: 'haiku',
+    description: 'Fastest and most cost-effective. Good for simple tasks.',
+    contextWindow: 200000,
+    maxOutput: 64000,
+    costPer1kInput: 0.1,
+    costPer1kOutput: 0.5,
+    supportsExtendedThinking: false,
     supportsVision: true,
   },
 ];
@@ -67,13 +80,13 @@ export interface ModelPreferences {
   maxTokens: number;
 }
 
-// Default preferences
+// Default preferences — tuned for Opus 4.6 (1M context, 128K max output)
 export const DEFAULT_PREFERENCES: ModelPreferences = {
   defaultModel: 'claude-opus-4-6',
   extendedThinking: false,
   thinkingBudget: 10000,
   temperature: 0.7,
-  maxTokens: 16384,
+  maxTokens: 128000,
 };
 
 /**
@@ -108,7 +121,7 @@ export class ModelConfigManager {
    */
   getModelByType(type: ModelType): ModelConfig {
     const model = AVAILABLE_MODELS.find((m) => m.type === type);
-    return model || AVAILABLE_MODELS[0]; // Default to Sonnet
+    return model || AVAILABLE_MODELS[0]; // Default to Opus
   }
 
   /**
@@ -261,7 +274,7 @@ export function getModelConfigTools() {
     {
       name: 'model_select',
       description:
-        'Select an AI model for this session. Options: sonnet (recommended), opus (most capable), haiku (fastest)',
+        'Select an AI model for this session. Options: opus (recommended, most capable), sonnet (fast + smart), haiku (fastest, budget)',
       input_schema: {
         type: 'object' as const,
         properties: {

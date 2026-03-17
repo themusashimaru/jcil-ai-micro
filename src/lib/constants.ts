@@ -181,8 +181,8 @@ export const MESSAGE_LIMITS = {
 // ========================================
 
 export const TOKEN_LIMITS = {
-  /** Free tier - one-time trial */
-  FREE: 10_000,
+  /** Free tier - one-time trial (full Opus 4.6, token-capped) */
+  FREE: 50_000,
   /** Plus tier - monthly */
   PLUS: 1_000_000,
   /** Pro tier - monthly */

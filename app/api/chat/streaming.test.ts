@@ -15,7 +15,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 const mockGetDefaultChatModelId = vi.fn().mockReturnValue('claude-opus-4-6');
-const mockGetFreeTierModelId = vi.fn().mockReturnValue('claude-haiku-4-5');
+const mockGetFreeTierModelId = vi.fn().mockReturnValue('claude-opus-4-6');
 const mockGetDefaultModel = vi.fn();
 const mockIsProviderAvailable = vi.fn();
 const mockGetProviderAndModel = vi.fn();
@@ -165,19 +165,19 @@ describe('streaming', () => {
   // resolveProvider
   // =========================================================================
   describe('resolveProvider', () => {
-    it('returns Haiku for free users (no planKey)', () => {
+    it('returns Opus for all users (no planKey)', () => {
       const result = resolveProvider(undefined);
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-haiku-4-5');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
       expect(result.error).toBeUndefined();
     });
 
-    it('returns Haiku for explicit "free" planKey', () => {
+    it('returns Opus for explicit "free" planKey', () => {
       const result = resolveProvider(undefined, 'free');
-      expect(result.selectedModel).toBe('claude-haiku-4-5');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
 
-    it('returns Sonnet for paid users', () => {
+    it('returns Opus for paid users', () => {
       const result = resolveProvider(undefined, 'pro');
       expect(result.selectedProviderId).toBe('claude');
       expect(result.selectedModel).toBe('claude-opus-4-6');
