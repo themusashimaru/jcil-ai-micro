@@ -70,8 +70,7 @@ const TOOL_CATEGORIES = [
     tools: [
       { name: 'web_search', desc: 'Google search with real results' },
       { name: 'fetch_url', desc: 'HTTP fetch with HTML parsing' },
-      { name: 'capture_webpage', desc: 'Screenshot and PDF capture' },
-      { name: 'parallel_research', desc: 'Multi-source research agent' },
+      { name: 'browser_visit', desc: 'Full browser with screenshot and interaction' },
       { name: 'youtube_transcript', desc: 'Extract video transcripts' },
     ],
   },

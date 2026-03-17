@@ -52,10 +52,10 @@ const TOOL_COSTS: Record<string, number> = {
   browser_visit: 0.05,
   extract_pdf_url: 0.005,
   extract_table: 0.03,
-  parallel_research: 0.15,
+  // parallel_research removed — agent pattern replaced by skills
   create_and_run_tool: 0.25,
   transcribe_audio: 0.006,
-  create_spreadsheet: 0.001,
+  // create_spreadsheet removed — use excel_advanced
   http_request: 0.0001,
   generate_qr_code: 0.0001,
   transform_image: 0.001,
@@ -75,7 +75,7 @@ const TOOL_COSTS: Record<string, number> = {
   format_code: 0.0001,
   crypto_toolkit: 0.0001,
   zip_files: 0.0005,
-  capture_webpage: 0.005,
+  // capture_webpage removed — use browser_visit
   math_compute: 0.0001,
   image_metadata: 0.0001,
   search_index: 0.0002,

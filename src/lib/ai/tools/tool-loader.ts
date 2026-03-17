@@ -72,14 +72,14 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   fetch_url: () => import('./fetch-url'),
   run_code: () => import('./run-code'),
   analyze_image: () => import('./vision-analyze'),
-  parallel_research: () => import('./mini-agent'),
+  // parallel_research removed — agent pattern replaced by skills
   create_and_run_tool: () => import('./dynamic-tool'),
 
   // Web tools
   browser_visit: () => import('./browser-visit'),
-  screenshot: () => import('./screenshot-tool'),
+  // screenshot removed — use browser_visit action=screenshot
   desktop_sandbox: () => import('./desktop-sandbox-tool'),
-  capture_webpage: () => import('./web-capture-tool'),
+  // capture_webpage removed — redundant with browser_visit
   youtube_transcript: () => import('./youtube-transcript'),
   github: () => import('./github-tool'),
   http_request: () => import('./http-request-tool'),
@@ -102,7 +102,7 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   extract_pdf: () => import('./extract-pdf'),
   extract_table: () => import('./extract-table'),
   pdf_manipulate: () => import('./pdf-tool'),
-  create_spreadsheet: () => import('./spreadsheet-tool'),
+  // create_spreadsheet removed — use excel_advanced
   excel_advanced: () => import('./excel-tool'),
 
   // Media tools
@@ -182,12 +182,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeVisionAnalyze',
     availabilityExport: 'isVisionAnalyzeAvailable',
   },
-  parallel_research: {
-    importPath: './mini-agent',
-    toolExport: 'miniAgentTool',
-    executorExport: 'executeMiniAgent',
-    availabilityExport: 'isMiniAgentAvailable',
-  },
+  // parallel_research removed — agent pattern replaced by skills
   create_and_run_tool: {
     importPath: './dynamic-tool',
     toolExport: 'dynamicToolTool',
@@ -202,24 +197,14 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeBrowserVisitTool',
     availabilityExport: 'isBrowserVisitAvailable',
   },
-  screenshot: {
-    importPath: './screenshot-tool',
-    toolExport: 'screenshotTool',
-    executorExport: 'executeScreenshot',
-    availabilityExport: 'isScreenshotAvailable',
-  },
+  // screenshot removed — use browser_visit action=screenshot
   desktop_sandbox: {
     importPath: './desktop-sandbox-tool',
     toolExport: 'desktopSandboxTool',
     executorExport: 'executeDesktopSandbox',
     availabilityExport: 'isDesktopSandboxAvailable',
   },
-  capture_webpage: {
-    importPath: './web-capture-tool',
-    toolExport: 'webCaptureTool',
-    executorExport: 'executeWebCapture',
-    availabilityExport: 'isWebCaptureAvailable',
-  },
+  // capture_webpage removed — redundant with browser_visit
   youtube_transcript: {
     importPath: './youtube-transcript',
     toolExport: 'youtubeTranscriptTool',
@@ -322,12 +307,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executePDF',
     availabilityExport: 'isPDFAvailable',
   },
-  create_spreadsheet: {
-    importPath: './spreadsheet-tool',
-    toolExport: 'spreadsheetTool',
-    executorExport: 'executeSpreadsheet',
-    availabilityExport: 'isSpreadsheetAvailable',
-  },
+  // create_spreadsheet removed — use excel_advanced
   excel_advanced: {
     importPath: './excel-tool',
     toolExport: 'excelTool',

@@ -57,8 +57,8 @@ export { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } from './extr
 // Table Extraction
 export { extractTableTool, executeExtractTable, isExtractTableAvailable } from './extract-table';
 
-// Mini-Agent Orchestrator
-export { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } from './mini-agent';
+// Mini-Agent Orchestrator — removed from active tools, kept for backward compat
+// export { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } from './mini-agent';
 
 // Dynamic Tool Creation
 export {
@@ -84,8 +84,8 @@ export {
   getRepoSummaryForPrompt,
 } from './github-tool';
 
-// Screenshot Tool (Puppeteer)
-export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
+// Screenshot Tool — removed, use browser_visit with action=screenshot
+// export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
 
 // Chart/Data Visualization
 export { chartTool, executeChart, isChartAvailable } from './chart-tool';
