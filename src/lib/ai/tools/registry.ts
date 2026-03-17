@@ -63,8 +63,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'core',
     tier: 'core',
-    description: 'Web search via Brave/Google API (native Anthropic server tool)',
-    dependencies: ['Brave Search API'],
+    description: 'Web search via Anthropic native server tool (web_search_20260209)',
+    dependencies: ['Anthropic API'],
   },
   {
     name: 'fetch_url',
