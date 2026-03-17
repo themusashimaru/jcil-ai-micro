@@ -142,7 +142,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'web',
     tier: 'extended',
-    description: 'Make HTTP requests to APIs and webhooks',
+    description:
+      'Make HTTP requests to external APIs and webhooks (GET, POST, PUT, DELETE with auth)',
     dependencies: [],
   },
   {
@@ -319,7 +320,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'media',
     tier: 'extended',
-    description: 'Process audio/video files via FFmpeg',
+    description:
+      'Process audio/video via FFmpeg (convert, trim, effects). For transcription use transcribe_audio',
     dependencies: ['@ffmpeg/ffmpeg'],
   },
   {
@@ -355,7 +357,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'media',
     tier: 'specialist',
-    description: '3D graphics generation',
+    description: '3D mesh generation and export (OBJ, STL, GLTF formats)',
     dependencies: [],
   },
   {
@@ -364,7 +366,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'media',
     tier: 'specialist',
-    description: 'Computer vision analysis (Hough transforms)',
+    description:
+      'Computer vision: edge detection, Hough transforms, corner detection (pure TypeScript)',
     dependencies: [],
   },
   {
@@ -373,7 +376,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'media',
     tier: 'specialist',
-    description: 'Ray tracing renderer for 3D scenes',
+    description: 'Educational ray tracing: ray intersection tests and ASCII scene rendering',
     dependencies: [],
   },
 
@@ -557,8 +560,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     status: 'active',
     category: 'security',
     tier: 'specialist',
-    description: 'WCAG accessibility checking via axe-core',
-    dependencies: ['axe-core'],
+    description: 'WCAG accessibility checking via static HTML analysis and contrast calculation',
+    dependencies: [],
   },
 
   // =========================================================================
