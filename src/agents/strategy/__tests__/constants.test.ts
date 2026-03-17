@@ -73,8 +73,8 @@ describe('MODEL_CONFIGS', () => {
     expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBeGreaterThan(0);
   });
 
-  it('should have haiku at same cost as sonnet (legacy tier uses Sonnet 4.6)', () => {
-    expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBe(MODEL_CONFIGS.sonnet.costPerMillionInput);
+  it('should have haiku at same cost as opus (legacy tier uses Opus 4.6)', () => {
+    expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBe(MODEL_CONFIGS.opus.costPerMillionInput);
     expect(MODEL_CONFIGS.sonnet.costPerMillionInput).toBeLessThan(
       MODEL_CONFIGS.opus.costPerMillionInput
     );

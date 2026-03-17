@@ -82,7 +82,7 @@ export class TokenTracker {
   private usageHistory: TokenUsage[] = [];
   private startedAt: number;
 
-  constructor(sessionId: string, modelId: string = 'claude-sonnet-4-6') {
+  constructor(sessionId: string, modelId: string = 'claude-opus-4-6') {
     this.sessionId = sessionId;
     this.modelId = modelId;
     this.startedAt = Date.now();
@@ -121,7 +121,7 @@ export class TokenTracker {
    */
   calculateCost(usage: TokenUsage, modelId?: string): CostBreakdown {
     const model = modelId || this.modelId;
-    const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-6'];
+    const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-opus-4-6'];
 
     const inputCost = (usage.inputTokens / 1000) * pricing.inputPer1k;
     const outputCost = (usage.outputTokens / 1000) * pricing.outputPer1k;
@@ -171,7 +171,7 @@ export class TokenTracker {
     });
 
     // Calculate context usage
-    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-6'];
+    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-opus-4-6'];
     const totalTokensInContext = totals.totalInputTokens + totals.totalOutputTokens;
     const contextUsagePercent = Math.min(100, (totalTokensInContext / pricing.contextWindow) * 100);
 
@@ -194,7 +194,7 @@ export class TokenTracker {
     remaining: number;
   } {
     const stats = this.getSessionStats();
-    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-sonnet-4-6'];
+    const pricing = MODEL_PRICING[this.modelId] || MODEL_PRICING['claude-opus-4-6'];
     const used = stats.totalInputTokens + stats.totalOutputTokens;
 
     return {

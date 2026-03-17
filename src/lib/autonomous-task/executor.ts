@@ -39,7 +39,7 @@ export async function planTask(request: string, context: TaskContext): Promise<T
   log.debug('Planning task', { requestPreview: request.substring(0, 50) });
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 2048,
     system: `You are a task planner for an autonomous coding assistant.
 

@@ -475,7 +475,7 @@ export class AISecurityScanner {
   ): Promise<Vulnerability[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a senior security researcher specializing in application security.
 Analyze code for security vulnerabilities beyond simple pattern matching.
@@ -688,7 +688,7 @@ Report any security issues found.`,
   async generateFix(vuln: Vulnerability, fullCode: string): Promise<SecurityFix | null> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a security engineer. Generate a fix for the security vulnerability.
 

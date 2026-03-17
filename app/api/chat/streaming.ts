@@ -57,7 +57,7 @@ export interface StreamConfig {
 
 /**
  * Resolve the model and provider based on user selection and subscription tier.
- * Free users get Haiku 4.5 (cost-effective). Paid users get Sonnet 4.6.
+ * Free users get Haiku 4.5 (cost-effective). Paid users get Opus 4.6.
  */
 export function resolveProvider(
   provider: string | undefined,
@@ -67,7 +67,7 @@ export function resolveProvider(
   selectedProviderId: string;
   error?: Response;
 } {
-  // Free users get Haiku 4.5, paid users get Sonnet 4.6
+  // Free users get Haiku 4.5, paid users get Opus 4.6
   const isFreeUser = !userPlanKey || userPlanKey === 'free';
   let selectedModel = isFreeUser ? getFreeTierModelId() : getDefaultChatModelId();
   let selectedProviderId = 'claude';

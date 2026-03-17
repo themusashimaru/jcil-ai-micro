@@ -243,7 +243,7 @@ describe('VoiceCodingEngine', () => {
       );
       await engine.processVoiceInput('do something', makeContext());
       expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'claude-sonnet-4-6' })
+        expect.objectContaining({ model: 'claude-opus-4-6' })
       );
     });
 
@@ -422,7 +422,7 @@ describe('VoiceCodingEngine', () => {
       await engine.generateCodeFromDescription('a function that adds two numbers', makeContext());
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           max_tokens: 8192,
         })
       );

@@ -51,8 +51,8 @@ describe('AVAILABLE_MODELS', () => {
 // DEFAULT_PREFERENCES
 // -------------------------------------------------------------------
 describe('DEFAULT_PREFERENCES', () => {
-  it('should default to sonnet', () => {
-    expect(DEFAULT_PREFERENCES.defaultModel).toBe('claude-sonnet-4-6');
+  it('should default to opus', () => {
+    expect(DEFAULT_PREFERENCES.defaultModel).toBe('claude-opus-4-6');
   });
 
   it('should have extended thinking disabled', () => {
@@ -88,15 +88,15 @@ describe('ModelConfigManager', () => {
       expect(mgr.getModelByType('opus').id).toBe('claude-opus-4-6');
     });
 
-    it('should default to sonnet for unknown type', () => {
+    it('should default to first model (sonnet) for unknown type', () => {
       expect(mgr.getModelByType('unknown' as 'sonnet').id).toBe('claude-sonnet-4-6');
     });
   });
 
   describe('getCurrentModel', () => {
-    it('should return sonnet by default', () => {
+    it('should return opus by default', () => {
       const model = mgr.getCurrentModel();
-      expect(model.type).toBe('sonnet');
+      expect(model.type).toBe('opus');
     });
 
     it('should return session-specific model', () => {

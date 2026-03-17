@@ -246,7 +246,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-sonnet-4-6',
+        modelName: 'claude-opus-4-6',
         inputTokens: modelUsage.sonnet.tokens,
         outputTokens: 0,
         source: 'strategy',
@@ -258,7 +258,7 @@ async function storeResultAndUsage(
     trackingPromises.push(
       trackTokenUsage({
         userId,
-        modelName: 'claude-sonnet-4-6',
+        modelName: 'claude-opus-4-6',
         inputTokens: modelUsage.haiku.tokens,
         outputTokens: 0,
         source: 'strategy',

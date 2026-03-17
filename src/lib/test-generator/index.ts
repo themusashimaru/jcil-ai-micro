@@ -149,7 +149,7 @@ export class AITestGenerator {
   private async analyzeCode(code: string, filePath: string): Promise<CodeAnalysis> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a code analysis expert. Analyze the given code and extract its structure.
 
@@ -226,7 +226,7 @@ Return JSON:
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 16384,
         system: `You are a senior test engineer. Generate ${options.testType} tests using ${options.framework}.
 
@@ -306,7 +306,7 @@ Generate comprehensive tests covering all exported functions and classes.`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a test mocking expert. Generate mocks for the dependencies.
 
@@ -503,7 +503,7 @@ RSPEC GUIDE:
   ): Promise<GeneratedTest[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a QA expert specializing in edge cases. Generate tests for edge cases and boundary conditions.
 
@@ -553,7 +553,7 @@ Return JSON array of edge case tests.`,
   ): Promise<GeneratedTest[]> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a performance testing expert. Generate performance and load tests.
 

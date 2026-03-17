@@ -24,9 +24,9 @@ describe('Model IDs', () => {
     expect(CLAUDE_SONNET_46).toContain('sonnet');
   });
 
-  it('should have default Haiku constant mapped to sonnet', () => {
-    // CLAUDE_HAIKU_45 now maps to claude-sonnet-4-6 (Haiku removed)
-    expect(CLAUDE_HAIKU_45).toContain('sonnet');
+  it('should have default Haiku constant mapped to opus', () => {
+    // CLAUDE_HAIKU_45 now maps to claude-opus-4-6 (legacy tier uses Opus)
+    expect(CLAUDE_HAIKU_45).toContain('opus');
   });
 });
 
@@ -49,12 +49,12 @@ describe('MODEL_CONFIGS', () => {
     }
   });
 
-  it('should have opus as the most expensive and haiku same as sonnet (legacy)', () => {
+  it('should have opus as the most expensive and haiku same as opus (legacy)', () => {
     expect(MODEL_CONFIGS.opus.costPerMillionInput).toBeGreaterThan(
       MODEL_CONFIGS.sonnet.costPerMillionInput
     );
-    // Haiku tier now uses Sonnet 4.6, so pricing matches
-    expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBe(MODEL_CONFIGS.sonnet.costPerMillionInput);
+    // Haiku tier now uses Opus 4.6, so pricing matches
+    expect(MODEL_CONFIGS.haiku.costPerMillionInput).toBe(MODEL_CONFIGS.opus.costPerMillionInput);
   });
 
   it('should have positive maxTokens', () => {

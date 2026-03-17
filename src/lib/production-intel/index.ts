@@ -177,7 +177,7 @@ export class ProductionIntelligence {
     deployment: Deployment
   ): Promise<ProductionInsight | null> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 1024,
       messages: [
         {
@@ -273,7 +273,7 @@ Is there likely a correlation? Return JSON:
    */
   private async generatePredictions(context: ProductionContext): Promise<ProductionInsight[]> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 1500,
       messages: [
         {

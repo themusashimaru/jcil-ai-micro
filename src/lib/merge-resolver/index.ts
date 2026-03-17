@@ -212,7 +212,7 @@ export class SmartMergeResolver {
   ): Promise<ConflictAnalysis> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 2048,
         system: `You are a code merge expert. Analyze this merge conflict to understand the intent of both sides.
 
@@ -320,7 +320,7 @@ ${context.baseContent.substring(0, 2000)}...
     ) {
       try {
         const response = await this.anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           max_tokens: 4096,
           system: `You are a code merge expert. Combine both changes intelligently.
 

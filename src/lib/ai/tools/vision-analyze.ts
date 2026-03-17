@@ -219,7 +219,10 @@ async function analyzeImage(
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1;
   if (!anthropicKey) {
-    return { success: false, error: 'Anthropic API key is not configured — vision analysis unavailable' };
+    return {
+      success: false,
+      error: 'Anthropic API key is not configured — vision analysis unavailable',
+    };
   }
 
   try {
@@ -232,7 +235,7 @@ async function analyzeImage(
     log.info('Starting vision analysis', { analysisType, hasQuestion: !!question });
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6', // Use Sonnet for vision (good balance of quality/cost)
+      model: 'claude-opus-4-6', // Use Sonnet for vision (good balance of quality/cost)
       max_tokens: 4096,
       messages: [
         {

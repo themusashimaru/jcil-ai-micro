@@ -455,7 +455,7 @@ export const Component: React.FC = () => {
 
       await quickConvert('data:image/png;base64,abc');
 
-      expect(mockCreate.mock.calls[0][0].model).toBe('claude-sonnet-4-6');
+      expect(mockCreate.mock.calls[0][0].model).toBe('claude-opus-4-6');
     });
   });
 

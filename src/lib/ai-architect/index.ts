@@ -122,7 +122,7 @@ export class AIArchitect {
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are a software architect analyzing a codebase.
 
@@ -228,7 +228,7 @@ ${files
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a diagram expert. Generate a ${format} system architecture diagram.
 
@@ -294,7 +294,7 @@ Title: ${request.title || 'System Architecture'}`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a database diagram expert. Generate a ${format} ER diagram.
 
@@ -360,7 +360,7 @@ ${schemaFiles.map((f) => `--- ${f.path} ---\n${f.content}`).join('\n\n')}`,
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are an API documentation expert. Generate a ${format} API flow diagram.
 
@@ -417,7 +417,7 @@ ${apiFiles.map((f) => `--- ${f.path} ---\n${f.content.substring(0, 1500)}`).join
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a UI architecture expert. Generate a ${format} component dependency diagram.
 
@@ -476,7 +476,7 @@ ${componentFiles
   ): Promise<GeneratedDiagram> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a sequence diagram expert. Generate a ${format} sequence diagram.
 
@@ -556,7 +556,7 @@ ${files
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are an infrastructure architect. Generate a ${format} infrastructure diagram.
 
@@ -622,7 +622,7 @@ ${
 
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a UML expert. Generate a ${format} class diagram.
 
@@ -689,7 +689,7 @@ ${classFiles
   ): Promise<GeneratedDiagram> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a flowchart expert. Generate a ${format} flowchart.
 

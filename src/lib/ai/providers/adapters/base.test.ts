@@ -178,18 +178,18 @@ describe('BaseAIAdapter', () => {
   describe('getDefaultModelId', () => {
     it('should return the default model ID from the registry', () => {
       vi.mocked(getDefaultModel).mockReturnValue({
-        id: 'claude-sonnet-4-6',
-        name: 'Claude Sonnet 4.6',
+        id: 'claude-opus-4-6',
+        name: 'Claude Opus 4.6',
         contextWindow: 200000,
-        maxOutputTokens: 64000,
-        inputPricePer1M: 3,
-        outputPricePer1M: 15,
-        tier: 'standard',
+        maxOutputTokens: 32000,
+        inputPricePer1M: 5,
+        outputPricePer1M: 25,
+        tier: 'premium',
         isDefault: true,
       });
 
       const adapter = new TestAdapter();
-      expect(adapter.getDefaultModelId()).toBe('claude-sonnet-4-6');
+      expect(adapter.getDefaultModelId()).toBe('claude-opus-4-6');
       expect(getDefaultModel).toHaveBeenCalledWith('claude');
     });
 

@@ -62,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { prompt, mode = 'interactive', model = 'claude-sonnet-4-6' } = jsonResult.data;
+    const { prompt, mode = 'interactive', model = 'claude-opus-4-6' } = jsonResult.data;
 
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {

@@ -123,7 +123,9 @@ async function planAgents(
     throw new Error('Client not initialized');
   }
 
-  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
+  const client = new AnthropicClient({
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1,
+  });
 
   // If aspects provided, use them directly
   if (providedAspects && providedAspects.length >= MIN_AGENTS) {
@@ -160,7 +162,7 @@ Rules:
 - Return valid JSON only`;
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 2048,
     messages: [{ role: 'user', content: planPrompt }],
   });
@@ -228,7 +230,9 @@ async function executeAgent(plan: AgentPlan, depth: string): Promise<AgentResult
   }
 
   try {
-    const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
+    const client = new AnthropicClient({
+      apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1,
+    });
 
     // Determine search intensity based on depth
     const maxSearches = depth === 'quick' ? 2 : depth === 'thorough' ? 5 : 3;
@@ -250,7 +254,7 @@ Be concise but thorough. Prioritize recent, authoritative sources.`;
 
     // Each agent gets its own web search capability via the native server tool
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 1500,
       tools: [
         {
@@ -313,7 +317,9 @@ async function synthesizeResults(
     return { success: false, error: 'Client not available' };
   }
 
-  const client = new AnthropicClient({ apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1 });
+  const client = new AnthropicClient({
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1,
+  });
 
   const successfulResults = results.filter((r) => r.success);
   if (successfulResults.length === 0) {
@@ -353,7 +359,7 @@ Write a well-structured synthesis that directly answers the original question.`;
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 2048,
       messages: [{ role: 'user', content: synthesisPrompt }],
     });

@@ -36,9 +36,9 @@ describe('TokenTracker', () => {
     expect(session.modelId).toBe('claude-sonnet-4-6');
   });
 
-  it('should default to claude-sonnet-4-6', () => {
+  it('should default to claude-opus-4-6', () => {
     const tracker = new TokenTracker('s1');
-    expect(tracker.exportSession().modelId).toBe('claude-sonnet-4-6');
+    expect(tracker.exportSession().modelId).toBe('claude-opus-4-6');
   });
 
   it('should set model', () => {
@@ -139,15 +139,15 @@ describe('TokenTracker.calculateCost', () => {
     expect(cost.totalCost).toBe(9);
   });
 
-  it('should fall back to sonnet pricing for unknown model', () => {
+  it('should fall back to opus pricing for unknown model', () => {
     const tracker = new TokenTracker('s1', 'unknown-model');
     const cost = tracker.calculateCost({
       inputTokens: 1000,
       outputTokens: 1000,
       timestamp: Date.now(),
     });
-    expect(cost.inputCost).toBe(0.3);
-    expect(cost.outputCost).toBe(1.5);
+    expect(cost.inputCost).toBe(1.5);
+    expect(cost.outputCost).toBe(7.5);
   });
 
   it('should override model in calculation', () => {

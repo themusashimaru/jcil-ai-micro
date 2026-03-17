@@ -278,11 +278,11 @@ describe('multi-agent/types', () => {
         description: 'Handles UI work',
         capabilities: ['React', 'CSS'],
         systemPrompt: 'You are a frontend agent.',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         maxTokens: 4096,
       };
       expect(config.role).toBe('frontend');
-      expect(config.model).toBe('claude-sonnet-4-6');
+      expect(config.model).toBe('claude-opus-4-6');
       expect(config.temperature).toBeUndefined();
     });
 

@@ -104,7 +104,7 @@ vi.mock('./model-config', () => ({
   executeModelConfigTool: vi.fn(),
   isModelConfigTool: vi.fn(() => false),
   getModelConfigManager: vi.fn(() => ({
-    getCurrentModel: vi.fn(() => ({ id: 'claude-sonnet-4-6' })),
+    getCurrentModel: vi.fn(() => ({ id: 'claude-opus-4-6' })),
     getSessionPreferences: vi.fn(() => ({ maxTokens: 8192 })),
   })),
 }));

@@ -69,7 +69,7 @@ export interface ModelPreferences {
 
 // Default preferences
 export const DEFAULT_PREFERENCES: ModelPreferences = {
-  defaultModel: 'claude-sonnet-4-6',
+  defaultModel: 'claude-opus-4-6',
   extendedThinking: false,
   thinkingBudget: 10000,
   temperature: 0.7,
@@ -169,7 +169,7 @@ export class ModelConfigManager {
     if (enabled && model && !model.supportsExtendedThinking) {
       log.warn('Model does not support extended thinking', { model: model.name });
       // Auto-switch to Sonnet which supports it
-      prefs.defaultModel = 'claude-sonnet-4-6';
+      prefs.defaultModel = 'claude-opus-4-6';
     }
 
     prefs.extendedThinking = enabled;

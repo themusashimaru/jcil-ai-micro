@@ -14,7 +14,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-const mockGetDefaultChatModelId = vi.fn().mockReturnValue('claude-sonnet-4-6');
+const mockGetDefaultChatModelId = vi.fn().mockReturnValue('claude-opus-4-6');
 const mockGetFreeTierModelId = vi.fn().mockReturnValue('claude-haiku-4-5');
 const mockGetDefaultModel = vi.fn();
 const mockIsProviderAvailable = vi.fn();
@@ -180,7 +180,7 @@ describe('streaming', () => {
     it('returns Sonnet for paid users', () => {
       const result = resolveProvider(undefined, 'pro');
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-sonnet-4-6');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
       expect(result.error).toBeUndefined();
     });
 
@@ -201,7 +201,7 @@ describe('streaming', () => {
       expect(result.error).toBeInstanceOf(Response);
       // Falls back to tier-based default for the model/provider fields
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-sonnet-4-6');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
 
     it('ignores provider when getDefaultModel returns null', () => {
@@ -210,13 +210,13 @@ describe('streaming', () => {
 
       const result = resolveProvider('openai', 'plus');
       // Should stay on default Claude model
-      expect(result.selectedModel).toBe('claude-sonnet-4-6');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
 
     it('handles empty string provider as no provider', () => {
       const result = resolveProvider('', 'pro');
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-sonnet-4-6');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
       expect(result.error).toBeUndefined();
     });
   });
@@ -618,7 +618,7 @@ describe('streaming', () => {
         systemPrompt: 'system',
         tools: [],
         toolExecutor: vi.fn(),
-        selectedModel: 'claude-sonnet-4-6',
+        selectedModel: 'claude-opus-4-6',
         selectedProviderId: 'claude',
         provider: 'claude',
         maxTokens: 4096,
@@ -646,7 +646,7 @@ describe('streaming', () => {
       mockRouteChatWithTools.mockResolvedValue({
         stream,
         providerId: 'claude',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         usedFallback: false,
         usedTools: false,
         toolsUsed: [],
@@ -660,7 +660,7 @@ describe('streaming', () => {
       const response = await handleClaudeProvider(makeClaudeConfig());
       expect(response).toBeInstanceOf(Response);
       expect(response.headers.get('Content-Type')).toBe('text/plain; charset=utf-8');
-      expect(response.headers.get('X-Model-Used')).toBe('claude-sonnet-4-6');
+      expect(response.headers.get('X-Model-Used')).toBe('claude-opus-4-6');
       expect(response.headers.get('X-Provider')).toBe('claude');
       expect(response.headers.get('X-Used-Fallback')).toBe('false');
       expect(response.headers.get('X-Used-Tools')).toBe('false');
@@ -773,7 +773,7 @@ describe('streaming', () => {
       mockRouteChatWithTools.mockResolvedValue({
         stream,
         providerId: 'claude',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         usedFallback: false,
         usedTools: false,
         toolsUsed: [],
@@ -795,7 +795,7 @@ describe('streaming', () => {
       mockRouteChatWithTools.mockResolvedValue({
         stream,
         providerId: 'claude',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         usedFallback: false,
         usedTools: false,
         toolsUsed: [],

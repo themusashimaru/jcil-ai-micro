@@ -363,7 +363,7 @@ async function claudeBasedDetection(message: string): Promise<ImageRequestDetect
     const anthropic = new Anthropic({ apiKey });
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 256,
       messages: [
         {

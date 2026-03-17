@@ -217,7 +217,7 @@ describe('multi-agent/orchestrator', () => {
 
       expect(mockCreate).toHaveBeenCalledTimes(1);
       const callArgs = mockCreate.mock.calls[0][0];
-      expect(callArgs.model).toBe('claude-sonnet-4-6');
+      expect(callArgs.model).toBe('claude-opus-4-6');
       expect(callArgs.max_tokens).toBe(8192);
       expect(result.role).toBe('frontend');
       expect(result.content).toBe('Here is your component.');

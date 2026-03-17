@@ -74,7 +74,7 @@ function makeMockChatResult(overrides: Record<string, unknown> = {}) {
   return {
     text: 'Synthesized answer from AI',
     providerId: 'claude',
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     usedFallback: false,
     ...overrides,
   };
@@ -360,7 +360,7 @@ describe('BraveSearchService', () => {
       const result = await search({ query: 'what is TypeScript' });
 
       expect(result.answer).toBe('Synthesized answer from AI');
-      expect(result.model).toBe('claude-sonnet-4-6');
+      expect(result.model).toBe('claude-opus-4-6');
       expect(result.provider).toBe('claude');
       expect(result.usedFallback).toBe(false);
       expect(result.sources).toHaveLength(3);
@@ -506,7 +506,7 @@ describe('BraveSearchService', () => {
           }),
         ]),
         expect.objectContaining({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           maxTokens: 2048,
           temperature: 0.3,
         })

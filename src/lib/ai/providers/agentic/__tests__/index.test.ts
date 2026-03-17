@@ -59,7 +59,7 @@ function setupMocks(options = {}) {
   );
 
   mockGetAdapter.mockReturnValue({ chat: chatFn });
-  mockGetDefaultModel.mockReturnValue({ id: 'claude-sonnet-4-6' });
+  mockGetDefaultModel.mockReturnValue({ id: 'claude-opus-4-6' });
   mockGetProvider.mockReturnValue({
     capabilities: { toolCalling: true, vision: true, streaming: true },
   });
@@ -91,7 +91,7 @@ describe('agentic', () => {
       setupMocks();
       const result = await agentChat([{ role: 'user', content: 'Hi' }]);
       expect(result.provider).toBe('claude');
-      expect(result.model).toBe('claude-sonnet-4-6');
+      expect(result.model).toBe('claude-opus-4-6');
     });
 
     it('should return usage stats', async () => {

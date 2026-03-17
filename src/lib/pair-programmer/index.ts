@@ -108,7 +108,7 @@ export class AIPairProgrammer {
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6', // Fast model for real-time
+        model: 'claude-opus-4-6', // Fast model for real-time
         max_tokens: 1024,
         system: `You are an AI pair programmer watching code edits in real-time.
 Your role is to:
@@ -256,7 +256,7 @@ Return JSON array of suggestions with confidence scores.`,
    */
   async onFileOpen(context: PairProgrammerContext): Promise<PairProgrammerSuggestion[]> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 512,
       messages: [
         {
@@ -299,7 +299,7 @@ Return JSON array with max 3 most important suggestions.`,
     const currentLine = lines[context.cursorLine] || '';
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 256,
       system: `You are a code completion engine. Complete the code at the cursor.
 Rules:

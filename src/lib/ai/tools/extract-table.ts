@@ -153,7 +153,10 @@ async function extractTable(
 
   const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY_1;
   if (!anthropicKey) {
-    return { success: false, error: 'Anthropic API key is not configured — table extraction unavailable' };
+    return {
+      success: false,
+      error: 'Anthropic API key is not configured — table extraction unavailable',
+    };
   }
 
   try {
@@ -198,7 +201,7 @@ If there are multiple tables, extract each one and separate them clearly.
 If no tables are found, explain what you see instead.`;
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 4096,
       messages: [
         {

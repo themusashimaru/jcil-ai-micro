@@ -39,6 +39,7 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 5,
       outputPricePer1M: 25,
       tier: 'premium',
+      isDefault: true,
     },
     {
       id: 'claude-sonnet-4-6',
@@ -48,7 +49,6 @@ const CLAUDE_CONFIG: ProviderConfig = {
       inputPricePer1M: 3,
       outputPricePer1M: 15,
       tier: 'standard',
-      isDefault: true,
     },
     {
       id: 'claude-haiku-4-5',
@@ -379,7 +379,7 @@ export function getDefaultModel(providerId: ProviderId): ModelConfig | undefined
  * This is THE single source of truth for what model the main chat uses.
  */
 export function getDefaultChatModelId(): string {
-  return getDefaultModel('claude')?.id ?? 'claude-sonnet-4-6';
+  return getDefaultModel('claude')?.id ?? 'claude-opus-4-6';
 }
 
 /**

@@ -42,8 +42,8 @@ describe('multi-agent/agents', () => {
       expect(hasReact).toBe(true);
     });
 
-    it('should use the claude-sonnet-4-6 model', () => {
-      expect(frontendAgent.model).toBe('claude-sonnet-4-6');
+    it('should use the claude-opus-4-6 model', () => {
+      expect(frontendAgent.model).toBe('claude-opus-4-6');
     });
 
     it('should have maxTokens of 8192', () => {
@@ -75,8 +75,8 @@ describe('multi-agent/agents', () => {
       expect(hasAPI).toBe(true);
     });
 
-    it('should use the claude-sonnet-4-6 model', () => {
-      expect(backendAgent.model).toBe('claude-sonnet-4-6');
+    it('should use the claude-opus-4-6 model', () => {
+      expect(backendAgent.model).toBe('claude-opus-4-6');
     });
 
     it('should have maxTokens of 8192', () => {
@@ -113,8 +113,8 @@ describe('multi-agent/agents', () => {
       expect(hasUnit).toBe(true);
     });
 
-    it('should use the claude-sonnet-4-6 model', () => {
-      expect(testAgent.model).toBe('claude-sonnet-4-6');
+    it('should use the claude-opus-4-6 model', () => {
+      expect(testAgent.model).toBe('claude-opus-4-6');
     });
   });
 
@@ -140,8 +140,8 @@ describe('multi-agent/agents', () => {
       expect(hasSecurity).toBe(true);
     });
 
-    it('should use the claude-sonnet-4-6 model', () => {
-      expect(reviewerAgent.model).toBe('claude-sonnet-4-6');
+    it('should use the claude-opus-4-6 model', () => {
+      expect(reviewerAgent.model).toBe('claude-opus-4-6');
     });
   });
 

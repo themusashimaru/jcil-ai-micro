@@ -255,13 +255,13 @@ describe('ProviderService', () => {
 
     it('should mark configured providers as available', () => {
       mockCheckProviderAvailable.mockImplementation((id: string) => id === 'claude');
-      mockGetDefaultModel.mockReturnValue({ id: 'claude-sonnet-4-6' });
+      mockGetDefaultModel.mockReturnValue({ id: 'claude-opus-4-6' });
       const svc = new ProviderService();
       const statuses = svc.getProviderStatuses();
       const claudeStatus = statuses.find((s) => s.providerId === 'claude');
       expect(claudeStatus?.configured).toBe(true);
       expect(claudeStatus?.available).toBe(true);
-      expect(claudeStatus?.defaultModel).toBe('claude-sonnet-4-6');
+      expect(claudeStatus?.defaultModel).toBe('claude-opus-4-6');
     });
 
     it('should set defaultModel to null when provider is not configured', () => {

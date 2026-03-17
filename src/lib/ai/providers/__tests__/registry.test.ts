@@ -155,10 +155,10 @@ describe('Claude provider configuration', () => {
     expect(PROVIDERS.claude.models.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('should have claude-sonnet-4-6 as default model', () => {
+  it('should have claude-opus-4-6 as default model', () => {
     const defaultModel = PROVIDERS.claude.models.find((m) => m.isDefault);
     expect(defaultModel).toBeDefined();
-    expect(defaultModel!.id).toBe('claude-sonnet-4-6');
+    expect(defaultModel!.id).toBe('claude-opus-4-6');
   });
 });
 
@@ -602,7 +602,7 @@ describe('getDefaultModel', () => {
   it('should return the model marked as isDefault for Claude', () => {
     const model = getDefaultModel('claude');
     expect(model).toBeDefined();
-    expect(model!.id).toBe('claude-sonnet-4-6');
+    expect(model!.id).toBe('claude-opus-4-6');
     expect(model!.isDefault).toBe(true);
   });
 
@@ -643,7 +643,7 @@ describe('getDefaultModel', () => {
 describe('getDefaultChatModelId', () => {
   it('should return the default Claude model ID', () => {
     const id = getDefaultChatModelId();
-    expect(id).toBe('claude-sonnet-4-6');
+    expect(id).toBe('claude-opus-4-6');
   });
 
   it('should return a string', () => {
@@ -758,10 +758,10 @@ describe('getProvidersByTier', () => {
     expect(premiumIds).toContain('openai');
   });
 
-  it('should place Claude in standard tier (default model is standard)', () => {
+  it('should place Claude in premium tier (default model is opus/premium)', () => {
     const result = getProvidersByTier();
-    const standardIds = result.standard.map((p) => p.id);
-    expect(standardIds).toContain('claude');
+    const premiumIds = result.premium.map((p) => p.id);
+    expect(premiumIds).toContain('claude');
   });
 
   it('should place xAI in budget tier (default model is budget)', () => {

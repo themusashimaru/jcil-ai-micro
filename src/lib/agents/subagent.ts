@@ -62,9 +62,9 @@ export interface SubagentContext {
 // ============================================================================
 
 const MODEL_MAP: Record<SubagentModel, string> = {
-  sonnet: 'claude-sonnet-4-6',
+  sonnet: 'claude-opus-4-6',
   opus: 'claude-opus-4-6',
-  haiku: 'claude-sonnet-4-6', // All models use Sonnet 4.6
+  haiku: 'claude-opus-4-6', // Haiku tier now maps to Opus 4.6
 };
 
 // ============================================================================
