@@ -48,7 +48,7 @@ export async function analyzeImage(imageBase64: string, context?: string): Promi
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6', // Fast vision model
+      model: 'claude-opus-4-6', // Fast vision model
       max_tokens: 500,
       messages: [
         {
@@ -120,7 +120,7 @@ Write a precise edit prompt that will transform this image according to the user
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 300,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt,
@@ -164,7 +164,7 @@ export async function verifyGenerationResult(
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 200,
       messages: [
         {
@@ -238,7 +238,7 @@ Rules:
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 300,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt,
@@ -291,7 +291,7 @@ Generate a visual that would work well as a slide background or supporting image
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 300,
       messages: [{ role: 'user', content: userMessage }],
       system: systemPrompt,

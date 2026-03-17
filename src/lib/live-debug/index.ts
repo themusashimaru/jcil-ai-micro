@@ -242,7 +242,7 @@ Return a JSON object with:
    */
   async explainError(error: RuntimeError): Promise<string> {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 512,
       messages: [
         {
@@ -286,7 +286,7 @@ Use simple language, avoid jargon.`,
     }>
   > {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       max_tokens: 1500,
       messages: [
         {

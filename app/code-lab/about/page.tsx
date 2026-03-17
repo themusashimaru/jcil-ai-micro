@@ -950,7 +950,7 @@ Deploy version $1 to staging:
             {/* Provider Cards */}
             <div className="space-y-4">
               {[
-                { name: 'Anthropic (Claude)', model: 'claude-sonnet-4-6', color: 'amber' },
+                { name: 'Anthropic (Claude)', model: 'claude-opus-4-6', color: 'amber' },
                 { name: 'OpenAI', model: 'gpt-4o', color: 'green' },
                 { name: 'Google (Gemini)', model: 'gemini-2.0-flash', color: 'blue' },
                 { name: 'xAI (Grok)', model: 'grok-3', color: 'slate' },

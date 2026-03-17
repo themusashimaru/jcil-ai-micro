@@ -395,7 +395,7 @@ export class CodingAgent {
   constructor(config: AgentConfig) {
     this.anthropic = new Anthropic();
     this.config = {
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       maxIterations: 20,
       autoApprove: false,
       ...config,

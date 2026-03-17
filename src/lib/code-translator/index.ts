@@ -258,7 +258,7 @@ export class CodeTranslator {
   ): Promise<TranslatedFile> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 16384,
         system: `You are an expert polyglot programmer. Translate code from ${request.sourceLanguage} to ${request.targetLanguage}.
 

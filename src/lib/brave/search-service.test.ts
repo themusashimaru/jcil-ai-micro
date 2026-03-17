@@ -69,7 +69,7 @@ function createMockChatResult(overrides: Record<string, unknown> = {}) {
   return {
     text: 'Synthesized answer from AI',
     providerId: 'anthropic',
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     usedFallback: false,
     ...overrides,
   };
@@ -527,7 +527,7 @@ describe('Brave Search Service', () => {
       expect(mockCompleteChat).toHaveBeenCalledWith(
         expect.any(Array),
         expect.objectContaining({
-          model: 'claude-sonnet-4-6',
+          model: 'claude-opus-4-6',
           maxTokens: 2048,
           temperature: 0.3,
         })

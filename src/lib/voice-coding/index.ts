@@ -261,7 +261,7 @@ export class VoiceCodingEngine {
   ): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a voice-to-code AI assistant. Convert natural language commands into code.
 
@@ -359,7 +359,7 @@ Generate the appropriate code or action.`,
   ): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         system: `You are an expert programmer. Generate production-ready code from natural language descriptions.
 
@@ -413,7 +413,7 @@ Return ONLY the code, no explanations.`,
   async fixError(errorMessage: string, context: VoiceContext): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         system: `You are a debugging expert. Fix the code error and return the corrected code.
 
@@ -477,7 +477,7 @@ Fix this error.`,
   async explainCode(code: string, specificQuestion?: string): Promise<VoiceCodeResult> {
     try {
       const response = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 2048,
         system: `You are a patient coding teacher. Explain code clearly and concisely.
 Keep explanations brief but informative - suitable for text-to-speech.

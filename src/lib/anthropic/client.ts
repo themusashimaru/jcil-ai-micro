@@ -1207,15 +1207,15 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 // MODEL CONSTANTS
 // ========================================
 
-// All calls use Sonnet 4.6 — consistent quality across the board
+// All calls use Opus 4.6 — maximum capability for paid users
 // See: https://docs.anthropic.com/en/docs/about-claude/models
-export const CLAUDE_SONNET = 'claude-sonnet-4-6';
+export const CLAUDE_SONNET = 'claude-opus-4-6';
 
 /** @deprecated Use CLAUDE_SONNET instead. Kept for backward compatibility. */
 export const CLAUDE_HAIKU = CLAUDE_SONNET;
 
 /**
- * Model selection — always returns Sonnet 4.6.
+ * Model selection — always returns Opus 4.6.
  * Kept for API compatibility with callers that pass options.
  */
 export function selectClaudeModel(

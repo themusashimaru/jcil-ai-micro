@@ -107,21 +107,19 @@ describe('system-prompt', () => {
       expect(prompt).toContain(todayFormatted);
     });
 
-    it('should include capabilities section', () => {
+    it('should include tools section', () => {
       const prompt = buildBaseSystemPrompt();
-      expect(prompt).toContain('CAPABILITIES');
+      expect(prompt).toContain('TOOLS');
     });
 
-    it('should include tool descriptions', () => {
+    it('should include style section', () => {
       const prompt = buildBaseSystemPrompt();
-      expect(prompt).toContain('web_search');
-      expect(prompt).toContain('fetch_url');
-      expect(prompt).toContain('run_code');
+      expect(prompt).toContain('STYLE');
     });
 
-    it('should include document generation instructions', () => {
+    it('should include faith and values section', () => {
       const prompt = buildBaseSystemPrompt();
-      expect(prompt).toContain('DOCUMENT GENERATION');
+      expect(prompt).toContain('FAITH & VALUES');
     });
 
     it('should return a non-empty string', () => {
@@ -134,7 +132,7 @@ describe('system-prompt', () => {
     it('should include base prompt when no contexts provided', () => {
       const result = buildFullSystemPrompt({});
       expect(result).toContain('JCIL AI');
-      expect(result).toContain('CAPABILITIES');
+      expect(result).toContain('TOOLS');
     });
 
     it('should append custom instructions', () => {

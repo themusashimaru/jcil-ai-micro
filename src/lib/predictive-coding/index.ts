@@ -67,7 +67,7 @@ export async function predictNextActions(context: PredictiveContext): Promise<Pr
 
   // Generate predictions with Claude
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 2048,
     system: `You are a predictive coding assistant. Your job is to anticipate what the developer needs BEFORE they ask.
 
@@ -209,7 +209,7 @@ export async function generateProactiveSuggestions(
   }>
 > {
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     max_tokens: 1500,
     messages: [
       {

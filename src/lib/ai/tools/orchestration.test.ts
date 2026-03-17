@@ -579,17 +579,16 @@ describe('getOrchestrationPrompt', () => {
     expect(prompt).toContain('</tool_orchestration>');
   });
 
-  it('includes all tool chain names', () => {
+  it('includes scheduled-action format', () => {
     const prompt = getOrchestrationPrompt();
-    for (const chain of TOOL_CHAINS) {
-      expect(prompt).toContain(chain.name);
-    }
+    expect(prompt).toContain('scheduled-action');
+    expect(prompt).toContain('scheduledFor');
   });
 
-  it('includes chaining rules', () => {
+  it('includes scheduling instructions', () => {
     const prompt = getOrchestrationPrompt();
-    expect(prompt).toContain('CHAINING RULES');
-    expect(prompt).toContain('PARALLEL EXECUTION');
+    expect(prompt).toContain('schedule');
+    expect(prompt).toContain('confirmation');
   });
 
   it('does not include artifacts section when no store provided', () => {

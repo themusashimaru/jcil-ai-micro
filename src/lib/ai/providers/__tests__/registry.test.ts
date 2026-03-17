@@ -758,10 +758,10 @@ describe('getProvidersByTier', () => {
     expect(premiumIds).toContain('openai');
   });
 
-  it('should place Claude in standard tier (default model is standard)', () => {
+  it('should place Claude in premium tier (default model is opus/premium)', () => {
     const result = getProvidersByTier();
-    const standardIds = result.standard.map((p) => p.id);
-    expect(standardIds).toContain('claude');
+    const premiumIds = result.premium.map((p) => p.id);
+    expect(premiumIds).toContain('claude');
   });
 
   it('should place xAI in budget tier (default model is budget)', () => {

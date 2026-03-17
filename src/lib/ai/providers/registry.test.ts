@@ -337,8 +337,8 @@ describe('getProvidersByTier', () => {
 
     // OpenAI default is premium tier
     expect(tiers.premium.map((p) => p.id)).toContain('openai');
-    // Claude default is standard tier
-    expect(tiers.standard.map((p) => p.id)).toContain('claude');
+    // Claude default is premium tier (opus)
+    expect(tiers.premium.map((p) => p.id)).toContain('claude');
     // xAI default is budget tier
     expect(tiers.budget.map((p) => p.id)).toContain('xai');
   });

@@ -59,7 +59,7 @@ function setupMocks(options = {}) {
   );
 
   mockGetAdapter.mockReturnValue({ chat: chatFn });
-  mockGetDefaultModel.mockReturnValue({ id: 'claude-sonnet-4-6' });
+  mockGetDefaultModel.mockReturnValue({ id: 'claude-opus-4-6' });
   mockGetProvider.mockReturnValue({
     capabilities: { toolCalling: true, vision: true, streaming: true },
   });

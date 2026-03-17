@@ -88,8 +88,8 @@ describe('ModelConfigManager', () => {
       expect(mgr.getModelByType('opus').id).toBe('claude-opus-4-6');
     });
 
-    it('should default to opus for unknown type', () => {
-      expect(mgr.getModelByType('unknown' as 'sonnet').id).toBe('claude-opus-4-6');
+    it('should default to first model (sonnet) for unknown type', () => {
+      expect(mgr.getModelByType('unknown' as 'sonnet').id).toBe('claude-sonnet-4-6');
     });
   });
 

@@ -48,7 +48,7 @@ vi.mock('@supabase/supabase-js', () => ({
 function makeTextResponse(text: string, extras?: Record<string, unknown>) {
   return {
     content: [{ type: 'text', text }],
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     usage: { input_tokens: 10, output_tokens: 20 },
     stop_reason: 'end_turn',
     ...extras,
@@ -68,7 +68,7 @@ function makeToolUseResponse(
   content.push({ type: 'tool_use', id: toolId, name: toolName, input: toolInput });
   return {
     content,
-    model: 'claude-sonnet-4-6',
+    model: 'claude-opus-4-6',
     usage: { input_tokens: 10, output_tokens: 20 },
     stop_reason: 'tool_use',
   };
@@ -100,7 +100,7 @@ describe('Anthropic Client — Exports & Constants', () => {
 
   it('exports CLAUDE_SONNET constant with correct model id', async () => {
     const { CLAUDE_SONNET } = await import('./client');
-    expect(CLAUDE_SONNET).toBe('claude-sonnet-4-6');
+    expect(CLAUDE_SONNET).toBe('claude-opus-4-6');
   });
 
   it('exports isAnthropicConfigured as a function', async () => {
@@ -452,7 +452,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
     const { createAnthropicCompletion } = await import('./client');
     await createAnthropicCompletion({
       messages: [{ role: 'user', content: 'test' }],
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       maxTokens: 8192,
       temperature: 0.5,
       systemPrompt: 'Be helpful.',
@@ -460,7 +460,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 8192,
         temperature: 0.5,
       })
@@ -478,7 +478,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-opus-4-6',
         max_tokens: 4096,
         temperature: 0.7,
       })
@@ -492,7 +492,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
         { type: 'text', text: 'Part 1' },
         { type: 'text', text: 'Part 2' },
       ],
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
@@ -1095,7 +1095,7 @@ describe('Anthropic Client — createClaudeChat', () => {
       forceModel: 'sonnet',
     });
 
-    expect(result.model).toBe('claude-sonnet-4-6');
+    expect(result.model).toBe('claude-opus-4-6');
   });
 
   it('extracts last user message content for model selection', async () => {
@@ -1381,7 +1381,7 @@ describe('Anthropic Client — createClaudeStreamingChat', () => {
       forceModel: 'sonnet',
     });
 
-    expect(result.model).toBe('claude-sonnet-4-6');
+    expect(result.model).toBe('claude-opus-4-6');
   });
 
   it('handles rate limit errors in stream with user-friendly message', async () => {
@@ -1495,7 +1495,7 @@ describe('Anthropic Client — Edge Cases', () => {
         { type: 'thinking', thinking: 'internal thought' }, // non-text block
         { type: 'text', text: 'World' },
       ],
-      model: 'claude-sonnet-4-6',
+      model: 'claude-opus-4-6',
       usage: { input_tokens: 10, output_tokens: 20 },
     });
 
