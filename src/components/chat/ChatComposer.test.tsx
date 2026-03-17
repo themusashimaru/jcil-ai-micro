@@ -98,65 +98,48 @@ vi.mock('./useFileUpload', () => ({
   useFileUpload: mockUseFileUpload,
 }));
 
-vi.mock('./CreativeButton', () => ({
-  CreativeButton: ({
-    disabled,
-    onSelect,
+vi.mock('./ComposerCreativeModals', () => ({
+  ComposerCreativeModals: ({
+    showCreateImageModal,
+    showEditImageModal,
+    showGalleryModal,
+    onCloseCreateImage,
+    onCloseEditImage,
+    onCloseGallery,
   }: {
-    disabled: boolean;
-    onSelect: (mode: string) => void;
+    showCreateImageModal: boolean;
+    showEditImageModal: boolean;
+    showGalleryModal: boolean;
+    onCloseCreateImage: () => void;
+    onCloseEditImage: () => void;
+    onCloseGallery: () => void;
+    onReusePrompt?: (prompt: string) => void;
+    conversationId?: string;
+    onImageGenerated?: unknown;
   }) => (
-    <button
-      data-testid="creative-button"
-      disabled={disabled}
-      onClick={() => onSelect('create-image')}
-    >
-      Creative
-    </button>
-  ),
-  CreateImageModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? (
-      <div data-testid="create-image-modal">
-        <button data-testid="close-create-image" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    ) : null,
-  EditImageModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? (
-      <div data-testid="edit-image-modal">
-        <button data-testid="close-edit-image" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    ) : null,
-  GenerationGallery: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? (
-      <div data-testid="gallery-modal">
-        <button data-testid="close-gallery" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    ) : null,
-}));
-
-vi.mock('./ComposerAgentsMenu', () => ({
-  ComposerAgentsMenu: ({
-    isOpen,
-    onToggle,
-    onClose: _onClose,
-    activeAgent,
-  }: {
-    isOpen: boolean;
-    onToggle: () => void;
-    onClose: () => void;
-    activeAgent: string | null;
-  }) => (
-    <div data-testid="agents-menu" data-open={isOpen} data-agent={activeAgent || ''}>
-      <button data-testid="agents-toggle" onClick={onToggle}>
-        Agents
-      </button>
-    </div>
+    <>
+      {showCreateImageModal && (
+        <div data-testid="create-image-modal">
+          <button data-testid="close-create-image" onClick={onCloseCreateImage}>
+            Close
+          </button>
+        </div>
+      )}
+      {showEditImageModal && (
+        <div data-testid="edit-image-modal">
+          <button data-testid="close-edit-image" onClick={onCloseEditImage}>
+            Close
+          </button>
+        </div>
+      )}
+      {showGalleryModal && (
+        <div data-testid="gallery-modal">
+          <button data-testid="close-gallery" onClick={onCloseGallery}>
+            Close
+          </button>
+        </div>
+      )}
+    </>
   ),
 }));
 
@@ -298,9 +281,9 @@ describe('ChatComposer', () => {
       expect(attachButton).toBeInTheDocument();
     });
 
-    it('should render the creative button', () => {
+    it('should render the create image button', () => {
       renderComposer();
-      expect(screen.getByTestId('creative-button')).toBeInTheDocument();
+      expect(screen.getByLabelText('Create image')).toBeInTheDocument();
     });
 
     it('should render attachment preview', () => {
@@ -342,9 +325,9 @@ describe('ChatComposer', () => {
       expect(attachButton).toBeDisabled();
     });
 
-    it('should disable the creative button when streaming', () => {
+    it('should disable the create image button when streaming', () => {
       renderComposer({ isStreaming: true });
-      expect(screen.getByTestId('creative-button')).toBeDisabled();
+      expect(screen.getByLabelText('Create image')).toBeDisabled();
     });
 
     it('should disable send button when no content and not streaming', () => {
@@ -700,25 +683,6 @@ describe('ChatComposer', () => {
     });
   });
 
-  // ── Agent menu ──────────────────────────────────────────────────────────
-
-  describe('Agents menu', () => {
-    it('should render agents menu when onAgentSelect is provided', () => {
-      renderComposer({ onAgentSelect: vi.fn() });
-      expect(screen.getByTestId('agents-menu')).toBeInTheDocument();
-    });
-
-    it('should not render agents menu when onAgentSelect is not provided', () => {
-      renderComposer();
-      expect(screen.queryByTestId('agents-menu')).not.toBeInTheDocument();
-    });
-
-    it('should pass activeAgent to agents menu', () => {
-      renderComposer({ onAgentSelect: vi.fn(), activeAgent: 'research' });
-      expect(screen.getByTestId('agents-menu')).toHaveAttribute('data-agent', 'research');
-    });
-  });
-
   // ── File error display ──────────────────────────────────────────────────
 
   describe('File error display', () => {
@@ -945,20 +909,7 @@ describe('ChatComposer', () => {
   // ── Theme integration ───────────────────────────────────────────────────
 
   describe('Theme integration', () => {
-    it('should use useTheme hook', () => {
-      renderComposer();
-      expect(mockUseTheme).toHaveBeenCalled();
-    });
-
-    it('should apply light theme styling to send button when canSend and light theme', async () => {
-      mockUseTheme.mockReturnValue({
-        theme: 'light',
-        setTheme: vi.fn(),
-        toggleTheme: vi.fn(),
-        isLoading: false,
-        isAdmin: false,
-        availableThemes: ['light'],
-      });
+    it('should apply theme-aware styling to send button when canSend', async () => {
       renderComposer();
       const textarea = document.querySelector('textarea')!;
 
@@ -967,41 +918,8 @@ describe('ChatComposer', () => {
       });
 
       const sendButton = screen.getByLabelText('Send message');
-      expect(sendButton.style.color).toBe('white');
-    });
-
-    it('should apply dark theme styling to send button when canSend and dark theme', async () => {
-      mockUseTheme.mockReturnValue({
-        theme: 'dark',
-        setTheme: vi.fn(),
-        toggleTheme: vi.fn(),
-        isLoading: false,
-        isAdmin: false,
-        availableThemes: ['dark'],
-      });
-      renderComposer();
-      const textarea = document.querySelector('textarea')!;
-
-      await act(async () => {
-        fireEvent.change(textarea, { target: { value: 'test' } });
-      });
-
-      const sendButton = screen.getByLabelText('Send message');
-      expect(sendButton.style.color).toBe('black');
-    });
-  });
-
-  // ── Placeholder text (tool modes & agents) ─────────────────────────────
-
-  describe('Placeholder text based on mode and agent', () => {
-    it('should show strategy placeholder when strategy agent is active', () => {
-      renderComposer({ activeAgent: 'strategy', onAgentSelect: vi.fn() });
-      expect(screen.getByText('Describe your complex problem or decision...')).toBeInTheDocument();
-    });
-
-    it('should show deep-research placeholder when deep-research agent is active', () => {
-      renderComposer({ activeAgent: 'deep-research', onAgentSelect: vi.fn() });
-      expect(screen.getByText('What topic do you want to research in depth?')).toBeInTheDocument();
+      // Uses CSS custom property for theme-aware contrast color
+      expect(sendButton.style.color).toBe('var(--primary-contrast, white)');
     });
   });
 

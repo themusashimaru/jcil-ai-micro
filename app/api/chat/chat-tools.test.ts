@@ -115,8 +115,8 @@ import { selectToolTiers, loadAllTools, createToolExecutor } from './chat-tools'
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('selectToolTiers', () => {
-  it('returns core and extended for plain messages', () => {
-    expect(selectToolTiers('Hello, how are you?')).toEqual(['core', 'extended']);
+  it('returns all tiers for plain messages', () => {
+    expect(selectToolTiers('Hello, how are you?')).toEqual(['core', 'extended', 'specialist']);
   });
 
   it('adds specialist tier for DNA keyword', () => {
@@ -181,10 +181,9 @@ describe('selectToolTiers', () => {
     expect(selectToolTiers('Encrypt')).toContain('specialist');
   });
 
-  it('does not add specialist tier for unrelated messages', () => {
+  it('returns all tiers even for unrelated messages', () => {
     const tiers = selectToolTiers('Write me a poem about cats');
-    expect(tiers).not.toContain('specialist');
-    expect(tiers).toEqual(['core', 'extended']);
+    expect(tiers).toEqual(['core', 'extended', 'specialist']);
   });
 
   it('always includes core and extended even when specialist is added', () => {

@@ -348,11 +348,11 @@ describe('extractArtifacts', () => {
     });
   });
 
-  // create_spreadsheet / excel_advanced
-  describe('create_spreadsheet / excel_advanced', () => {
-    it('produces a file artifact for create_spreadsheet with URL', () => {
+  // excel_advanced (create_spreadsheet consolidated to excel_advanced)
+  describe('excel_advanced', () => {
+    it('produces a file artifact for excel_advanced with URL', () => {
       const result = extractArtifacts(
-        'create_spreadsheet',
+        'excel_advanced',
         'https://storage.example.com/file.xlsx',
         false
       );
@@ -372,7 +372,7 @@ describe('extractArtifacts', () => {
     });
 
     it('returns empty when no URL or data URL present', () => {
-      const result = extractArtifacts('create_spreadsheet', 'done', false);
+      const result = extractArtifacts('excel_advanced', 'done', false);
       expect(result).toHaveLength(0);
     });
   });
@@ -398,14 +398,13 @@ describe('extractArtifacts', () => {
     }
   });
 
-  // Screenshot tools
-  describe('screenshot / capture_webpage', () => {
-    for (const tool of ['screenshot', 'capture_webpage']) {
-      it(`${tool}: extracts screenshot URLs`, () => {
+  // Screenshot tools — screenshot, capture_webpage, and browser_visit all fall to default case
+  describe('screenshot tools (consolidated, use default URL extraction)', () => {
+    for (const tool of ['browser_visit', 'screenshot', 'capture_webpage']) {
+      it(`${tool}: falls through to default URL extraction`, () => {
         const result = extractArtifacts(tool, 'https://storage.com/screenshot.png', false);
         expect(result).toHaveLength(1);
-        expect(result[0].type).toBe('image');
-        expect(result[0].label).toBe('Screenshot');
+        expect(result[0].type).toBe('url');
       });
 
       it(`${tool}: returns empty when no URLs`, () => {
@@ -414,9 +413,9 @@ describe('extractArtifacts', () => {
     }
   });
 
-  // Research tools
-  describe('research tools (web_search, parallel_research, fetch_url)', () => {
-    for (const tool of ['web_search', 'parallel_research', 'fetch_url']) {
+  // Research tools — parallel_research consolidated to web_search
+  describe('research tools (web_search, fetch_url)', () => {
+    for (const tool of ['web_search', 'fetch_url']) {
       it(`${tool}: extracts text artifact when content > 100 chars`, () => {
         const content = 'a'.repeat(101);
         const result = extractArtifacts(tool, content, false);
@@ -695,15 +694,19 @@ describe('partitionParallelCalls', () => {
   it('correctly classifies all known producer tools', () => {
     const producers = [
       'web_search',
-      'parallel_research',
       'fetch_url',
       'run_code',
       'create_chart',
-      'screenshot',
+      'browser_visit',
       'extract_pdf',
       'extract_table',
       'analyze_image',
+      'analyze_text_nlp',
       'sql_query',
+      'ocr_extract_text',
+      'audio_transcribe',
+      'generate_qr_code',
+      'generate_barcode',
     ];
     const calls = producers.map((name, i) => tc(String(i), name));
     calls.push(tc('99', 'create_document')); // one consumer
@@ -717,7 +720,7 @@ describe('partitionParallelCalls', () => {
     const consumers = [
       'create_presentation',
       'create_document',
-      'create_spreadsheet',
+      'excel_advanced',
       'pdf_manipulate',
       'transform_image',
     ];

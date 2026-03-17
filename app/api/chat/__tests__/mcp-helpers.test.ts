@@ -51,9 +51,9 @@ describe('DEFAULT_MCP_SERVERS', () => {
     expect(pg).toBeDefined();
   });
 
-  it('all servers are disabled by default', () => {
+  it('all servers are enabled by default', () => {
     for (const server of DEFAULT_MCP_SERVERS) {
-      expect(server.enabled).toBe(false);
+      expect(server.enabled).toBe(true);
     }
   });
 });
@@ -66,8 +66,8 @@ describe('getUserServers', () => {
     for (const server of DEFAULT_MCP_SERVERS) {
       const state = servers.get(server.id);
       expect(state).toBeDefined();
-      expect(state!.enabled).toBe(false);
-      expect(state!.status).toBe('stopped');
+      expect(state!.enabled).toBe(server.enabled);
+      expect(state!.status).toBe(server.enabled ? 'available' : 'stopped');
       expect(state!.tools).toEqual([]);
     }
   });
@@ -127,6 +127,14 @@ describe('ensureServerRunning', () => {
   });
 
   it('returns error when server is not enabled', async () => {
+    // Explicitly disable the server for this test (servers are enabled by default now)
+    const servers = getUserServers('user-ensure-1');
+    servers.set('filesystem', {
+      enabled: false,
+      status: 'stopped',
+      tools: [],
+    });
+
     const result = await ensureServerRunning('filesystem', 'user-ensure-1');
 
     expect(result.success).toBe(false);

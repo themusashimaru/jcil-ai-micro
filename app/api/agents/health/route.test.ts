@@ -356,18 +356,16 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
   // --------------------------------------------------------------------------
 
   describe('Code Agent health check', () => {
-    it('should report code agent as disabled when not enabled', async () => {
+    it('should return unhealthy (503) when code agent is disabled (only agent)', async () => {
       setupAdminAuth();
       setupHealthyInfrastructure();
       setupHealthyAgents();
       mockIsCodeAgentEnabled.mockReturnValue(false);
 
       const response = await importAndCallGET();
-      const body = await response.json();
 
-      const codeAgent = body.data.agents.find((a: { name: string }) => a.name === 'Code Agent');
-      expect(codeAgent.enabled).toBe(false);
-      expect(codeAgent.available).toBe(false);
+      // With only one agent and it disabled, availableCount = 0 → unhealthy → 503
+      expect(response.status).toBe(503);
     });
 
     it('should report detection as not working when detection functions fail', async () => {
@@ -384,7 +382,7 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       expect(codeAgent.detectionWorking).toBe(false);
     });
 
-    it('should handle code agent throwing an error', async () => {
+    it('should return unhealthy (503) when code agent throws an error (only agent)', async () => {
       setupAdminAuth();
       setupHealthyInfrastructure();
       setupHealthyAgents();
@@ -393,12 +391,9 @@ describe('Agents Health Check API - GET /api/agents/health', () => {
       });
 
       const response = await importAndCallGET();
-      const body = await response.json();
 
-      const codeAgent = body.data.agents.find((a: { name: string }) => a.name === 'Code Agent');
-      expect(codeAgent.enabled).toBe(false);
-      expect(codeAgent.available).toBe(false);
-      expect(codeAgent.error).toBe('Code agent config error');
+      // With only one agent and it erroring, availableCount = 0 → unhealthy → 503
+      expect(response.status).toBe(503);
     });
   });
 
