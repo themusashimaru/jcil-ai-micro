@@ -1,8 +1,8 @@
 # JCIL AI Micro — Project Status (Ground Truth)
 
-**Last Updated:** 2026-03-06
-**Updated By:** Tool orchestration layer, parallel_research real web search, integrity fixes.
-**Branch:** `claude/composio-google-auth-JaUC5`
+**Last Updated:** 2026-03-17
+**Updated By:** Agent-to-skills migration, tool consolidation, auto-enable all capabilities.
+**Branch:** `claude/audit-model-versions-Nhn85`
 
 > This document reflects verified, measured values only. No aspirational claims.
 > Previous versions of this file contained inaccurate metrics. This is the corrected baseline.
@@ -11,49 +11,55 @@
 
 ## Current State Summary
 
-| Metric                         | Verified Value                                                                                       | Target                 | Status                      |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------- | --------------------------- |
-| **Test Coverage (lines)**      | 41.25% (was 15.05%)                                                                                  | 60%                    | Major progress — Phase 2.6  |
-| **Test Coverage (statements)** | 41.25% (was 15.05%)                                                                                  | 60%                    | Major progress — Phase 2.6  |
-| **Test Coverage (branches)**   | 80.71% (was 62.55%)                                                                                  | 60%                    | Target exceeded             |
-| **API Routes Tested**          | ~40% (was 8.5%)                                                                                      | 90%                    | Improving                   |
-| **Real Tool Implementations**  | 51/51 (100%). 46 independent computation + 5 AI-powered. Orchestration layer with artifact tracking. | All active tools real  | **TARGET MET**              |
-| **ARIA Attributes**            | 409+ (was 0)                                                                                         | WCAG 2.1 AA            | Major progress — Phase 2.4  |
-| **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                     | 0 static inline styles | Complete — Phase 2.4.8      |
-| **Largest Route File**         | 1,435 lines (code-lab/chat/route.ts, decomposed from 2,478). documents/generate at 1,217 lines.      | <500 lines             | Further decomp possible     |
-| **Production Dependencies**    | 75 (was 77, was 115, was 152)                                                                        | <50                    | 51% reduction — Phase 3.1.8 |
-| **Tool Files (total)**         | 54 (was 58, deleted 4 stubs)                                                                         | Lazy-loaded            | Lazy loading implemented    |
-| **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)                    | All major sections     | Complete — Phase 2.5        |
-| **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                                            | 100%                   | 68 routes migrated — 3.5.2  |
-| **Auth Guard Coverage**        | 46 route files use requireUser/requireAdmin/optionalUser. 0 remain with raw auth.                    | 100%                   | **100% complete**           |
-| **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                                         | Clean                  | Complete — DC.1-DC.4        |
-| **TypeScript Errors**          | 0 (verified 2026-02-28)                                                                              | 0                      | Passing                     |
-| **Build Status**               | Passing (verified 2026-02-28)                                                                        | Passing                | Passing                     |
-| **Lint Warnings**              | 0 (all resolved 2026-03-06)                                                                          | 0                      | **TARGET MET**              |
+| Metric                         | Verified Value                                                                                         | Target                 | Status                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ | ---------------------- | --------------------------- |
+| **Test Coverage (lines)**      | 41.25% (was 15.05%)                                                                                    | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (statements)** | 41.25% (was 15.05%)                                                                                    | 60%                    | Major progress — Phase 2.6  |
+| **Test Coverage (branches)**   | 80.71% (was 62.55%)                                                                                    | 60%                    | Target exceeded             |
+| **API Routes Tested**          | ~40% (was 8.5%)                                                                                        | 90%                    | Improving                   |
+| **Real Tool Implementations**  | 52/52 active (100%). Consolidated from 56 — removed 4 redundant tools. All tools auto-loaded for Opus. | All active tools real  | **TARGET MET**              |
+| **ARIA Attributes**            | 409+ (was 0)                                                                                           | WCAG 2.1 AA            | Major progress — Phase 2.4  |
+| **Inline Styles**              | 155 (was 554, 72% reduction). All remaining are dynamic/computed runtime values.                       | 0 static inline styles | Complete — Phase 2.4.8      |
+| **Largest Route File**         | 1,435 lines (code-lab/chat/route.ts, decomposed from 2,478). documents/generate at 1,217 lines.        | <500 lines             | Further decomp possible     |
+| **Production Dependencies**    | 75 (was 77, was 115, was 152)                                                                          | <50                    | 51% reduction — Phase 3.1.8 |
+| **Tool Files (total)**         | 54 (was 58, deleted 4 stubs)                                                                           | Lazy-loaded            | Lazy loading implemented    |
+| **Error Boundaries**           | 6 (chat sidebar, thread, composer, CodeLab, code-lab/error.tsx, global-error.tsx)                      | All major sections     | Complete — Phase 2.5        |
+| **API Routes Standardized**    | 113/129 use standard helpers (was 45/129)                                                              | 100%                   | 68 routes migrated — 3.5.2  |
+| **Auth Guard Coverage**        | 46 route files use requireUser/requireAdmin/optionalUser. 0 remain with raw auth.                      | 100%                   | **100% complete**           |
+| **Documentation Files**        | 24 active (was 51). 27 stale files archived to docs/archive/                                           | Clean                  | Complete — DC.1-DC.4        |
+| **TypeScript Errors**          | 0 (verified 2026-02-28)                                                                                | 0                      | Passing                     |
+| **Build Status**               | Passing (verified 2026-02-28)                                                                          | Passing                | Passing                     |
+| **Lint Warnings**              | 0 (all resolved 2026-03-06)                                                                            | 0                      | **TARGET MET**              |
 
 ---
 
 ## What Actually Works (Verified)
 
-### Real Tool Implementations (51/51 in registry — see `tools/registry.ts`)
+### Real Tool Implementations (52/52 in registry — see `tools/registry.ts`)
 
 | Tool           | File                                  | What It Does                                      |
 | -------------- | ------------------------------------- | ------------------------------------------------- |
 | Web Search     | `tools/web-search.ts`                 | Native Anthropic server tool (web search)         |
 | Fetch URL      | `tools/fetch-url.ts`                  | Real HTTP fetch + HTML parsing                    |
 | Code Execution | `tools/run-code.ts`                   | Real E2B sandboxed code execution                 |
-| Web Capture    | `tools/web-capture-tool.ts`           | Puppeteer screenshots and PDFs                    |
-| 47 more tools  | See `tools/registry.ts` for full list | Various categories: code, data, media, scientific |
+| Browser Visit  | `tools/browser-visit.ts`              | Full browser with screenshot + interaction        |
+| 48 more tools  | See `tools/registry.ts` for full list | Various categories: code, data, media, scientific |
 
-**All 51 tools have real implementations. Zero stubs.** _(2026-03-03)_
+**All 52 tools have real implementations. Zero stubs.** _(2026-03-17)_
 
-**Tool Orchestration Layer** _(2026-03-06)_:
+**Agent → Skills Migration** _(2026-03-17)_:
 
-- Artifact tracking across tool calls (URLs, files, data flow between tools)
-- Parallel tool execution (independent tools run simultaneously)
-- 10 known tool chain patterns (Research→Charts→Presentation, etc.)
-- `parallel_research` now uses REAL Anthropic native web search per agent
-- System prompt enrichment teaches Claude to chain tools automatically
+- Strategy Agent system deprecated — UI buttons removed, API returns 410
+- 6 skills created: forensic-intake, deep-research, deep-strategy, research, code-architect, security-audit
+- Skills give Opus direct tool access instead of orchestrating scout sub-agents
+- All tool tiers always loaded (no keyword gating) — Opus decides what to use
+- All MCP servers auto-enabled (filesystem, github, puppeteer, postgres) — start on demand
+
+**Tool Consolidation** _(2026-03-17)_:
+
+- Removed: screenshot (→ browser_visit), capture_webpage (→ browser_visit), create_spreadsheet (→ excel_advanced), parallel_research (→ skills)
+- Tool orchestration layer with artifact tracking and chain patterns still active
+- Rate limits added for all expensive auto-enabled tools
 
 ### Security (Solid Foundation)
 
