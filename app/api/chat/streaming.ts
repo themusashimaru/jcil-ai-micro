@@ -53,6 +53,8 @@ export interface StreamConfig {
   request: Request;
   /** BYOK: User's own API key for the selected provider (if configured) */
   userApiKey?: string;
+  /** Remaining chat messages in current rate limit window */
+  rateLimitRemaining?: number;
 }
 
 /**
@@ -278,7 +280,11 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
             );
 
             incrementTokenUsage(userId, userPlanKey, totalTokens).catch((err: unknown) =>
-              log.warn('Token increment failed (non-Claude)', { userId, tokens: totalTokens, error: err instanceof Error ? err.message : String(err) })
+              log.warn('Token increment failed (non-Claude)', {
+                userId,
+                tokens: totalTokens,
+                error: err instanceof Error ? err.message : String(err),
+              })
             );
           } else if (chunk.type === 'error' && chunk.error) {
             log.error('Adapter stream error', {
@@ -361,17 +367,20 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
 
   const finalStream = nonClaudeStream.pipeThrough(wrappedStream);
 
-  return new Response(finalStream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'X-Model-Used': selectedModel,
-      'X-Provider': selectedProviderId,
-      'X-Used-Fallback': 'false',
-      'X-Used-Tools': 'false',
-      'X-Tools-Used': 'none',
-    },
-  });
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Transfer-Encoding': 'chunked',
+    'X-Model-Used': selectedModel,
+    'X-Provider': selectedProviderId,
+    'X-Used-Fallback': 'false',
+    'X-Used-Tools': 'false',
+    'X-Tools-Used': 'none',
+  };
+  if (config.rateLimitRemaining !== undefined) {
+    headers['X-RateLimit-Remaining'] = String(config.rateLimitRemaining);
+  }
+
+  return new Response(finalStream, { headers });
 }
 
 /**
@@ -428,7 +437,11 @@ export async function handleClaudeProvider(
       );
 
       incrementTokenUsage(userId, userPlanKey, totalTokens).catch((err: unknown) =>
-        log.warn('Token increment failed', { userId, tokens: totalTokens, error: err instanceof Error ? err.message : String(err) })
+        log.warn('Token increment failed', {
+          userId,
+          tokens: totalTokens,
+          error: err instanceof Error ? err.message : String(err),
+        })
       );
     },
   };
@@ -511,15 +524,18 @@ export async function handleClaudeProvider(
 
   const finalStream = routeResult.stream.pipeThrough(wrappedStream);
 
-  return new Response(finalStream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Transfer-Encoding': 'chunked',
-      'X-Model-Used': routeResult.model,
-      'X-Provider': routeResult.providerId,
-      'X-Used-Fallback': routeResult.usedFallback ? 'true' : 'false',
-      'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
-      'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
-    },
-  });
+  const claudeHeaders: Record<string, string> = {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Transfer-Encoding': 'chunked',
+    'X-Model-Used': routeResult.model,
+    'X-Provider': routeResult.providerId,
+    'X-Used-Fallback': routeResult.usedFallback ? 'true' : 'false',
+    'X-Used-Tools': routeResult.usedTools ? 'true' : 'false',
+    'X-Tools-Used': routeResult.toolsUsed.join(',') || 'none',
+  };
+  if (config.rateLimitRemaining !== undefined) {
+    claudeHeaders['X-RateLimit-Remaining'] = String(config.rateLimitRemaining);
+  }
+
+  return new Response(finalStream, { headers: claudeHeaders });
 }

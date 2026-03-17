@@ -174,7 +174,10 @@ export async function POST(request: NextRequest) {
       memoryContext = memoryResult.value.contextString;
       log.debug('Loaded user memory', { userId });
     } else if (memoryResult.status === 'rejected') {
-      log.warn('Failed to load user memory', { userId, error: (memoryResult.reason as Error).message });
+      log.warn('Failed to load user memory', {
+        userId,
+        error: (memoryResult.reason as Error).message,
+      });
       contextFailures.push('saved memory');
     }
 
@@ -182,7 +185,10 @@ export async function POST(request: NextRequest) {
       learningContext = learningResult.value.contextString;
       log.debug('Loaded user learning', { userId });
     } else if (learningResult.status === 'rejected') {
-      log.warn('Failed to load user learning', { userId, error: (learningResult.reason as Error).message });
+      log.warn('Failed to load user learning', {
+        userId,
+        error: (learningResult.reason as Error).message,
+      });
       contextFailures.push('learned preferences');
     }
 
@@ -190,20 +196,28 @@ export async function POST(request: NextRequest) {
       documentContext = docResult.value.contextString;
       log.debug('Found relevant documents', { userId });
     } else if (docResult.status === 'rejected') {
-      log.warn('Failed to search user documents', { userId, error: (docResult.reason as Error).message });
+      log.warn('Failed to search user documents', {
+        userId,
+        error: (docResult.reason as Error).message,
+      });
       contextFailures.push('uploaded documents');
     }
 
     // Fire-and-forget: observe message for learning signals
     if (lastUserMsgText) {
       observeAndLearn(userId, lastUserMsgText).catch((err: unknown) =>
-        log.error('observeAndLearn failed', { userId, error: err instanceof Error ? err.message : String(err) })
+        log.error('observeAndLearn failed', {
+          userId,
+          error: err instanceof Error ? err.message : String(err),
+        })
       );
     }
 
     // ── Rate Limiting & Quota ──
+    let rateLimitRemaining: number | undefined;
     if (!isAdmin) {
       const rateLimit = await checkChatRateLimit(userId, true);
+      rateLimitRemaining = rateLimit.remaining;
       if (!rateLimit.allowed) {
         return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {
           error: 'Rate limit exceeded',
@@ -453,6 +467,7 @@ export async function POST(request: NextRequest) {
       requestStartTime,
       request,
       userApiKey,
+      rateLimitRemaining,
     };
 
     // All providers (Claude + BYOK non-Claude) go through the full chat router
