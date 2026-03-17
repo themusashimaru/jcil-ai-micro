@@ -57,8 +57,7 @@ export { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } from './extr
 // Table Extraction
 export { extractTableTool, executeExtractTable, isExtractTableAvailable } from './extract-table';
 
-// Mini-Agent Orchestrator — removed from active tools, kept for backward compat
-// export { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } from './mini-agent';
+// Mini-Agent Orchestrator — removed (agent pattern replaced by skills)
 
 // Dynamic Tool Creation
 export {
@@ -84,8 +83,7 @@ export {
   getRepoSummaryForPrompt,
 } from './github-tool';
 
-// Screenshot Tool — removed, use browser_visit with action=screenshot
-// export { screenshotTool, executeScreenshot, isScreenshotAvailable } from './screenshot-tool';
+// Screenshot Tool — removed (use browser_visit with action=screenshot)
 
 // Chart/Data Visualization
 export { chartTool, executeChart, isChartAvailable } from './chart-tool';
@@ -302,13 +300,10 @@ async function initializeTools() {
     await import('./extract-pdf');
   const { extractTableTool, executeExtractTable, isExtractTableAvailable } =
     await import('./extract-table');
-  const { miniAgentTool, executeMiniAgent, isMiniAgentAvailable } = await import('./mini-agent');
   const { dynamicToolTool, executeDynamicTool, isDynamicToolAvailable } =
     await import('./dynamic-tool');
   const { youtubeTranscriptTool, executeYouTubeTranscript, isYouTubeTranscriptAvailable } =
     await import('./youtube-transcript');
-  const { screenshotTool, executeScreenshot, isScreenshotAvailable } =
-    await import('./screenshot-tool');
   const { chartTool, executeChart, isChartAvailable } = await import('./chart-tool');
   const { documentTool, executeDocument, isDocumentAvailable } = await import('./document-tool');
   const { audioTranscribeTool, executeAudioTranscribe, isAudioTranscribeAvailable } =
@@ -421,7 +416,6 @@ async function initializeTools() {
       executor: executeExtractTable,
       checkAvailability: isExtractTableAvailable,
     },
-    { tool: miniAgentTool, executor: executeMiniAgent, checkAvailability: isMiniAgentAvailable },
     {
       tool: dynamicToolTool,
       executor: executeDynamicTool,
@@ -432,7 +426,6 @@ async function initializeTools() {
       executor: executeYouTubeTranscript,
       checkAvailability: isYouTubeTranscriptAvailable,
     },
-    { tool: screenshotTool, executor: executeScreenshot, checkAvailability: isScreenshotAvailable },
     { tool: chartTool, executor: executeChart, checkAvailability: isChartAvailable },
     { tool: documentTool, executor: executeDocument, checkAvailability: isDocumentAvailable },
     {

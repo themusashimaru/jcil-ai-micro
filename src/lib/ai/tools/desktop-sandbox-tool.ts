@@ -44,7 +44,7 @@ export const desktopSandboxTool: UnifiedTool = {
   name: 'desktop_sandbox',
   description: `Interact with a full virtual Linux desktop. Use this when:
 - You need to interact with a graphical application or website in a real browser
-- You need to take high-fidelity screenshots of web pages (better than screenshot tool)
+- You need to take high-fidelity screenshots of web pages or desktop applications
 - You need to fill complex forms, navigate multi-page flows, or interact with JavaScript-heavy apps
 - You need to open and interact with desktop applications
 - The user wants visual proof of what a website looks like

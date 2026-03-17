@@ -20,7 +20,7 @@ const mockGetAvailableProviderIds = vi.fn().mockReturnValue(['claude', 'openai']
 vi.mock('@/lib/ai/providers/registry', () => ({
   getDefaultModel: (...args: unknown[]) => mockGetDefaultModel(...args),
   getDefaultChatModelId: () => mockGetDefaultChatModelId(),
-  getFreeTierModelId: () => 'claude-haiku-4-5',
+  getFreeTierModelId: () => 'claude-opus-4-6',
   isProviderAvailable: (...args: unknown[]) => mockIsProviderAvailable(...args),
   getProviderAndModel: (...args: unknown[]) => mockGetProviderAndModel(...args),
   getAvailableProviderIds: () => mockGetAvailableProviderIds(),
@@ -75,20 +75,20 @@ describe('streaming', () => {
   });
 
   describe('resolveProvider', () => {
-    it('should default to Haiku for free users (no planKey)', () => {
+    it('should default to Opus for all users (no planKey)', () => {
       const result = resolveProvider(undefined);
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-haiku-4-5');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
       expect(result.error).toBeUndefined();
     });
 
-    it('should default to Haiku for explicit free tier', () => {
+    it('should default to Opus for explicit free tier', () => {
       const result = resolveProvider(undefined, 'free');
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-haiku-4-5');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
 
-    it('should use Sonnet for paid users', () => {
+    it('should use Opus for paid users', () => {
       const result = resolveProvider(undefined, 'plus');
       expect(result.selectedProviderId).toBe('claude');
       expect(result.selectedModel).toBe('claude-opus-4-6');

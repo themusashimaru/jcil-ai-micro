@@ -383,10 +383,11 @@ export function getDefaultChatModelId(): string {
 }
 
 /**
- * Get the model ID for free-tier users (Haiku 4.5 — cost-effective)
+ * Get the model ID for free-tier users.
+ * All users get Opus 4.6 — we're all-in on the best model.
  */
 export function getFreeTierModelId(): string {
-  return 'claude-haiku-4-5';
+  return 'claude-opus-4-6';
 }
 
 /**

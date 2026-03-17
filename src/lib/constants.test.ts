@@ -128,7 +128,7 @@ describe('Application Constants', () => {
     });
 
     it('should have reasonable free tier', () => {
-      expect(TOKEN_LIMITS.FREE).toBe(10_000);
+      expect(TOKEN_LIMITS.FREE).toBe(50_000);
     });
   });
 

@@ -290,8 +290,8 @@ describe('getDefaultChatModelId', () => {
 });
 
 describe('getFreeTierModelId', () => {
-  it('should return the Haiku model ID', () => {
-    expect(getFreeTierModelId()).toBe('claude-haiku-4-5');
+  it('should return Opus 4.6 (all users get the best model)', () => {
+    expect(getFreeTierModelId()).toBe('claude-opus-4-6');
   });
 });
 

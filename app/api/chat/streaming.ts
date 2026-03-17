@@ -11,7 +11,6 @@ import { routeChatWithTools, type ChatRouteOptions, type ToolExecutor } from '@/
 import {
   getDefaultModel,
   getDefaultChatModelId,
-  getFreeTierModelId,
   isProviderAvailable,
   getProviderAndModel,
   getAvailableProviderIds,
@@ -58,20 +57,19 @@ export interface StreamConfig {
 }
 
 /**
- * Resolve the model and provider based on user selection and subscription tier.
- * Free users get Haiku 4.5 (cost-effective). Paid users get Opus 4.6.
+ * Resolve the model and provider based on user selection.
+ * All users get Opus 4.6 — free users are token-capped, not model-capped.
  */
 export function resolveProvider(
   provider: string | undefined,
-  userPlanKey?: string
+  _userPlanKey?: string
 ): {
   selectedModel: string;
   selectedProviderId: string;
   error?: Response;
 } {
-  // Free users get Haiku 4.5, paid users get Opus 4.6
-  const isFreeUser = !userPlanKey || userPlanKey === 'free';
-  let selectedModel = isFreeUser ? getFreeTierModelId() : getDefaultChatModelId();
+  // All users get Opus 4.6 — free users are token-capped, not model-capped
+  let selectedModel = getDefaultChatModelId();
   let selectedProviderId = 'claude';
 
   if (provider && isProviderAvailable(provider as ProviderId)) {
