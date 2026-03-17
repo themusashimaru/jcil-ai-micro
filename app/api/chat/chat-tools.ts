@@ -229,29 +229,16 @@ export interface LoadedTools {
   composioToolContext: Awaited<ReturnType<typeof getComposioToolsForUser>> | null;
 }
 
-// Keyword patterns that trigger specialist-tier tools (niche scientific/technical domains)
-const SPECIALIST_PATTERNS =
-  /\b(dna|protein|genome|sequence|signal|fft|filter|geospatial|geo|coordinate|latitude|longitude|medical|bmi|dosage|clinical|constraint|grammar|parse|barcode|qr\s*code|zip|archive|compress|search\s*index|nlp|sentiment|tokenize|encrypt|decrypt|hash|cipher|jwt|jwe|phone\s*number|validate\s*phone|accessibility|wcag|a11y|3d|ray\s*trac|hough|vision|exif|metadata|fake\s*data|faker|mock\s*data)\b/i;
-
 /**
- * Determine which tool tiers to load based on the user's message content.
+ * All tool tiers are always loaded. Opus decides what to use.
  *
- * Core + Extended are ALWAYS loaded. Users shouldn't need to use specific
- * keywords to get web browsing, document tools, or code tools. We use
- * Sonnet 4.6 — the extra tool schemas (~2-3K tokens) are negligible
- * compared to the cost of a broken user experience.
- *
- * Only specialist tools (DNA, seismology, cryptography, etc.) are gated
- * behind keyword detection since they're rarely needed.
+ * Previous behavior gated specialist tools behind keyword detection,
+ * but with Opus 4.6 the token cost of extra schemas (~2-3K) is negligible
+ * and we'd rather have every capability available than risk Opus not
+ * having a tool it needs.
  */
-export function selectToolTiers(messageContent: string): ToolTier[] {
-  const tiers: ToolTier[] = ['core', 'extended'];
-
-  if (SPECIALIST_PATTERNS.test(messageContent)) {
-    tiers.push('specialist');
-  }
-
-  return tiers;
+export function selectToolTiers(_messageContent: string): ToolTier[] {
+  return ['core', 'extended', 'specialist'];
 }
 
 /**

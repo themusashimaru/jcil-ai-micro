@@ -17,7 +17,9 @@ const IDLE_TIMEOUT_MS = 60 * 1000; // 1 minute
 const serverLastActivity = new Map<string, number>();
 const idleTimeoutHandles = new Map<string, NodeJS.Timeout>();
 
-// Default MCP servers available in Chat
+// Default MCP servers — all enabled, auto-start on first use.
+// Opus decides when to use browser automation, file access, etc.
+// Servers start on-demand and idle-timeout after 1 minute.
 export const DEFAULT_MCP_SERVERS = [
   {
     id: 'filesystem',
@@ -25,7 +27,7 @@ export const DEFAULT_MCP_SERVERS = [
     description: 'Read, write, and navigate files in the workspace',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-filesystem', '/workspace'],
-    enabled: false,
+    enabled: true,
     builtIn: true,
   },
   {
@@ -34,7 +36,7 @@ export const DEFAULT_MCP_SERVERS = [
     description: 'Manage repositories, issues, and pull requests',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-github'],
-    enabled: false,
+    enabled: true,
     builtIn: true,
   },
   // Memory server removed - persistent memory is always-on via Supabase (conversation_memory table)
@@ -44,7 +46,7 @@ export const DEFAULT_MCP_SERVERS = [
     description: 'Browser automation for web testing and scraping',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-puppeteer'],
-    enabled: false,
+    enabled: true,
     builtIn: true,
   },
   {
@@ -53,7 +55,7 @@ export const DEFAULT_MCP_SERVERS = [
     description: 'Query and manage PostgreSQL databases',
     command: 'npx',
     args: ['-y', '@modelcontextprotocol/server-postgres'],
-    enabled: false,
+    enabled: true,
     builtIn: true,
   },
 ];
@@ -90,11 +92,11 @@ export function getUserServers(userId: string) {
       }
     >();
 
-    // Initialize with default servers
+    // Initialize with default servers — all enabled, available for on-demand start
     for (const server of DEFAULT_MCP_SERVERS) {
       serverMap.set(server.id, {
-        enabled: false,
-        status: 'stopped',
+        enabled: server.enabled,
+        status: server.enabled ? 'available' : 'stopped',
         tools: [],
       });
     }
