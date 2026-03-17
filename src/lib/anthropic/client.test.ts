@@ -93,9 +93,9 @@ afterEach(() => {
 // ===================================================================
 
 describe('Anthropic Client — Exports & Constants', () => {
-  it('exports CLAUDE_HAIKU constant aliased to Sonnet 4.6', async () => {
+  it('exports CLAUDE_HAIKU constant aliased to Opus 4.6', async () => {
     const { CLAUDE_HAIKU } = await import('./client');
-    expect(CLAUDE_HAIKU).toBe('claude-sonnet-4-6');
+    expect(CLAUDE_HAIKU).toBe('claude-opus-4-6');
   });
 
   it('exports CLAUDE_SONNET constant with correct model id', async () => {
@@ -442,7 +442,7 @@ describe('Anthropic Client — createAnthropicCompletion', () => {
     });
 
     expect(result.text).toBe('Hello from Claude');
-    expect(result.model).toBe('claude-sonnet-4-6'); // DEFAULT_MODEL
+    expect(result.model).toBe('claude-opus-4-6'); // DEFAULT_MODEL
   });
 
   it('uses provided model, maxTokens, temperature, and systemPrompt', async () => {
@@ -1160,7 +1160,7 @@ describe('Anthropic Client — createClaudeStructuredOutput', () => {
     });
 
     expect(result.data).toEqual({ name: 'John', age: 30 });
-    expect(result.model).toBe('claude-sonnet-4-6');
+    expect(result.model).toBe('claude-opus-4-6');
   });
 
   it('strips markdown json wrapper before parsing', async () => {
@@ -1217,7 +1217,7 @@ describe('Anthropic Client — createClaudeStructuredOutput', () => {
     });
 
     const callArgs = mockCreate.mock.calls[0][0];
-    expect(callArgs.model).toBe('claude-sonnet-4-6');
+    expect(callArgs.model).toBe('claude-opus-4-6');
     expect(callArgs.temperature).toBe(0.3);
   });
 
@@ -1261,7 +1261,7 @@ describe('Anthropic Client — createAnthropicStreamingCompletion', () => {
       messages: [{ role: 'user', content: 'Hi' }],
     });
 
-    expect(result.model).toBe('claude-sonnet-4-6');
+    expect(result.model).toBe('claude-opus-4-6');
     expect(typeof result.toTextStreamResponse).toBe('function');
   });
 

@@ -189,7 +189,7 @@ describe('BaseAIAdapter', () => {
       });
 
       const adapter = new TestAdapter();
-      expect(adapter.getDefaultModelId()).toBe('claude-sonnet-4-6');
+      expect(adapter.getDefaultModelId()).toBe('claude-opus-4-6');
       expect(getDefaultModel).toHaveBeenCalledWith('claude');
     });
 

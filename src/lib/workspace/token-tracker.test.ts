@@ -36,9 +36,9 @@ describe('TokenTracker', () => {
     expect(session.modelId).toBe('claude-sonnet-4-6');
   });
 
-  it('should default to claude-sonnet-4-6', () => {
+  it('should default to claude-opus-4-6', () => {
     const tracker = new TokenTracker('s1');
-    expect(tracker.exportSession().modelId).toBe('claude-sonnet-4-6');
+    expect(tracker.exportSession().modelId).toBe('claude-opus-4-6');
   });
 
   it('should set model', () => {

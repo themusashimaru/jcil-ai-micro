@@ -91,7 +91,7 @@ describe('agentic', () => {
       setupMocks();
       const result = await agentChat([{ role: 'user', content: 'Hi' }]);
       expect(result.provider).toBe('claude');
-      expect(result.model).toBe('claude-sonnet-4-6');
+      expect(result.model).toBe('claude-opus-4-6');
     });
 
     it('should return usage stats', async () => {
