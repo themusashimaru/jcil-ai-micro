@@ -9,8 +9,9 @@ import {
   ChatContinuationBanner,
   CHAT_LENGTH_WARNING,
 } from '@/components/chat/ChatContinuationBanner';
-import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
-import { getActiveAgent, type AgentModeId } from './agentModes';
+// Agent UI removed — skills system replaces agent orchestration
+// import { DeepStrategyProgress } from '@/components/chat/DeepStrategy';
+import { type AgentModeId } from './agentModes';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
 import type { Message, Attachment, GeneratedImage } from './types';
 import type { ActionPreviewData } from '@/components/chat/ActionPreviewCard';
@@ -82,9 +83,9 @@ export function ChatMainArea({
   handleScheduledModifyTime,
   handleScheduledCancel,
   handleCarouselSelect,
-  startAgentMode,
-  cancelAgentMode,
-  exitAllAgentModes,
+  startAgentMode: _startAgentMode,
+  cancelAgentMode: _cancelAgentMode,
+  exitAllAgentModes: _exitAllAgentModes,
 }: ChatMainAreaProps) {
   const {
     chats,
@@ -108,7 +109,7 @@ export function ChatMainArea({
     setOpenEditImage,
     conversationLoadError,
     messagesLoading,
-    modes,
+    modes: _modes,
   } = state;
 
   const lastUserMessage = useMemo(
@@ -221,25 +222,7 @@ export function ChatMainArea({
           />
         </ErrorBoundary>
 
-        {state.modes.strategy.phase === 'executing' && state.modes.strategy.events.length > 0 && (
-          <div className="px-4 pb-4">
-            <DeepStrategyProgress
-              events={state.modes.strategy.events}
-              isComplete={false}
-              onCancel={() => cancelAgentMode('strategy')}
-            />
-          </div>
-        )}
-        {state.modes['deep-research'].phase === 'executing' &&
-          state.modes['deep-research'].events.length > 0 && (
-            <div className="px-4 pb-4">
-              <DeepStrategyProgress
-                events={state.modes['deep-research'].events}
-                isComplete={false}
-                onCancel={() => cancelAgentMode('deep-research')}
-              />
-            </div>
-          )}
+        {/* Agent progress panels removed — skills system replaces agent orchestration */}
 
         {!continuationDismissed && messages.length >= CHAT_LENGTH_WARNING && (
           <ChatContinuationBanner
@@ -271,24 +254,6 @@ export function ChatMainArea({
             replyingTo={replyingTo}
             onClearReply={handleClearReply}
             initialText={quickPromptText}
-            activeAgent={getActiveAgent(modes)}
-            strategyLoading={state.modes.strategy.loading}
-            deepResearchLoading={state.modes['deep-research'].loading}
-            quickResearchLoading={state.modes['quick-research'].loading}
-            quickStrategyLoading={state.modes['quick-strategy'].loading}
-            deepWriterLoading={state.modes['deep-writer'].loading}
-            quickWriterLoading={state.modes['quick-writer'].loading}
-            onAgentSelect={async (agent) => {
-              const modeId = agent as AgentModeId;
-              const mode = modes[modeId];
-              if (mode) {
-                if (mode.isActive) await cancelAgentMode(modeId);
-                else {
-                  await exitAllAgentModes();
-                  await startAgentMode(modeId);
-                }
-              } else if (agent === 'research') await exitAllAgentModes();
-            }}
             openCreateImage={openCreateImage}
             openEditImage={openEditImage}
             onCloseCreateImage={() => setOpenCreateImage(false)}

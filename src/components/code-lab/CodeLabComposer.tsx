@@ -13,7 +13,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { CodeLabSlashAutocomplete } from './CodeLabSlashAutocomplete';
 import { CodeLabComposerModelDropdown } from './CodeLabComposerModelDropdown';
-import { CodeLabComposerAgents } from './CodeLabComposerAgents';
+// Agent menu removed — skills system replaces agent orchestration
+// import { CodeLabComposerAgents } from './CodeLabComposerAgents';
 import { CodeLabComposerCreative } from './CodeLabComposerCreative';
 import './code-lab-composer.css';
 
@@ -64,10 +65,10 @@ export function CodeLabComposer({
   onModelChange,
   thinkingEnabled = false,
   modelSwitchFlash = false,
-  activeAgent,
-  onAgentSelect,
-  strategyLoading = false,
-  deepResearchLoading = false,
+  activeAgent: _activeAgent,
+  onAgentSelect: _onAgentSelect,
+  strategyLoading: _strategyLoading = false,
+  deepResearchLoading: _deepResearchLoading = false,
   onCreativeMode,
 }: CodeLabComposerProps) {
   const displayModelId =
@@ -80,7 +81,7 @@ export function CodeLabComposer({
   const [cursorPosition, setCursorPosition] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-  const [showAgentsMenu, setShowAgentsMenu] = useState(false);
+  // Agent menu state removed — skills system replaces agent orchestration
   const [showCreativeMenu, setShowCreativeMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -352,19 +353,7 @@ export function CodeLabComposer({
             />
           )}
 
-          {onAgentSelect && (
-            <CodeLabComposerAgents
-              isOpen={showAgentsMenu}
-              onToggle={() => setShowAgentsMenu(!showAgentsMenu)}
-              onClose={() => setShowAgentsMenu(false)}
-              activeAgent={activeAgent}
-              onAgentSelect={onAgentSelect}
-              disabled={disabled}
-              isStreaming={isStreaming}
-              strategyLoading={strategyLoading}
-              deepResearchLoading={deepResearchLoading}
-            />
-          )}
+          {/* Agent menu removed — skills system replaces agent orchestration */}
 
           {onCreativeMode && (
             <CodeLabComposerCreative
