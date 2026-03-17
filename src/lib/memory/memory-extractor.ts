@@ -13,7 +13,7 @@
  * @version 1.0.0
  */
 
-import { createAnthropicCompletion, CLAUDE_HAIKU } from '@/lib/anthropic/client';
+import { createAnthropicCompletion, CLAUDE_OPUS } from '@/lib/anthropic/client';
 import { logger } from '@/lib/logger';
 import type { MemoryExtraction, ExtractedFact } from './types';
 
@@ -98,7 +98,7 @@ export async function extractMemoryFromConversation(
 
     const result = await createAnthropicCompletion({
       messages: [{ role: 'user', content: prompt }],
-      model: CLAUDE_HAIKU,
+      model: CLAUDE_OPUS,
       maxTokens: 1000,
       temperature: 0.1, // Low temperature for consistent extraction
     });

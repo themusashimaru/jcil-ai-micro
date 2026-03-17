@@ -539,9 +539,8 @@ describe('bull-queue', () => {
       mockQueueClose.mockClear();
       mockRedisQuit.mockClear();
 
-      const { getChatQueue, getCodeLabQueue, getChatQueueEvents, closeAllQueues } = await import(
-        './bull-queue'
-      );
+      const { getChatQueue, getCodeLabQueue, getChatQueueEvents, closeAllQueues } =
+        await import('./bull-queue');
 
       // Initialize everything
       getChatQueue();
@@ -609,13 +608,13 @@ describe('bull-queue', () => {
         conversationId: 'conv-123',
         userId: 'user-456',
         messages: [{ role: 'user' as const, content: 'Hello' }],
-        model: 'claude-3-opus',
+        model: 'claude-opus-4-6',
         systemPrompt: 'You are a helpful assistant',
         planKey: 'pro',
         webSearchEnabled: true,
         priority: 2,
       };
-      expect(jobData.model).toBe('claude-3-opus');
+      expect(jobData.model).toBe('claude-opus-4-6');
       expect(jobData.systemPrompt).toBe('You are a helpful assistant');
       expect(jobData.planKey).toBe('pro');
       expect(jobData.webSearchEnabled).toBe(true);

@@ -642,7 +642,7 @@ CURRENT DATE INFORMATION:
 Use these dates where appropriate (e.g., invoice dates, letter dates, document dates).
 ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
 
-    // Use Sonnet for reliable JSON output — with retry logic
+    // Use Opus 4.6 for reliable JSON output — with retry logic
     let jsonText = '';
     let parseError: Error | null = null;
     const maxRetries = 2;

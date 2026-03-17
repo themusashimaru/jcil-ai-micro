@@ -44,9 +44,9 @@ export interface ThemeSettings {
 
 export interface ModelSettings {
   /** Default model for chat */
-  default: 'sonnet' | 'opus' | 'haiku';
+  default: 'opus' | 'sonnet' | 'haiku';
   /** Model for quick tasks */
-  quick?: 'sonnet' | 'haiku';
+  quick?: 'opus' | 'sonnet' | 'haiku';
   /** Model for complex tasks */
   complex?: 'opus' | 'sonnet';
   /** Temperature setting (0-1) */
@@ -132,8 +132,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
     vimMode: false,
   },
   model: {
-    default: 'sonnet',
-    quick: 'haiku',
+    default: 'opus',
+    quick: 'opus',
     complex: 'opus',
     temperature: 0.7,
     maxTokens: 4096,

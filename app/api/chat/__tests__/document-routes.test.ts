@@ -74,10 +74,10 @@ vi.mock('@/lib/queue', () => ({
 }));
 
 vi.mock('@/lib/ai/providers/registry', () => ({
-  getDefaultChatModelId: vi.fn().mockReturnValue('claude-3-5-sonnet-20241022'),
+  getDefaultChatModelId: vi.fn().mockReturnValue('claude-opus-4-6'),
   getDefaultModel: vi.fn().mockReturnValue({
     provider: 'claude',
-    modelId: 'claude-3-5-sonnet-20241022',
+    modelId: 'claude-opus-4-6',
   }),
 }));
 

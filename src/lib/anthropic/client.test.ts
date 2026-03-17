@@ -93,14 +93,19 @@ afterEach(() => {
 // ===================================================================
 
 describe('Anthropic Client — Exports & Constants', () => {
-  it('exports CLAUDE_HAIKU constant aliased to Opus 4.6', async () => {
-    const { CLAUDE_HAIKU } = await import('./client');
-    expect(CLAUDE_HAIKU).toBe('claude-opus-4-6');
+  it('exports CLAUDE_OPUS as primary model constant', async () => {
+    const { CLAUDE_OPUS } = await import('./client');
+    expect(CLAUDE_OPUS).toBe('claude-opus-4-6');
   });
 
-  it('exports CLAUDE_SONNET constant with correct model id', async () => {
+  it('exports CLAUDE_SONNET as deprecated alias to Opus 4.6', async () => {
     const { CLAUDE_SONNET } = await import('./client');
     expect(CLAUDE_SONNET).toBe('claude-opus-4-6');
+  });
+
+  it('exports CLAUDE_HAIKU as deprecated alias to Opus 4.6', async () => {
+    const { CLAUDE_HAIKU } = await import('./client');
+    expect(CLAUDE_HAIKU).toBe('claude-opus-4-6');
   });
 
   it('exports isAnthropicConfigured as a function', async () => {
@@ -380,50 +385,49 @@ describe('Anthropic Client — detectDocumentRequest', () => {
 // ===================================================================
 
 describe('Anthropic Client — selectClaudeModel', () => {
-  it('returns Haiku by default for regular chat', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
-    expect(selectClaudeModel('hello')).toBe(CLAUDE_HAIKU);
-    expect(selectClaudeModel('explain relativity')).toBe(CLAUDE_HAIKU);
+  it('always returns Opus 4.6 for any input', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('hello')).toBe(CLAUDE_OPUS);
+    expect(selectClaudeModel('explain relativity')).toBe(CLAUDE_OPUS);
   });
 
-  it('returns Haiku even for long/complex messages', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
+  it('returns Opus 4.6 even for long/complex messages', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
     const longContent = 'a'.repeat(5000);
-    expect(selectClaudeModel(longContent)).toBe(CLAUDE_HAIKU);
+    expect(selectClaudeModel(longContent)).toBe(CLAUDE_OPUS);
   });
 
-  it('returns Sonnet for document generation', async () => {
-    const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-    expect(selectClaudeModel('anything', { isDocumentGeneration: true })).toBe(CLAUDE_SONNET);
+  it('returns Opus 4.6 for document generation', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('anything', { isDocumentGeneration: true })).toBe(CLAUDE_OPUS);
   });
 
-  it('respects forceModel=haiku override', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
-    expect(selectClaudeModel('anything', { forceModel: 'haiku' })).toBe(CLAUDE_HAIKU);
-    // Even when isDocumentGeneration is true, forceModel takes priority
+  it('returns Opus 4.6 regardless of forceModel=haiku', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('anything', { forceModel: 'haiku' })).toBe(CLAUDE_OPUS);
     expect(selectClaudeModel('anything', { forceModel: 'haiku', isDocumentGeneration: true })).toBe(
-      CLAUDE_HAIKU
+      CLAUDE_OPUS
     );
   });
 
-  it('respects forceModel=sonnet override', async () => {
-    const { selectClaudeModel, CLAUDE_SONNET } = await import('./client');
-    expect(selectClaudeModel('hi', { forceModel: 'sonnet' })).toBe(CLAUDE_SONNET);
+  it('returns Opus 4.6 regardless of forceModel=sonnet', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('hi', { forceModel: 'sonnet' })).toBe(CLAUDE_OPUS);
   });
 
-  it('returns Haiku when isResearch is true but no forceModel', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
-    expect(selectClaudeModel('research topic', { isResearch: true })).toBe(CLAUDE_HAIKU);
+  it('returns Opus 4.6 for research topics', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('research topic', { isResearch: true })).toBe(CLAUDE_OPUS);
   });
 
-  it('returns Haiku when isFaithTopic is true but no forceModel', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
-    expect(selectClaudeModel('faith topic', { isFaithTopic: true })).toBe(CLAUDE_HAIKU);
+  it('returns Opus 4.6 for faith topics', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('faith topic', { isFaithTopic: true })).toBe(CLAUDE_OPUS);
   });
 
-  it('handles empty options object', async () => {
-    const { selectClaudeModel, CLAUDE_HAIKU } = await import('./client');
-    expect(selectClaudeModel('test', {})).toBe(CLAUDE_HAIKU);
+  it('returns Opus 4.6 with empty options', async () => {
+    const { selectClaudeModel, CLAUDE_OPUS } = await import('./client');
+    expect(selectClaudeModel('test', {})).toBe(CLAUDE_OPUS);
   });
 });
 
@@ -1205,7 +1209,7 @@ describe('Anthropic Client — createClaudeStructuredOutput', () => {
     ).rejects.toThrow('Failed to parse Claude structured output as JSON');
   });
 
-  it('always uses CLAUDE_SONNET model', async () => {
+  it('always uses CLAUDE_OPUS model', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-ant-test');
     mockCreate.mockResolvedValueOnce(makeTextResponse('{"ok": true}'));
 

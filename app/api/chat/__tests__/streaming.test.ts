@@ -11,7 +11,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 // Mock providers registry
-const mockGetDefaultChatModelId = vi.fn().mockReturnValue('claude-3-5-sonnet-20241022');
+const mockGetDefaultChatModelId = vi.fn().mockReturnValue('claude-opus-4-6');
 const mockGetDefaultModel = vi.fn();
 const mockIsProviderAvailable = vi.fn();
 const mockGetProviderAndModel = vi.fn();
@@ -91,7 +91,7 @@ describe('streaming', () => {
     it('should use Sonnet for paid users', () => {
       const result = resolveProvider(undefined, 'plus');
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
       expect(result.error).toBeUndefined();
     });
 
@@ -118,7 +118,7 @@ describe('streaming', () => {
 
       const result = resolveProvider('nonexistent', 'pro');
       expect(result.selectedProviderId).toBe('claude');
-      expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
 
     it('should handle provider with no default model gracefully', () => {
@@ -127,7 +127,7 @@ describe('streaming', () => {
 
       const result = resolveProvider('openai', 'plus');
       // Should still use default Claude model since getDefaultModel returned null
-      expect(result.selectedModel).toBe('claude-3-5-sonnet-20241022');
+      expect(result.selectedModel).toBe('claude-opus-4-6');
     });
   });
 
