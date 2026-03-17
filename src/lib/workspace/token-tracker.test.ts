@@ -107,10 +107,10 @@ describe('TokenTracker.calculateCost', () => {
       outputTokens: 1000,
       timestamp: Date.now(),
     });
-    // input: 1000/1000 * 0.3 = 0.3, output: 1000/1000 * 1.5 = 1.5
-    expect(cost.inputCost).toBe(0.3);
-    expect(cost.outputCost).toBe(1.5);
-    expect(cost.totalCost).toBe(1.8);
+    // input: 1000/1000 * 0.003 = $0.003, output: 1000/1000 * 0.015 = $0.015
+    expect(cost.inputCost).toBe(0.003);
+    expect(cost.outputCost).toBe(0.015);
+    expect(cost.totalCost).toBe(0.018);
     expect(cost.currency).toBe('USD');
   });
 
@@ -123,8 +123,8 @@ describe('TokenTracker.calculateCost', () => {
       cacheWriteTokens: 1000,
       timestamp: Date.now(),
     });
-    // cacheRead: 1000/1000 * 0.03 = 0.03, cacheWrite: 1000/1000 * 0.375 = 0.375
-    expect(cost.cacheCost).toBe(0.405);
+    // cacheRead: 1000/1000 * 0.0003 = 0.0003, cacheWrite: 1000/1000 * 0.00375 = 0.00375
+    expect(cost.cacheCost).toBe(0.0041);
   });
 
   it('should calculate cost for opus model', () => {
@@ -134,9 +134,10 @@ describe('TokenTracker.calculateCost', () => {
       outputTokens: 1000,
       timestamp: Date.now(),
     });
-    expect(cost.inputCost).toBe(1.5);
-    expect(cost.outputCost).toBe(7.5);
-    expect(cost.totalCost).toBe(9);
+    // input: $0.005/1K ($5/1M), output: $0.025/1K ($25/1M)
+    expect(cost.inputCost).toBe(0.005);
+    expect(cost.outputCost).toBe(0.025);
+    expect(cost.totalCost).toBe(0.03);
   });
 
   it('should fall back to opus pricing for unknown model', () => {
@@ -146,8 +147,8 @@ describe('TokenTracker.calculateCost', () => {
       outputTokens: 1000,
       timestamp: Date.now(),
     });
-    expect(cost.inputCost).toBe(1.5);
-    expect(cost.outputCost).toBe(7.5);
+    expect(cost.inputCost).toBe(0.005);
+    expect(cost.outputCost).toBe(0.025);
   });
 
   it('should override model in calculation', () => {
@@ -156,7 +157,7 @@ describe('TokenTracker.calculateCost', () => {
       { inputTokens: 1000, outputTokens: 1000, timestamp: Date.now() },
       'claude-opus-4-6'
     );
-    expect(cost.inputCost).toBe(1.5);
+    expect(cost.inputCost).toBe(0.005);
   });
 });
 
@@ -195,16 +196,16 @@ describe('TokenTracker.getSessionStats', () => {
 
   it('should calculate context usage percent', () => {
     const tracker = new TokenTracker('s1', 'claude-sonnet-4-6');
-    // Context window is 200,000
-    tracker.recordUsage({ inputTokens: 100000, outputTokens: 50000 });
+    // Context window is 1,000,000
+    tracker.recordUsage({ inputTokens: 500000, outputTokens: 250000 });
     const stats = tracker.getSessionStats();
-    // (150000/200000) * 100 = 75%
+    // (750000/1000000) * 100 = 75%
     expect(stats.contextUsagePercent).toBe(75);
   });
 
   it('should cap context usage at 100%', () => {
     const tracker = new TokenTracker('s1', 'claude-sonnet-4-6');
-    tracker.recordUsage({ inputTokens: 150000, outputTokens: 100000 });
+    tracker.recordUsage({ inputTokens: 700000, outputTokens: 500000 });
     const stats = tracker.getSessionStats();
     expect(stats.contextUsagePercent).toBe(100);
   });
@@ -219,8 +220,8 @@ describe('TokenTracker.getContextInfo', () => {
     tracker.recordUsage({ inputTokens: 1000, outputTokens: 500 });
     const info = tracker.getContextInfo();
     expect(info.used).toBe(1500);
-    expect(info.total).toBe(200000);
-    expect(info.remaining).toBe(198500);
+    expect(info.total).toBe(1000000);
+    expect(info.remaining).toBe(998500);
     expect(info.percentUsed).toBeGreaterThan(0);
   });
 });
@@ -230,7 +231,7 @@ describe('TokenTracker.getContextInfo', () => {
 // -------------------------------------------------------------------
 describe('TokenTracker.formatCost', () => {
   it('should format small costs in cents', () => {
-    expect(TokenTracker.formatCost(0.005)).toBe('$0.50¢');
+    expect(TokenTracker.formatCost(0.005)).toBe('0.50¢');
   });
 
   it('should format larger costs in dollars', () => {
@@ -238,7 +239,7 @@ describe('TokenTracker.formatCost', () => {
   });
 
   it('should format zero cost', () => {
-    expect(TokenTracker.formatCost(0)).toBe('$0.00¢');
+    expect(TokenTracker.formatCost(0)).toBe('0.00¢');
   });
 });
 

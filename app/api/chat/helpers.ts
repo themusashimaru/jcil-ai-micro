@@ -7,10 +7,10 @@
 
 import { CoreMessage } from 'ai';
 
-// Token limits — defaults when no model-specific limit is available
-export const MAX_RESPONSE_TOKENS = 64000;
-export const DEFAULT_RESPONSE_TOKENS = 16384;
-export const MAX_CONTEXT_MESSAGES = 60;
+// Token limits — tuned for Opus 4.6 (1M context, 128K max output)
+export const MAX_RESPONSE_TOKENS = 128000;
+export const DEFAULT_RESPONSE_TOKENS = 64000;
+export const MAX_CONTEXT_MESSAGES = 500;
 export const MIN_RESPONSE_TOKENS = 256;
 
 /**

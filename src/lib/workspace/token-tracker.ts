@@ -45,7 +45,7 @@ export interface SessionStats {
   contextUsagePercent: number;
 }
 
-// Model pricing (per 1K tokens, in USD cents)
+// Model pricing (per 1K tokens, in USD)
 interface ModelPricing {
   inputPer1k: number;
   outputPer1k: number;
@@ -56,18 +56,18 @@ interface ModelPricing {
 
 const MODEL_PRICING: Record<string, ModelPricing> = {
   'claude-sonnet-4-6': {
-    inputPer1k: 0.3,
-    outputPer1k: 1.5,
-    cacheReadPer1k: 0.03,
-    cacheWritePer1k: 0.375,
-    contextWindow: 200000,
+    inputPer1k: 0.003, // $3/1M tokens
+    outputPer1k: 0.015, // $15/1M tokens
+    cacheReadPer1k: 0.0003,
+    cacheWritePer1k: 0.00375,
+    contextWindow: 1000000,
   },
   'claude-opus-4-6': {
-    inputPer1k: 1.5,
-    outputPer1k: 7.5,
-    cacheReadPer1k: 0.15,
-    cacheWritePer1k: 1.875,
-    contextWindow: 200000,
+    inputPer1k: 0.005, // $5/1M tokens
+    outputPer1k: 0.025, // $25/1M tokens
+    cacheReadPer1k: 0.0005,
+    cacheWritePer1k: 0.00625,
+    contextWindow: 1000000,
   },
 };
 
@@ -210,7 +210,7 @@ export class TokenTracker {
    */
   static formatCost(cost: number): string {
     if (cost < 0.01) {
-      return `$${(cost * 100).toFixed(2)}¢`;
+      return `${(cost * 100).toFixed(2)}¢`;
     }
     return `$${cost.toFixed(4)}`;
   }

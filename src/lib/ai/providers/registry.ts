@@ -34,8 +34,8 @@ const CLAUDE_CONFIG: ProviderConfig = {
     {
       id: 'claude-opus-4-6',
       name: 'Claude Opus 4.6',
-      contextWindow: 200000,
-      maxOutputTokens: 32000,
+      contextWindow: 1000000,
+      maxOutputTokens: 128000,
       inputPricePer1M: 5,
       outputPricePer1M: 25,
       tier: 'premium',
@@ -44,7 +44,7 @@ const CLAUDE_CONFIG: ProviderConfig = {
     {
       id: 'claude-sonnet-4-6',
       name: 'Claude Sonnet 4.6',
-      contextWindow: 200000,
+      contextWindow: 1000000,
       maxOutputTokens: 64000,
       inputPricePer1M: 3,
       outputPricePer1M: 15,
