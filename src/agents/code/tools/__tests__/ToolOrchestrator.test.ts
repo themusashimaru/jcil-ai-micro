@@ -224,7 +224,7 @@ function makeDoneResponse(
     toolCalls: [],
     done: true,
     provider: 'claude',
-    model: 'claude-3-5-sonnet',
+    model: 'claude-opus-4-6',
     usage: tokens,
   };
 }
@@ -241,7 +241,7 @@ function makeToolCallResponse(
     toolCalls: [{ id, name: toolName, arguments: args }],
     done: false,
     provider: 'claude',
-    model: 'claude-3-5-sonnet',
+    model: 'claude-opus-4-6',
     usage: { inputTokens: 200, outputTokens: 100 },
   };
 }
@@ -260,7 +260,7 @@ function makeMultiToolCallResponse(
     })),
     done: false,
     provider: 'claude',
-    model: 'claude-3-5-sonnet',
+    model: 'claude-opus-4-6',
     usage: { inputTokens: 300, outputTokens: 150 },
   };
 }
@@ -1048,7 +1048,7 @@ describe('ToolOrchestrator', () => {
         toolCalls: [],
         done: true,
         provider: 'claude',
-        model: 'claude-3-5-sonnet',
+        model: 'claude-opus-4-6',
         // no usage field
       });
 
@@ -1069,7 +1069,7 @@ describe('ToolOrchestrator', () => {
           toolCalls: [{ id: 'c1', name: 'bash', arguments: { command: 'ls' } }],
           done: false,
           provider: 'claude',
-          model: 'claude-3-5-sonnet',
+          model: 'claude-opus-4-6',
           usage: { inputTokens: 10, outputTokens: 5 },
         })
         .mockResolvedValueOnce(makeDoneResponse('done'));

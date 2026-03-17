@@ -133,18 +133,18 @@ All 4 remaining stubs (`audio_synth`, `feature_flag`, `migration_generator`, `ml
 
 ## Technology Stack
 
-| Layer      | Technology               | Version                |
-| ---------- | ------------------------ | ---------------------- |
-| Frontend   | Next.js                  | 14.2                   |
-| Language   | TypeScript               | 5.4                    |
-| UI         | React + Tailwind CSS     | 18.3                   |
-| Database   | Supabase PostgreSQL      | -                      |
-| Cache      | Upstash Redis            | -                      |
-| Auth       | NextAuth / Supabase Auth | -                      |
-| Payments   | Stripe                   | -                      |
-| Sandboxing | E2B                      | -                      |
-| AI         | Anthropic Claude         | Sonnet 4.6 (all calls) |
-| Hosting    | Vercel                   | -                      |
+| Layer      | Technology               | Version              |
+| ---------- | ------------------------ | -------------------- |
+| Frontend   | Next.js                  | 14.2                 |
+| Language   | TypeScript               | 5.4                  |
+| UI         | React + Tailwind CSS     | 18.3                 |
+| Database   | Supabase PostgreSQL      | -                    |
+| Cache      | Upstash Redis            | -                    |
+| Auth       | NextAuth / Supabase Auth | -                    |
+| Payments   | Stripe                   | -                    |
+| Sandboxing | E2B                      | -                    |
+| AI         | Anthropic Claude         | Opus 4.6 (all calls) |
+| Hosting    | Vercel                   | -                    |
 
 ---
 

@@ -601,12 +601,12 @@ describe('qstash', () => {
         conversationId: 'conv-1',
         userId: 'user-1',
         messages: [{ role: 'user' as const, content: 'Hello' }],
-        model: 'claude-3-opus',
+        model: 'claude-opus-4-6',
         systemPrompt: 'Be helpful',
         webSearchEnabled: true,
         priority: 1,
       };
-      expect(payload.model).toBe('claude-3-opus');
+      expect(payload.model).toBe('claude-opus-4-6');
       expect(payload.systemPrompt).toBe('Be helpful');
       expect(payload.webSearchEnabled).toBe(true);
       expect(payload.priority).toBe(1);

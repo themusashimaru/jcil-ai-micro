@@ -9,7 +9,7 @@
  */
 
 import { createHash } from 'crypto';
-import { createAnthropicCompletion, CLAUDE_HAIKU } from '@/lib/anthropic/client';
+import { createAnthropicCompletion, CLAUDE_OPUS } from '@/lib/anthropic/client';
 import { logger } from '@/lib/logger';
 
 const log = logger('Chunking');
@@ -137,7 +137,7 @@ ${snippet}
 If needed, add "...(more sections not shown)".`,
         },
       ],
-      model: CLAUDE_HAIKU,
+      model: CLAUDE_OPUS,
       maxTokens: 600,
       temperature: 0.3,
     });

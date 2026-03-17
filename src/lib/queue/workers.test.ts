@@ -58,12 +58,12 @@ vi.mock('@/lib/logger', () => ({
 vi.mock('@/lib/anthropic/client', () => ({
   createAnthropicCompletion: vi.fn().mockResolvedValue({
     text: 'Hello from AI',
-    model: 'claude-3-opus',
+    model: 'claude-opus-4-6',
     citations: [],
   }),
   createAnthropicCompletionWithSearch: vi.fn().mockResolvedValue({
     text: 'Search result',
-    model: 'claude-3-opus',
+    model: 'claude-opus-4-6',
     citations: [{ title: 'Test', url: 'https://example.com' }],
   }),
 }));

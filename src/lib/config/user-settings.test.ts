@@ -84,8 +84,8 @@ describe('DEFAULT_SETTINGS', () => {
     expect(DEFAULT_SETTINGS.theme.mode).toBe('system');
   });
 
-  it('should default to sonnet model', () => {
-    expect(DEFAULT_SETTINGS.model.default).toBe('sonnet');
+  it('should default to opus model', () => {
+    expect(DEFAULT_SETTINGS.model.default).toBe('opus');
   });
 
   it('should auto-approve reads by default', () => {

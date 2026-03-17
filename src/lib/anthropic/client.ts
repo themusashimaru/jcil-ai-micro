@@ -969,7 +969,7 @@ export async function createAnthropicCompletionWithSkills(
   files?: Array<{ file_id: string; filename: string; mime_type: string }>;
 }> {
   const { client } = getAnthropicClientWithKey();
-  const model = options.model || CLAUDE_SONNET; // Use Sonnet for agentic tasks
+  const model = options.model || CLAUDE_OPUS; // Use Opus 4.6 for agentic tasks
   const maxTokens = options.maxTokens || 8192;
   const temperature = options.temperature ?? 0.7;
 
@@ -1207,12 +1207,15 @@ export async function downloadAnthropicFile(fileId: string): Promise<{
 // MODEL CONSTANTS
 // ========================================
 
-// All calls use Opus 4.6 — maximum capability for paid users
+// All calls use Opus 4.6 — the most capable Claude model
 // See: https://docs.anthropic.com/en/docs/about-claude/models
-export const CLAUDE_SONNET = 'claude-opus-4-6';
+export const CLAUDE_OPUS = 'claude-opus-4-6';
 
-/** @deprecated Use CLAUDE_SONNET instead. Kept for backward compatibility. */
-export const CLAUDE_HAIKU = CLAUDE_SONNET;
+/** @deprecated Use CLAUDE_OPUS instead. Aliased to Opus 4.6. */
+export const CLAUDE_SONNET = CLAUDE_OPUS;
+
+/** @deprecated Use CLAUDE_OPUS instead. Aliased to Opus 4.6. */
+export const CLAUDE_HAIKU = CLAUDE_OPUS;
 
 /**
  * Model selection — always returns Opus 4.6.
@@ -1227,7 +1230,7 @@ export function selectClaudeModel(
     isFaithTopic?: boolean;
   }
 ): string {
-  return CLAUDE_SONNET;
+  return CLAUDE_OPUS;
 }
 
 /**
@@ -1546,7 +1549,7 @@ The response must match this schema:
 ${JSON.stringify(options.schema, null, 2)}`;
 
   const response = await client.messages.create({
-    model: CLAUDE_SONNET, // Always use Sonnet for structured output
+    model: CLAUDE_OPUS, // Always use Opus 4.6 for structured output
     max_tokens: 4096,
     temperature: 0.3, // Lower temperature for consistent JSON
     system: jsonSystemPrompt,
@@ -1568,7 +1571,7 @@ ${JSON.stringify(options.schema, null, 2)}`;
 
   try {
     const data = JSON.parse(jsonText) as T;
-    return { data, model: CLAUDE_SONNET };
+    return { data, model: CLAUDE_OPUS };
   } catch (error) {
     log.error('Failed to parse structured output', error as Error, {
       responsePreview: textContent.substring(0, 200),

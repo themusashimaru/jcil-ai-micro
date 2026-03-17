@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/anthropic/client', () => ({
   createAnthropicCompletion: vi.fn().mockResolvedValue({ text: 'Mock synopsis of the document.' }),
-  CLAUDE_HAIKU: 'claude-opus-4-6',
+  CLAUDE_OPUS: 'claude-opus-4-6',
 }));
 
 vi.mock('@/lib/logger', () => ({

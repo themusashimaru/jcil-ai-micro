@@ -11,7 +11,7 @@ vi.mock('@/lib/logger', () => ({
 
 vi.mock('@/lib/anthropic/client', () => ({
   createAnthropicCompletion: vi.fn(),
-  CLAUDE_HAIKU: 'claude-3-haiku-mock',
+  CLAUDE_OPUS: 'claude-opus-4-6',
 }));
 
 import {

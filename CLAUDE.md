@@ -76,17 +76,17 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 
 ### What Actually Works
 
-| Component             | Status     | Notes                                                      |
-| --------------------- | ---------- | ---------------------------------------------------------- |
-| 51 AI tools           | Real       | All registered tools have real implementations             |
-| AI Model              | Sonnet 4.6 | All calls (chat, internal, utility) use Sonnet 4.6         |
-| Supabase RLS          | Real       | Properly configured                                        |
-| Zod input validation  | Real       | 50+ schemas                                                |
-| Rate limiting (Redis) | Real       | `src/lib/security/rate-limit.ts`                           |
-| CSRF protection       | Real       | Built into `requireUser(request)` guard                    |
-| Auth guards           | Real       | 46 route files — 100% migrated to requireUser/requireAdmin |
-| NextAuth              | Real       | Working auth flow                                          |
-| Stripe integration    | Partial    | Needs testing                                              |
+| Component             | Status   | Notes                                                      |
+| --------------------- | -------- | ---------------------------------------------------------- |
+| 51 AI tools           | Real     | All registered tools have real implementations             |
+| AI Model              | Opus 4.6 | All calls (chat, internal, utility) use Opus 4.6           |
+| Supabase RLS          | Real     | Properly configured                                        |
+| Zod input validation  | Real     | 50+ schemas                                                |
+| Rate limiting (Redis) | Real     | `src/lib/security/rate-limit.ts`                           |
+| CSRF protection       | Real     | Built into `requireUser(request)` guard                    |
+| Auth guards           | Real     | 46 route files — 100% migrated to requireUser/requireAdmin |
+| NextAuth              | Real     | Working auth flow                                          |
+| Stripe integration    | Partial  | Needs testing                                              |
 
 ### What Still Needs Work
 
@@ -110,7 +110,7 @@ JCIL AI Micro is an AI-powered educational platform. Our mission is to deliver a
 | Routes with auth guards   | 46 files — 100% use requireUser/requireAdmin/optionalUser |
 | Routes with raw auth      | 0 (all migrated)                                          |
 | Production dependencies   | 75 (down from 152)                                        |
-| AI model                  | Sonnet 4.6 for all calls                                  |
+| AI model                  | Opus 4.6 for all calls                                    |
 | Components over 400 lines | 105 files                                                 |
 
 ---
