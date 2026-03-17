@@ -39,10 +39,10 @@ const claudeConfig: ProviderConfig = {
     {
       id: 'claude-opus-4-6',
       name: 'Claude Opus 4.6',
-      contextWindow: 200000,
-      maxOutputTokens: 32000,
-      inputPricePer1M: 15,
-      outputPricePer1M: 75,
+      contextWindow: 1000000,
+      maxOutputTokens: 128000,
+      inputPricePer1M: 5,
+      outputPricePer1M: 25,
       tier: 'premium',
     },
     {

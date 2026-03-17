@@ -60,14 +60,14 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
     outputPer1k: 0.015, // $15/1M tokens
     cacheReadPer1k: 0.0003,
     cacheWritePer1k: 0.00375,
-    contextWindow: 200000,
+    contextWindow: 1000000,
   },
   'claude-opus-4-6': {
-    inputPer1k: 0.015, // $15/1M tokens
-    outputPer1k: 0.075, // $75/1M tokens
-    cacheReadPer1k: 0.0015,
-    cacheWritePer1k: 0.01875,
-    contextWindow: 200000,
+    inputPer1k: 0.005, // $5/1M tokens
+    outputPer1k: 0.025, // $25/1M tokens
+    cacheReadPer1k: 0.0005,
+    cacheWritePer1k: 0.00625,
+    contextWindow: 1000000,
   },
 };
 
