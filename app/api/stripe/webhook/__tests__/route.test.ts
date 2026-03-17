@@ -79,6 +79,10 @@ const { POST } = await import('../route');
 describe('POST /api/stripe/webhook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set required env vars for getSupabaseAdmin()
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
     // Default: valid signature header
     mockHeadersGet.mockImplementation((name: string) => {
       if (name === 'stripe-signature') return 'whsec_test_signature';

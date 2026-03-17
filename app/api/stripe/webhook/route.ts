@@ -21,10 +21,12 @@ export const maxDuration = 60;
 
 // Use service role key for webhook operations
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    throw new Error('Missing Supabase configuration for webhook processing');
+  }
+  return createClient(supabaseUrl, serviceKey);
 }
 
 /**
@@ -287,11 +289,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     amount: amount,
     currency: subscription.currency?.toUpperCase() || 'USD',
     billing_cycle_start: new Date(
-      ((subscription as unknown as { current_period_start?: number }).current_period_start ||
+      ((subscription as unknown as Record<string, number>).current_period_start ||
         Date.now() / 1000) * 1000
     ).toISOString(),
     billing_cycle_end: new Date(
-      ((subscription as unknown as { current_period_end?: number }).current_period_end ||
+      ((subscription as unknown as Record<string, number>).current_period_end ||
         Date.now() / 1000) * 1000
     ).toISOString(),
   });
