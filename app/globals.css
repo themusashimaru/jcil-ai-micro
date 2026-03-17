@@ -687,9 +687,30 @@
     margin: 2rem 0;
   }
 
+  /* Text selection colors per theme — prevents jarring browser-default blue */
+  ::selection {
+    background: rgba(249, 115, 22, 0.35);
+    color: #ffffff;
+  }
+
+  :root.light-mode ::selection {
+    background: rgba(30, 58, 95, 0.3);
+    color: #1a1a1a;
+  }
+
+  :root.ocean-mode ::selection {
+    background: rgba(77, 200, 255, 0.3);
+    color: #ffffff;
+  }
+
   /* Pro mode selection - white highlight */
   :root.pro-mode ::selection {
     background: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+  }
+
+  :root.editorial-mode ::selection {
+    background: rgba(249, 115, 22, 0.35);
     color: #ffffff;
   }
 
