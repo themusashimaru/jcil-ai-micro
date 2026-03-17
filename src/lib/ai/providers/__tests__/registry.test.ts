@@ -512,8 +512,8 @@ describe('getModel', () => {
   it('should return model with correct pricing', () => {
     const model = getModel('claude', 'claude-opus-4-6');
     expect(model).toBeDefined();
-    expect(model!.inputPricePer1M).toBe(5);
-    expect(model!.outputPricePer1M).toBe(25);
+    expect(model!.inputPricePer1M).toBe(15);
+    expect(model!.outputPricePer1M).toBe(75);
   });
 
   it('should return model with correct context window', () => {
@@ -901,15 +901,15 @@ describe('estimateCost', () => {
   });
 
   it('should correctly calculate cost for Claude Opus', () => {
-    // claude-opus-4-6: input $5/1M, output $25/1M
+    // claude-opus-4-6: input $15/1M, output $75/1M
     const cost = estimateCost('claude', 'claude-opus-4-6', 1_000_000, 1_000_000);
-    expect(cost).toBe(5 + 25);
+    expect(cost).toBe(15 + 75);
   });
 
   it('should correctly calculate cost for small token counts', () => {
-    // claude-opus-4-6: input $5/1M, output $25/1M
+    // claude-opus-4-6: input $15/1M, output $75/1M
     const cost = estimateCost('claude', 'claude-opus-4-6', 1000, 500);
-    const expected = (1000 / 1_000_000) * 5 + (500 / 1_000_000) * 25;
+    const expected = (1000 / 1_000_000) * 15 + (500 / 1_000_000) * 75;
     expect(cost).toBeCloseTo(expected, 10);
   });
 

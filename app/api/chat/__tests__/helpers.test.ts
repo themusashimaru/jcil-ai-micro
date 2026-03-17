@@ -47,12 +47,12 @@ describe('exported constants', () => {
     expect(MAX_RESPONSE_TOKENS).toBe(64000);
   });
 
-  it('DEFAULT_RESPONSE_TOKENS is 16384', () => {
-    expect(DEFAULT_RESPONSE_TOKENS).toBe(16384);
+  it('DEFAULT_RESPONSE_TOKENS is 32000 (tuned for Opus 4.6)', () => {
+    expect(DEFAULT_RESPONSE_TOKENS).toBe(32000);
   });
 
-  it('MAX_CONTEXT_MESSAGES is 60', () => {
-    expect(MAX_CONTEXT_MESSAGES).toBe(60);
+  it('MAX_CONTEXT_MESSAGES is 150 (uses Opus 200K context)', () => {
+    expect(MAX_CONTEXT_MESSAGES).toBe(150);
   });
 });
 
@@ -197,7 +197,7 @@ describe('truncateMessages', () => {
 
   it('uses default MAX_CONTEXT_MESSAGES when no maxMessages is provided', () => {
     const messages: CoreMessage[] = Array.from({ length: 50 }, (_, i) => userMsg(`Message ${i}`));
-    // 50 < 60 (MAX_CONTEXT_MESSAGES), so no truncation
+    // 50 < 150 (MAX_CONTEXT_MESSAGES), so no truncation
     const result = truncateMessages(messages);
     expect(result).toEqual(messages);
   });
@@ -337,7 +337,7 @@ describe('clampMaxTokens', () => {
   it('clamps to modelMaxOutputTokens when provided', () => {
     expect(clampMaxTokens(50000, 32000)).toBe(32000);
     expect(clampMaxTokens(1000, 32000)).toBe(1000);
-    expect(clampMaxTokens(undefined, 32000)).toBe(16384); // DEFAULT capped by model max
+    expect(clampMaxTokens(undefined, 32000)).toBe(32000); // DEFAULT (32000) capped by model max (32000)
   });
 
   it('returns DEFAULT_RESPONSE_TOKENS for NaN (falsy)', () => {
