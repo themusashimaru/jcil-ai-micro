@@ -23,7 +23,9 @@
     "prepare": "husky",
     "db:types": "npx supabase gen types typescript --project-id \"$npm_config_project_id\" --schema public > src/lib/supabase/types.ts",
     "test:e2e": "npx playwright test",
-    "test:e2e:ui": "npx playwright test --ui"
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:load": "npx tsx tests/load/concurrent-chat-test.ts",
+    "test:load:50": "npx tsx tests/load/concurrent-chat-test.ts --users=50 --waves=5"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

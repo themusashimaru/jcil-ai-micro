@@ -1,0 +1,284 @@
+.permission-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: permFadeIn 0.2s ease;
+}
+
+.permission-overlay.closing {
+  animation: permFadeOut 0.2s ease forwards;
+}
+
+@keyframes permFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes permFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.permission-dialog {
+  width: 100%;
+  max-width: 480px;
+  background: var(--cl-bg-primary, #ffffff);
+  border-radius: 16px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: permSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.permission-dialog.closing {
+  animation: permSlideDown 0.2s ease forwards;
+}
+
+@keyframes permSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes permSlideDown {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+
+.permission-dialog .risk-bar {
+  height: 4px;
+  width: 100%;
+}
+
+.permission-dialog .dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--cl-border-primary, #e5e7eb);
+}
+
+.permission-dialog .operation-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.permission-dialog .operation-icon {
+  font-size: 1rem;
+}
+
+.permission-dialog .operation-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.permission-dialog .risk-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.permission-dialog .dialog-content {
+  padding: 1.5rem;
+}
+
+.permission-dialog .dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--cl-text-primary, #1a1f36);
+  margin: 0 0 0.5rem;
+}
+
+.permission-dialog .dialog-description {
+  font-size: 0.9375rem;
+  color: var(--cl-text-secondary, #374151);
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.permission-dialog .command-preview {
+  margin: 1rem 0;
+}
+
+.permission-dialog .command-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cl-text-tertiary, #4b5563);
+  margin-bottom: 0.375rem;
+}
+
+.permission-dialog .command-code {
+  padding: 0.75rem 1rem;
+  background: var(--cl-bg-code, #1e1e1e);
+  color: #e5e7eb;
+  border-radius: 8px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.permission-dialog .affected-files {
+  margin: 1rem 0;
+}
+
+.permission-dialog .files-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--cl-text-tertiary, #4b5563);
+  margin-bottom: 0.375rem;
+}
+
+.permission-dialog .files-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--cl-text-secondary, #374151);
+}
+
+.permission-dialog .files-list li {
+  padding: 0.125rem 0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.permission-dialog .more-files {
+  color: var(--cl-text-tertiary, #4b5563);
+  font-style: italic;
+}
+
+.permission-dialog .details-list {
+  margin: 1rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--cl-text-secondary, #374151);
+}
+
+.permission-dialog .details-list li {
+  padding: 0.25rem 0;
+}
+
+.permission-dialog .always-allow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--cl-bg-secondary, #f9fafb);
+  border-top: 1px solid var(--cl-border-primary, #e5e7eb);
+  cursor: pointer;
+}
+
+.permission-dialog .always-allow input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.permission-dialog .checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--cl-border-secondary, #d1d5db);
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.permission-dialog .always-allow input:checked + .checkbox-custom {
+  background: var(--cl-accent-primary, #1e3a5f);
+  border-color: var(--cl-accent-primary, #1e3a5f);
+}
+
+.permission-dialog .always-allow input:checked + .checkbox-custom::after {
+  content: '\2713';
+  display: block;
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  line-height: 14px;
+}
+
+.permission-dialog .checkbox-label {
+  font-size: 0.8125rem;
+  color: var(--cl-text-secondary, #374151);
+}
+
+.permission-dialog .dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--cl-border-primary, #e5e7eb);
+}
+
+.permission-dialog .action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.permission-dialog .action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.permission-dialog .action-btn kbd {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+  font-family: inherit;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin-left: 0.25rem;
+}
+
+.permission-dialog .action-btn.deny {
+  background: var(--cl-bg-secondary, #f9fafb);
+  color: var(--cl-text-secondary, #374151);
+  border: 1px solid var(--cl-border-secondary, #d1d5db);
+}
+
+.permission-dialog .action-btn.deny:hover {
+  background: var(--cl-bg-tertiary, #f3f4f6);
+  border-color: var(--cl-text-tertiary, #4b5563);
+}
+
+.permission-dialog .action-btn.deny kbd {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.permission-dialog .action-btn.allow {
+  color: white;
+  border: none;
+}
+
+.permission-dialog .action-btn.allow:hover {
+  filter: brightness(1.1);
+}
+
+.permission-dialog .action-btn.allow kbd {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 540px) {
+  .permission-dialog {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+}

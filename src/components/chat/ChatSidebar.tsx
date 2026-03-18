@@ -26,8 +26,9 @@ import { ChatItem } from './ChatSidebarItem';
 import { ChatSidebarFolderModal } from './ChatSidebarFolderModal';
 import { ChatSidebarFolderSection } from './ChatSidebarFolderSection';
 // Agent sessions sidebar removed — agent system deprecated
-import { ChatSidebarScheduledTasks, type ScheduledTask } from './ChatSidebarScheduledTasks';
+import { ChatSidebarScheduledTasks } from './ChatSidebarScheduledTasks';
 import { ChatSidebarFooter } from './ChatSidebarFooter';
+import { useScheduledTasks } from './useScheduledTasks';
 
 interface ChatSidebarProps {
   chats: Chat[];
@@ -77,8 +78,8 @@ export function ChatSidebar({
   const [folderMenuId, setFolderMenuId] = useState<string | null>(null);
   const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
 
-  // Scheduled tasks state
-  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+  // Scheduled tasks (extracted hook)
+  const { scheduledTasks, fetchScheduledTasks, handlePauseTask, handleResumeTask, handleDeleteTask } = useScheduledTasks();
 
   // Fetch folders on mount
   const fetchFolders = useCallback(async () => {
@@ -93,67 +94,9 @@ export function ChatSidebar({
     }
   }, []);
 
-  // Fetch scheduled tasks
-  const fetchScheduledTasks = useCallback(async () => {
-    try {
-      const response = await fetch('/api/scheduled-tasks');
-      if (response.ok) {
-        const data = await response.json();
-        setScheduledTasks(data.tasks || []);
-      }
-    } catch (error) {
-      console.error('[ChatSidebar] Error fetching scheduled tasks:', error);
-    }
-  }, []);
-
-  const handlePauseTask = useCallback(
-    async (taskId: string) => {
-      try {
-        await fetch('/api/scheduled-tasks', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: taskId, status: 'paused' }),
-        });
-        fetchScheduledTasks();
-      } catch (error) {
-        console.error('[ChatSidebar] Error pausing task:', error);
-      }
-    },
-    [fetchScheduledTasks]
-  );
-
-  const handleResumeTask = useCallback(
-    async (taskId: string) => {
-      try {
-        await fetch('/api/scheduled-tasks', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: taskId, status: 'pending' }),
-        });
-        fetchScheduledTasks();
-      } catch (error) {
-        console.error('[ChatSidebar] Error resuming task:', error);
-      }
-    },
-    [fetchScheduledTasks]
-  );
-
-  const handleDeleteTask = useCallback(
-    async (taskId: string) => {
-      try {
-        await fetch(`/api/scheduled-tasks?id=${taskId}`, { method: 'DELETE' });
-        fetchScheduledTasks();
-      } catch (error) {
-        console.error('[ChatSidebar] Error deleting task:', error);
-      }
-    },
-    [fetchScheduledTasks]
-  );
-
   useEffect(() => {
     fetchFolders();
-    fetchScheduledTasks();
-  }, [fetchFolders, fetchScheduledTasks]);
+  }, [fetchFolders]);
 
   // Check admin status on mount
   useEffect(() => {
