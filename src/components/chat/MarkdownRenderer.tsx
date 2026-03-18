@@ -25,6 +25,9 @@ import DestructiveActionCard, {
   type DestructiveActionData,
 } from './DestructiveActionCard';
 import ChainProgressCard, { parseChainProgress } from './ChainProgressCard';
+import BrowserViewCard, { parseBrowserView } from './BrowserViewCard';
+import BrowserActionReplay, { parseBrowserActions } from './BrowserActionReplay';
+import ScreenshotGallery, { extractGalleryImages } from './ScreenshotGallery';
 import ScheduledActionCard, {
   parseScheduledAction,
   type ScheduledActionData,
@@ -465,6 +468,26 @@ function filterInternalMarkers(text: string): string {
   return text.replace(/\[c:[A-Za-z0-9+/=]+\]/g, '');
 }
 
+/**
+ * When content has 2+ markdown images, extract them into a screenshot-gallery
+ * code block so they render as a scrollable gallery instead of stacked.
+ */
+function groupImagesIntoGallery(content: string): string {
+  const images = extractGalleryImages(content);
+  if (images.length < 2) return content;
+
+  // Remove individual image markdown and replace with gallery block
+  let result = content;
+  const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  result = result.replace(imgRegex, '').trim();
+
+  // Build gallery code block
+  const galleryJson = JSON.stringify(images);
+  result += `\n\n\`\`\`screenshot-gallery\n${galleryJson}\n\`\`\``;
+
+  return result;
+}
+
 export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
   enableCodeActions = false,
@@ -493,8 +516,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   // Pre-process content:
   // 1. Filter out internal markers (checkpoint state, etc.)
   // 2. Convert plain URLs to clickable markdown links
+  // 3. Group multiple images into a screenshot gallery
   const filteredContent = filterInternalMarkers(content);
-  const processedContent = autoLinkifyUrls(filteredContent);
+  const linkedContent = autoLinkifyUrls(filteredContent);
+  const processedContent = groupImagesIntoGallery(linkedContent);
 
   // Generate a stable hash for code content
   const getCodeHash = useCallback((code: string) => {
@@ -585,6 +610,34 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         const progressData = parseChainProgress(`\`\`\`chain-progress\n${codeContent}\n\`\`\``);
         if (progressData) {
           return <ChainProgressCard data={progressData} />;
+        }
+      }
+
+      // Check if this is a browser view card (link preview)
+      if (language === 'browser-view') {
+        const viewData = parseBrowserView(`\`\`\`browser-view\n${codeContent}\n\`\`\``);
+        if (viewData) {
+          return <BrowserViewCard data={viewData} />;
+        }
+      }
+
+      // Check if this is a browser action replay timeline
+      if (language === 'browser-actions') {
+        const replayData = parseBrowserActions(`\`\`\`browser-actions\n${codeContent}\n\`\`\``);
+        if (replayData) {
+          return <BrowserActionReplay data={replayData} />;
+        }
+      }
+
+      // Check if this is a screenshot gallery
+      if (language === 'screenshot-gallery') {
+        try {
+          const images = JSON.parse(codeContent);
+          if (Array.isArray(images) && images.length > 0) {
+            return <ScreenshotGallery images={images} />;
+          }
+        } catch {
+          // Not valid JSON, fall through
         }
       }
 

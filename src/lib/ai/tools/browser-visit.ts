@@ -531,12 +531,31 @@ export async function executeBrowserVisitTool(
     log.info('Visiting untrusted domain', { url });
   }
 
+  // Track browser actions for replay timeline
+  const startTime = Date.now();
+  const browserActions: Array<{
+    action: string;
+    target?: string;
+    detail?: string;
+    timestamp?: number;
+  }> = [];
+  browserActions.push({ action: 'navigate', target: url, timestamp: 0 });
+
+  if (scrollToBottom) {
+    browserActions.push({ action: 'scroll', target: 'bottom', timestamp: 0 });
+  }
+  if (clickSelector) {
+    browserActions.push({ action: 'click', target: clickSelector, timestamp: 0 });
+  }
+
   // Execute
   const result = await executeBrowserVisit(url, action, {
     waitFor,
     clickSelector,
     scrollToBottom,
   });
+
+  const duration = Date.now() - startTime;
 
   // Record visit and cost
   recordPageVisit(sessionId, url);
@@ -555,33 +574,74 @@ export async function executeBrowserVisitTool(
 
   if (data.type === 'screenshot') {
     const base64Data = data.data as string;
+    browserActions.push({ action: 'screenshot', detail: 'Full page capture', timestamp: duration });
+
+    // Build browser-actions block
+    const actionsJson = JSON.stringify({ actions: browserActions, totalDuration: duration, url });
+    const actionsBlock = `\n\n\`\`\`browser-actions\n${actionsJson}\n\`\`\``;
+
     // Return as markdown image so uploadInlineFiles() converts to hosted URL
     // and Claude can reference it in the response for inline rendering
     return {
       toolCallId: id,
-      content: `Screenshot of ${url}:\n\n[Screenshot of ${new URL(url).hostname}](data:image/png;base64,${base64Data})`,
+      content: `Screenshot of ${url}:\n\n![Screenshot of ${new URL(url).hostname}](data:image/png;base64,${base64Data})${actionsBlock}`,
       isError: false,
     };
   }
 
   if (data.type === 'links') {
     const links = data.data as Array<{ text: string; href: string }>;
+    browserActions.push({
+      action: 'links',
+      detail: `${links.length} links found`,
+      timestamp: duration,
+    });
     const formatted = links.map((l) => `- [${l.text}](${l.href})`).join('\n');
+
+    const actionsJson = JSON.stringify({ actions: browserActions, totalDuration: duration, url });
+    const actionsBlock = `\n\n\`\`\`browser-actions\n${actionsJson}\n\`\`\``;
+
     return {
       toolCallId: id,
-      content: `Found ${links.length} links:\n\n${formatted}`,
+      content: `Found ${links.length} links:\n\n${formatted}${actionsBlock}`,
       isError: false,
     };
   }
 
   if (data.type === 'content') {
     const content = data.data as { title: string; content: string };
+    browserActions.push({
+      action: 'extract',
+      detail: content.title || 'Page content',
+      timestamp: duration,
+    });
+
     let output = '';
+
+    // Emit browser-view card for rich link preview
+    try {
+      const domain = new URL(url).hostname.replace('www.', '');
+      const snippet = content.content.slice(0, 200).replace(/\s+/g, ' ').trim();
+      const viewData = JSON.stringify({
+        url,
+        title: content.title || domain,
+        domain,
+        snippet,
+      });
+      output += `\`\`\`browser-view\n${viewData}\n\`\`\`\n\n`;
+    } catch {
+      // Non-critical, skip view card
+    }
+
     if (content.title) {
       output += `# ${content.title}\n\n`;
     }
     output += sanitizeOutput(content.content.slice(0, MAX_CONTENT_LENGTH));
     output += `\n\n---\n*Source: ${url}*`;
+
+    // Append browser action replay
+    const actionsJson = JSON.stringify({ actions: browserActions, totalDuration: duration, url });
+    output += `\n\n\`\`\`browser-actions\n${actionsJson}\n\`\`\``;
 
     return {
       toolCallId: id,
