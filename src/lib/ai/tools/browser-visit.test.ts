@@ -238,7 +238,8 @@ describe('executeBrowserVisitTool - success', () => {
       makeCall({ url: 'https://example.com', action: 'screenshot' })
     );
     expect(res.isError).toBe(false);
-    expect(res.content).toContain('Screenshot captured');
+    expect(res.content).toContain('Screenshot of example.com');
+    expect(res.content).toContain('data:image/png;base64,');
   });
 
   it('should normalize URL without protocol', async () => {

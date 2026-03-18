@@ -216,13 +216,25 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
 
   try {
     const desktop = await getDesktopSandbox();
+    const startTime = Date.now();
+    const browserActions: Array<{
+      action: string;
+      target?: string;
+      detail?: string;
+      timestamp?: number;
+    }> = [];
     let result = '';
 
     switch (action) {
       case 'screenshot': {
         const image = await desktop.screenshot();
         const base64 = Buffer.from(image).toString('base64');
-        result = `Screenshot captured (${image.length} bytes).\n\nBase64 PNG:\ndata:image/png;base64,${base64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        browserActions.push({
+          action: 'screenshot',
+          detail: 'Desktop capture',
+          timestamp: Date.now() - startTime,
+        });
+        result = `Desktop screenshot captured:\n\n![Desktop Screenshot](data:image/png;base64,${base64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -240,6 +252,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
             isError: true,
           };
         }
+        browserActions.push({ action: 'navigate', target: url, timestamp: 0 });
         // Launch Chrome with the URL
         await desktop.commands.run(`google-chrome --no-sandbox --disable-gpu "${url}" &`, {
           timeoutMs: DESKTOP_TIMEOUT_MS,
@@ -249,7 +262,12 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
         // Take screenshot after opening
         const pageImage = await desktop.screenshot();
         const pageBase64 = Buffer.from(pageImage).toString('base64');
-        result = `Opened ${url} in Chrome. Screenshot:\ndata:image/png;base64,${pageBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        browserActions.push({
+          action: 'screenshot',
+          detail: 'Page loaded',
+          timestamp: Date.now() - startTime,
+        });
+        result = `Opened ${url} in Chrome.\n\n![Screenshot of ${new URL(url).hostname}](data:image/png;base64,${pageBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -263,11 +281,17 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
             isError: true,
           };
         }
+        browserActions.push({ action: 'click', target: `(${x}, ${y})`, timestamp: 0 });
         await desktop.leftClick(x, y);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const clickImage = await desktop.screenshot();
         const clickBase64 = Buffer.from(clickImage).toString('base64');
-        result = `Clicked at (${x}, ${y}). Screenshot after click:\ndata:image/png;base64,${clickBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        browserActions.push({
+          action: 'screenshot',
+          detail: 'After click',
+          timestamp: Date.now() - startTime,
+        });
+        result = `Clicked at (${x}, ${y}).\n\n![Screenshot after click](data:image/png;base64,${clickBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -280,6 +304,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
             isError: true,
           };
         }
+        browserActions.push({ action: 'type', target: text.slice(0, 50), timestamp: 0 });
         await desktop.write(text);
         result = `Typed: "${text.slice(0, 100)}${text.length > 100 ? '...' : ''}"`;
         break;
@@ -294,6 +319,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
             isError: true,
           };
         }
+        browserActions.push({ action: 'press_key', target: key, timestamp: 0 });
         await desktop.press(key);
         result = `Pressed key: ${key}`;
         break;
@@ -302,11 +328,21 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
       case 'scroll': {
         const direction = (args.direction as string) || 'down';
         const amount = (args.scroll_amount as number) || 3;
+        browserActions.push({
+          action: 'scroll',
+          target: `${direction} ${amount} ticks`,
+          timestamp: 0,
+        });
         await desktop.scroll(direction, amount);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const scrollImage = await desktop.screenshot();
         const scrollBase64 = Buffer.from(scrollImage).toString('base64');
-        result = `Scrolled ${direction} ${amount} ticks. Screenshot:\ndata:image/png;base64,${scrollBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        browserActions.push({
+          action: 'screenshot',
+          detail: 'After scroll',
+          timestamp: Date.now() - startTime,
+        });
+        result = `Scrolled ${direction} ${amount} ticks.\n\n![Screenshot after scroll](data:image/png;base64,${scrollBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -336,6 +372,13 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
 
     recordToolCost(sessionId, 'desktop_sandbox', TOOL_COST);
     log.info('Desktop action complete', { action });
+
+    // Append browser action replay if there were visual actions
+    if (browserActions.length > 0) {
+      const totalDuration = Date.now() - startTime;
+      const actionsJson = JSON.stringify({ actions: browserActions, totalDuration });
+      result += `\n\n\`\`\`browser-actions\n${actionsJson}\n\`\`\``;
+    }
 
     return { toolCallId: id, content: result, isError: false };
   } catch (error) {

@@ -25,6 +25,9 @@ import DestructiveActionCard, {
   type DestructiveActionData,
 } from './DestructiveActionCard';
 import ChainProgressCard, { parseChainProgress } from './ChainProgressCard';
+import BrowserViewCard, { parseBrowserView } from './BrowserViewCard';
+import BrowserActionReplay, { parseBrowserActions } from './BrowserActionReplay';
+import ScreenshotGallery, { extractGalleryImages } from './ScreenshotGallery';
 import ScheduledActionCard, {
   parseScheduledAction,
   type ScheduledActionData,
@@ -79,6 +82,76 @@ function autoLinkifyUrls(text: string): string {
     }
     return `[${displayText}](${url})`;
   });
+}
+
+// Inline screenshot/image component with click-to-expand lightbox
+function InlineScreenshot({ src, alt }: { src?: string; alt?: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!src) return null;
+
+  const isScreenshot =
+    alt?.toLowerCase().includes('screenshot') || alt?.toLowerCase().includes('desktop');
+  const label = alt || 'Image';
+
+  return (
+    <>
+      <figure
+        className="my-3 max-w-full cursor-pointer group"
+        onClick={() => setExpanded(true)}
+        role="button"
+        tabIndex={0}
+        aria-label={`View full size: ${label}`}
+        onKeyDown={(e) => e.key === 'Enter' && setExpanded(true)}
+      >
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20">
+          {isScreenshot && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border-b border-white/10 text-xs text-white/50">
+              <span>🌐</span>
+              <span className="truncate">{label}</span>
+            </div>
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={label}
+            className="w-full h-auto max-h-[400px] object-contain"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+            <span className="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full">
+              Click to expand
+            </span>
+          </div>
+        </div>
+      </figure>
+
+      {/* Lightbox overlay */}
+      {expanded && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setExpanded(false)}
+          role="dialog"
+          aria-label="Expanded image view"
+        >
+          <button
+            className="absolute top-4 right-4 text-white/70 hover:text-white text-2xl z-10"
+            onClick={() => setExpanded(false)}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={label}
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
 }
 
 // Custom components - inherit colors from parent for theme support
@@ -381,6 +454,9 @@ const components: Components = {
     <th className="px-3 py-2 text-left text-sm font-semibold text-inherit">{children}</th>
   ),
   td: ({ children }) => <td className="px-3 py-2 text-sm text-inherit">{children}</td>,
+
+  // Images - inline screenshots and browser captures with click-to-expand
+  img: ({ src, alt }) => <InlineScreenshot src={src} alt={alt} />,
 };
 
 /**
@@ -390,6 +466,26 @@ const components: Components = {
 function filterInternalMarkers(text: string): string {
   // Remove checkpoint state: [c:BASE64_STATE]
   return text.replace(/\[c:[A-Za-z0-9+/=]+\]/g, '');
+}
+
+/**
+ * When content has 2+ markdown images, extract them into a screenshot-gallery
+ * code block so they render as a scrollable gallery instead of stacked.
+ */
+function groupImagesIntoGallery(content: string): string {
+  const images = extractGalleryImages(content);
+  if (images.length < 2) return content;
+
+  // Remove individual image markdown and replace with gallery block
+  let result = content;
+  const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  result = result.replace(imgRegex, '').trim();
+
+  // Build gallery code block
+  const galleryJson = JSON.stringify(images);
+  result += `\n\n\`\`\`screenshot-gallery\n${galleryJson}\n\`\`\``;
+
+  return result;
 }
 
 export const MarkdownRenderer = memo(function MarkdownRenderer({
@@ -420,8 +516,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   // Pre-process content:
   // 1. Filter out internal markers (checkpoint state, etc.)
   // 2. Convert plain URLs to clickable markdown links
+  // 3. Group multiple images into a screenshot gallery
   const filteredContent = filterInternalMarkers(content);
-  const processedContent = autoLinkifyUrls(filteredContent);
+  const linkedContent = autoLinkifyUrls(filteredContent);
+  const processedContent = groupImagesIntoGallery(linkedContent);
 
   // Generate a stable hash for code content
   const getCodeHash = useCallback((code: string) => {
@@ -512,6 +610,34 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         const progressData = parseChainProgress(`\`\`\`chain-progress\n${codeContent}\n\`\`\``);
         if (progressData) {
           return <ChainProgressCard data={progressData} />;
+        }
+      }
+
+      // Check if this is a browser view card (link preview)
+      if (language === 'browser-view') {
+        const viewData = parseBrowserView(`\`\`\`browser-view\n${codeContent}\n\`\`\``);
+        if (viewData) {
+          return <BrowserViewCard data={viewData} />;
+        }
+      }
+
+      // Check if this is a browser action replay timeline
+      if (language === 'browser-actions') {
+        const replayData = parseBrowserActions(`\`\`\`browser-actions\n${codeContent}\n\`\`\``);
+        if (replayData) {
+          return <BrowserActionReplay data={replayData} />;
+        }
+      }
+
+      // Check if this is a screenshot gallery
+      if (language === 'screenshot-gallery') {
+        try {
+          const images = JSON.parse(codeContent);
+          if (Array.isArray(images) && images.length > 0) {
+            return <ScreenshotGallery images={images} />;
+          }
+        } catch {
+          // Not valid JSON, fall through
         }
       }
 
