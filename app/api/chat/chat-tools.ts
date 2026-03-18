@@ -545,7 +545,9 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
     const TOOL_TIMEOUT_MS =
       toolName === 'run_code' || toolName === 'parallel_research'
         ? 120_000 // 2 min for long-running tools
-        : 30_000; // 30s for everything else
+        : toolName === 'browser_visit' || toolName === 'desktop_sandbox'
+          ? 90_000 // 90s for browser/desktop (sandbox startup + page load)
+          : 30_000; // 30s for everything else
 
     try {
       const toolPromise = (async () => {
