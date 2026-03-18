@@ -306,11 +306,11 @@
 
 - [x] **4.3.1** Stream browser screenshots inline in chat — browser*visit now returns screenshots as markdown image links. uploadInlineFiles() converts base64 to hosted URLs. MarkdownRenderer renders inline with styled card. *(2026-03-18)\_
 - [x] **4.3.2** Stream desktop*sandbox screenshots inline — all screenshot/open_url/click/scroll actions now return markdown image links for inline rendering. *(2026-03-18)\_
-- [ ] **4.3.3** Add a "Browser View" panel/card in chat — show a visual card with the page title, URL, and thumbnail when browser_visit extracts content (similar to link previews)
+- [x] **4.3.3** Browser View card — BrowserViewCard component renders link preview (favicon, title, domain, snippet) when browser*visit extracts content. Emitted as ```browser-view code block. *(2026-03-18)\_
 - [x] **4.3.4** Live browsing progress indicator — TypingIndicator now shows "Browsing [topic]..." when user mentions visiting websites, screenshots, or URLs. _(2026-03-18)_
-- [ ] **4.3.5** Screenshot gallery for multi-step browsing — when the AI takes multiple screenshots in a conversation, render them in a scrollable gallery
+- [x] **4.3.5** Screenshot gallery — ScreenshotGallery component with horizontal scroll, lightbox with arrow nav, keyboard support (arrows/Escape), dot indicators. Auto-groups 2+ images via MarkdownRenderer pre-processing. _(2026-03-18)_
 - [x] **4.3.6** Click-to-expand for screenshots — InlineScreenshot component in MarkdownRenderer: styled card with browser chrome header, hover overlay, full-screen lightbox on click/Enter key. _(2026-03-18)_
-- [ ] **4.3.7** Browser action replay — show a timeline of browser actions (navigated to X, clicked Y, scrolled, screenshot) so users can follow what the AI did
+- [x] **4.3.7** Browser action replay — BrowserActionReplay timeline component shows navigate/click/scroll/screenshot/extract actions with icons, timestamps, expand/collapse. Both browser*visit and desktop_sandbox emit ```browser-actions blocks. *(2026-03-18)\_
 
 ### 4.4 Autonomous Task Execution
 
@@ -360,9 +360,9 @@
 | Phase 1: Foundation           | 50          | 50        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
 | Phase 3: Production Readiness | 38          | 25        | 66%        |
-| Phase 4: Differentiation      | 30          | 12        | 40%        |
+| Phase 4: Differentiation      | 30          | 15        | 50%        |
 | Doc Cleanup                   | 4           | 4         | 100%       |
-| **Total**                     | **179**     | **148**   | **83%**    |
+| **Total**                     | **179**     | **151**   | **84%**    |
 
 > Update this summary table as tasks are completed.
 
@@ -507,12 +507,17 @@
   - `TypingIndicator` shows "Browsing [topic]..." for website-related requests
 - All commits pass TSC, ESLint, and full build.
 
+- **Completed Phase 4.3** (all 7/7 tasks):
+  - BrowserViewCard: link preview card with favicon, title, domain, snippet for content extraction
+  - ScreenshotGallery: horizontal scrollable gallery with lightbox, keyboard nav, dot indicators
+  - BrowserActionReplay: timeline of browser actions with icons, timestamps, expand/collapse
+  - MarkdownRenderer: handles 3 new code blocks (browser-view, screenshot-gallery, browser-actions)
+  - browser_visit emits browser-view + browser-actions blocks
+  - desktop_sandbox emits browser-actions blocks + fixed ![img] syntax
+
 **What's next:**
 
-- 4.3.3: Browser View card for content extraction results
-- 4.3.5: Screenshot gallery for multi-step browsing
-- 4.3.7: Browser action replay timeline
-- Verify browser_visit works end-to-end in production after deploy
+- Verify browser features work end-to-end in production after deploy
 - 83 component files still over 400-line threshold
 - Phase 3.6: Test coverage push (40% → 60%)
 
