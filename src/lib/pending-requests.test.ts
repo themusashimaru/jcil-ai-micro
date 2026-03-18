@@ -73,7 +73,7 @@ describe('createPendingRequest', () => {
       conversationId: 'conv-1',
       messages: [{ role: 'user', content: 'hello' }],
       tool: 'chat',
-      model: 'claude-3',
+      model: 'claude-opus-4-6',
     });
 
     expect(mockFrom).toHaveBeenCalledWith('pending_requests');
