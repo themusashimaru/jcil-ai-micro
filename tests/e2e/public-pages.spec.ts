@@ -229,7 +229,7 @@ test.describe('Public Pages - Navigation Links', () => {
 
 test.describe('Public Pages - Performance', () => {
   test('all public pages load under 5 seconds', async ({ page }) => {
-    for (const { path, name } of PUBLIC_PAGES) {
+    for (const { path } of PUBLIC_PAGES) {
       const start = Date.now();
       await page.goto(path);
       await page.waitForLoadState('domcontentloaded');
