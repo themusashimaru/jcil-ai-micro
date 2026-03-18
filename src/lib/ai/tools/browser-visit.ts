@@ -554,9 +554,12 @@ export async function executeBrowserVisitTool(
   const data = result.result as { type: string; data: unknown };
 
   if (data.type === 'screenshot') {
+    const base64Data = data.data as string;
+    // Return as markdown image so uploadInlineFiles() converts to hosted URL
+    // and Claude can reference it in the response for inline rendering
     return {
       toolCallId: id,
-      content: `Screenshot captured. The screenshot data is available as base64.`,
+      content: `Screenshot of ${url}:\n\n[Screenshot of ${new URL(url).hostname}](data:image/png;base64,${base64Data})`,
       isError: false,
     };
   }

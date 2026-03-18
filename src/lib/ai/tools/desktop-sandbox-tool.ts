@@ -222,7 +222,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
       case 'screenshot': {
         const image = await desktop.screenshot();
         const base64 = Buffer.from(image).toString('base64');
-        result = `Screenshot captured (${image.length} bytes).\n\nBase64 PNG:\ndata:image/png;base64,${base64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        result = `Desktop screenshot captured:\n\n[Desktop Screenshot](data:image/png;base64,${base64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -249,7 +249,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
         // Take screenshot after opening
         const pageImage = await desktop.screenshot();
         const pageBase64 = Buffer.from(pageImage).toString('base64');
-        result = `Opened ${url} in Chrome. Screenshot:\ndata:image/png;base64,${pageBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        result = `Opened ${url} in Chrome.\n\n[Screenshot of ${new URL(url).hostname}](data:image/png;base64,${pageBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -267,7 +267,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const clickImage = await desktop.screenshot();
         const clickBase64 = Buffer.from(clickImage).toString('base64');
-        result = `Clicked at (${x}, ${y}). Screenshot after click:\ndata:image/png;base64,${clickBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        result = `Clicked at (${x}, ${y}).\n\n[Screenshot after click](data:image/png;base64,${clickBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 
@@ -306,7 +306,7 @@ export async function executeDesktopSandbox(toolCall: UnifiedToolCall): Promise<
         await new Promise((resolve) => setTimeout(resolve, 1000));
         const scrollImage = await desktop.screenshot();
         const scrollBase64 = Buffer.from(scrollImage).toString('base64');
-        result = `Scrolled ${direction} ${amount} ticks. Screenshot:\ndata:image/png;base64,${scrollBase64.slice(0, MAX_OUTPUT_LENGTH)}`;
+        result = `Scrolled ${direction} ${amount} ticks.\n\n[Screenshot after scroll](data:image/png;base64,${scrollBase64.slice(0, MAX_OUTPUT_LENGTH)})`;
         break;
       }
 

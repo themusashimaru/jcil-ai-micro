@@ -175,6 +175,15 @@ function getStatusMessage(userMessage: string): string {
     return short ? `Researching ${short}...` : 'Researching...';
   }
 
+  // Browsing / website visit / screenshot
+  if (
+    msg.match(
+      /visit|browse|go to|open|screenshot|navigate to|check out|look at.*website|look at.*page|\.com|\.org|\.net|\.io|hacker\s?news/i
+    )
+  ) {
+    return short ? `Browsing ${short}...` : 'Browsing the web...';
+  }
+
   // Search / lookup
   if (msg.match(/search|find|look up|what is|who is|what are|who are|tell me about/i)) {
     return short ? `Looking up ${short}...` : 'Searching...';
