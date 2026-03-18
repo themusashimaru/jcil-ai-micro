@@ -11,6 +11,8 @@
  * - Popular templates
  */
 
+import './code-lab-session-templates.css';
+
 interface SessionTemplate {
   id: string;
   title: string;
@@ -303,128 +305,6 @@ export function CodeLabSessionTemplates({
         </div>
       ))}
 
-      <style jsx>{`
-        .session-templates {
-          padding: 1.5rem;
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        .templates-section {
-          margin-bottom: 2rem;
-        }
-
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin: 0 0 1rem;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--cl-text-secondary, #4b5563);
-        }
-
-        .section-icon {
-          font-size: 1rem;
-        }
-
-        .section-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .templates-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-          gap: 0.75rem;
-        }
-
-        .templates-grid.popular {
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        }
-
-        .template-card {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: var(--cl-bg-primary, white);
-          border: 1px solid var(--cl-border-primary, #e5e7eb);
-          border-radius: 12px;
-          cursor: pointer;
-          text-align: left;
-          transition: all 0.2s;
-          position: relative;
-        }
-
-        .template-card:hover {
-          border-color: var(--cl-accent-primary, #1e3a5f);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
-          transform: translateY(-2px);
-        }
-
-        .template-card.popular {
-          background: linear-gradient(135deg, #f9fafb 0%, #eef2ff 100%);
-        }
-
-        .template-icon {
-          font-size: 1.5rem;
-          flex-shrink: 0;
-        }
-
-        .template-content {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .template-title {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--cl-text-primary, #1a1f36);
-          margin-bottom: 0.25rem;
-        }
-
-        .template-desc {
-          display: block;
-          font-size: 0.75rem;
-          color: var(--cl-text-tertiary, #6b7280);
-          line-height: 1.4;
-          overflow: hidden;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-        }
-
-        .category-badge {
-          position: absolute;
-          top: 0.5rem;
-          right: 0.5rem;
-          padding: 0.125rem 0.5rem;
-          border-radius: 999px;
-          font-size: 0.625rem;
-          font-weight: 600;
-          color: white;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        @media (max-width: 640px) {
-          .session-templates {
-            padding: 1rem;
-          }
-
-          .templates-grid,
-          .templates-grid.popular {
-            grid-template-columns: 1fr;
-          }
-
-          .template-card {
-            padding: 0.875rem;
-          }
-        }
-      `}</style>
     </div>
   );
 }
