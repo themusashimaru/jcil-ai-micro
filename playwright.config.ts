@@ -58,8 +58,8 @@ export default defineConfig({
     stderr: 'pipe',
     env: {
       SKIP_ENV_VALIDATION: 'true',
-      NEXT_PUBLIC_SUPABASE_URL:
-        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      PLAYWRIGHT_TESTING: 'true',
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY:
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
       SUPABASE_SERVICE_ROLE_KEY:
@@ -68,8 +68,8 @@ export default defineConfig({
     },
   },
 
-  // Global timeout for each test (45s to account for slower CI runners)
-  timeout: 45000,
+  // Global timeout for each test
+  timeout: 15000,
 
   // Expect timeout
   expect: {

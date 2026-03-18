@@ -78,13 +78,14 @@ test.describe('Chat Endpoint Contract', () => {
     expect([404, 405]).toContain(response.status());
   });
 
-  test('POST /api/chat rejects oversized messages', async ({ request }) => {
-    const largeContent = 'x'.repeat(500_000);
+  test('POST /api/chat rejects oversized messages with 413', async ({ request }) => {
+    // Middleware enforces 5MB limit on /api/chat via content-length check
+    const largeContent = 'x'.repeat(6_000_000);
     const response = await request.post('/api/chat', {
       data: { messages: [{ role: 'user', content: largeContent }] },
       headers: { 'Content-Type': 'application/json' },
     });
-    // Auth check comes first, then size check
+    // Middleware rejects before auth with 413, or auth rejects with 401/403
     expect([401, 403, 413]).toContain(response.status());
   });
 });

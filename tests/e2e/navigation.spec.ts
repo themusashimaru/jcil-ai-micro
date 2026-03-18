@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /**
  * Navigation E2E Tests
@@ -27,22 +27,12 @@ test.describe('Navigation', () => {
     }
   });
 
-  test('can navigate from homepage to signup page', async ({ page }) => {
+  test('homepage has signup link', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
 
-    const signupLink = page.locator(
-      'a[href*="signup"], a[href*="register"], button:has-text("Sign up"), button:has-text("Get started"), button:has-text("Get Started")'
-    );
-
-    const count = await signupLink.count();
-    if (count > 0) {
-      await signupLink.first().click();
-      await page.waitForURL(/(signup|register|auth)/, { timeout: 10000 });
-      expect(page.url()).toMatch(/signup|register|auth/i);
-    } else {
-      test.skip();
-    }
+    const signupLink = page.locator('a[href="/signup"]');
+    await expect(signupLink.first()).toBeVisible();
   });
 
   test('login page has link back to homepage', async ({ page }) => {

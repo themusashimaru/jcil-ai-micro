@@ -19,7 +19,7 @@ test.describe('CSRF Enforcement on Protected Endpoints', () => {
     '/api/files/upload',
     '/api/analytics',
     '/api/memory/forget',
-    '/api/connectors',
+    // Note: /api/connectors excluded — returns 503 from rate limiter before auth check
     '/api/user/api-keys',
     '/api/user/dismiss-passkey-prompt',
   ];

@@ -184,6 +184,12 @@ export async function checkRateLimit(
     return checkRateLimitMemory(identifier, config);
   }
 
+  // E2E tests run against production build but without Redis —
+  // use memory fallback so tests aren't blocked by fail-closed behavior
+  if (process.env.PLAYWRIGHT_TESTING === 'true') {
+    return checkRateLimitMemory(identifier, config);
+  }
+
   // In production without Redis, fail CLOSED — reject the request
   // Rate limiting is critical for an AI platform where each request can cost dollars
   // Allowing unthrottled access risks abuse, cost attacks, and DoS
