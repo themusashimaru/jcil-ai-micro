@@ -1,0 +1,283 @@
+.deploy-panel {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.platform-selector {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.platform-selector button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.platform-selector button:hover:not(:disabled) {
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.platform-selector button.active {
+  background: #1a1f36;
+  border-color: #1a1f36;
+  color: white;
+}
+
+.platform-selector button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.platform-selector button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.connection-status {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.connected,
+.not-connected {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+.status-dot.disconnected {
+  background: #d1d5db;
+}
+
+.disconnect-btn,
+.connect-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.disconnect-btn:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.connect-btn {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: white;
+}
+
+.connect-btn:hover {
+  background: #4f46e5;
+}
+
+.token-input-container {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.token-input-container input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.token-input-container input:focus {
+  outline: none;
+  border-color: #1e3a5f;
+}
+
+.save-token-btn {
+  padding: 0.5rem 0.75rem;
+  background: #1e3a5f;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.save-token-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.token-help {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: #1e3a5f;
+  text-decoration: none;
+}
+
+.token-help:hover {
+  text-decoration: underline;
+}
+
+.deploy-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #1a1f36;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.deploy-btn:hover:not(:disabled) {
+  background: #2d3348;
+}
+
+.deploy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deploy-btn.success {
+  background: #16a34a;
+}
+
+.deploy-btn.error {
+  background: #dc2626;
+}
+
+.deploy-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.deploy-btn .spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.deploy-success {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+}
+
+.deploy-success a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #16a34a;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.deploy-success a:hover {
+  text-decoration: underline;
+}
+
+.deploy-success svg {
+  width: 16px;
+  height: 16px;
+}
+
+.deploy-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.8125rem;
+}
+
+.deploy-error svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.deploy-error span {
+  flex: 1;
+}
+
+.deploy-error button {
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+@media (max-width: 480px) {
+  .platform-selector {
+    flex-direction: column;
+  }
+
+  .token-input-container {
+    flex-wrap: wrap;
+  }
+
+  .token-input-container input {
+    width: 100%;
+  }
+}

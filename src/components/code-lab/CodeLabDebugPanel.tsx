@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import './code-lab-debug-panel.css';
 import { CodeLabDebugger, DebugSession, Breakpoint as UIBreakpoint } from './CodeLabDebugger';
 import {
   useDebugSession,
@@ -292,83 +293,6 @@ export function CodeLabDebugPanel({
 
         {debugSession.error && <div className="debug-error">{debugSession.error}</div>}
 
-        <style jsx>{`
-          .debug-config-panel {
-            padding: 1.5rem;
-          }
-
-          .debug-config-panel h3 {
-            margin: 0 0 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1a1f36;
-          }
-
-          .config-field {
-            margin-bottom: 1rem;
-          }
-
-          .config-field label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            color: #4b5563;
-          }
-
-          .config-field select,
-          .config-field input {
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            color: #1a1f36;
-          }
-
-          .config-field select:focus,
-          .config-field input:focus {
-            outline: none;
-            border-color: #1e3a5f;
-            box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.1);
-          }
-
-          .config-actions {
-            margin-top: 1.5rem;
-          }
-
-          .start-btn {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: #1e3a5f;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s;
-          }
-
-          .start-btn:hover:not(:disabled) {
-            background: #2d4a6f;
-          }
-
-          .start-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-          }
-
-          .debug-error {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 6px;
-            color: #dc2626;
-            font-size: 0.8125rem;
-          }
-        `}</style>
       </div>
     );
   }
@@ -409,63 +333,6 @@ export function CodeLabDebugPanel({
         </div>
       )}
 
-      <style jsx>{`
-        .debug-panel-wrapper {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .debug-console {
-          border-top: 1px solid #e5e7eb;
-          max-height: 200px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .console-header {
-          padding: 0.5rem 1rem;
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: #4b5563;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .console-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 0.5rem;
-          font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-          font-size: 0.75rem;
-          background: #1a1f36;
-          color: #e5e7eb;
-        }
-
-        .console-line {
-          display: flex;
-          gap: 0.5rem;
-          padding: 0.125rem 0;
-        }
-
-        .console-line.stderr {
-          color: #f87171;
-        }
-
-        .console-line.stdout {
-          color: #a3e635;
-        }
-
-        .console-time {
-          color: #6b7280;
-          flex-shrink: 0;
-        }
-
-        .console-text {
-          white-space: pre-wrap;
-          word-break: break-all;
-        }
-      `}</style>
     </div>
   );
 }
