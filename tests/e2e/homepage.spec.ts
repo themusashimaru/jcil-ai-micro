@@ -3,93 +3,71 @@ import { test, expect } from '@playwright/test';
 /**
  * Homepage E2E Tests
  *
- * Verifies the homepage loads correctly and key elements are present.
+ * Verifies the landing page loads correctly with all key elements.
  */
 
 test.describe('Homepage', () => {
-  test('homepage loads successfully', async ({ page }) => {
+  test('homepage loads with 200 status', async ({ page }) => {
     const response = await page.goto('/');
-
     expect(response?.status()).toBe(200);
   });
 
-  test('homepage has correct title', async ({ page }) => {
+  test('homepage has a non-empty title', async ({ page }) => {
     await page.goto('/');
-
-    // Check page has a title
     const title = await page.title();
-    expect(title).toBeTruthy();
+    expect(title.length).toBeGreaterThan(0);
   });
 
-  test('homepage has main navigation', async ({ page }) => {
+  test('homepage has navigation element', async ({ page }) => {
     await page.goto('/');
-
-    // Check for navigation elements
     const nav = page.locator('nav, header, [role="navigation"]');
     await expect(nav.first()).toBeVisible();
   });
 
   test('homepage has main content area', async ({ page }) => {
     await page.goto('/');
-
-    // Check for main content
-    const main = page.locator('main, [role="main"], .main-content');
+    const main = page.locator('main, [role="main"]');
     await expect(main.first()).toBeVisible();
   });
 
-  test('homepage is responsive', async ({ page }) => {
-    // Test mobile viewport
-    await page.setViewportSize({ width: 375, height: 667 });
+  test('homepage has html lang attribute', async ({ page }) => {
     await page.goto('/');
-
-    const response = await page.reload();
-    expect(response?.status()).toBe(200);
-
-    // Test tablet viewport
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.reload();
-
-    // Test desktop viewport
-    await page.setViewportSize({ width: 1920, height: 1080 });
-    await page.reload();
+    const lang = await page.getAttribute('html', 'lang');
+    expect(lang).toBeTruthy();
+    expect(lang).toBe('en');
   });
 
-  test('homepage has no console errors', async ({ page }) => {
-    const consoleErrors: string[] = [];
+  test('homepage renders at mobile, tablet, and desktop viewports', async ({ page }) => {
+    const viewports = [
+      { width: 375, height: 667 },
+      { width: 768, height: 1024 },
+      { width: 1920, height: 1080 },
+    ];
 
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        consoleErrors.push(msg.text());
-      }
-    });
+    for (const vp of viewports) {
+      await page.setViewportSize(vp);
+      const response = await page.goto('/');
+      expect(response?.status()).toBe(200);
+      await expect(page.locator('body')).toBeVisible();
+    }
+  });
+
+  test('homepage has no critical JavaScript errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
 
     await page.goto('/');
-    // Use domcontentloaded instead of networkidle for faster, more reliable tests
     await page.waitForLoadState('domcontentloaded');
-    // Give a short time for any immediate JS errors to surface
     await page.waitForTimeout(1000);
 
-    // Filter out expected errors (like third-party scripts, hydration warnings, network issues in CI)
-    const criticalErrors = consoleErrors.filter(
-      (error) =>
-        !error.includes('favicon') &&
-        !error.includes('third-party') &&
-        !error.includes('analytics') &&
-        !error.includes('hydrat') &&
-        !error.includes('Warning:') &&
-        !error.includes('Failed to load resource') &&
-        !error.includes('Failed to fetch RSC') &&
-        !error.includes('net::ERR_') &&
-        !error.includes('CORS') &&
-        !error.includes('404') &&
-        !error.includes('AbortError') &&
-        !error.includes('ResizeObserver') &&
-        !error.includes('Content Security Policy') &&
-        !error.includes('Refused to') &&
-        !error.includes('fetch') &&
-        !error.includes('supabase')
+    // Filter known non-critical errors
+    const critical = errors.filter(
+      (e) =>
+        !e.includes('ResizeObserver') &&
+        !e.includes('ChunkLoadError') &&
+        !e.includes('Loading chunk')
     );
 
-    expect(criticalErrors).toHaveLength(0);
+    expect(critical).toHaveLength(0);
   });
 });

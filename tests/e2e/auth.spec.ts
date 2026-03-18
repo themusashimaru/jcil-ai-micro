@@ -3,177 +3,175 @@ import { test, expect } from '@playwright/test';
 /**
  * Authentication E2E Tests
  *
- * Verifies authentication flows work correctly.
- * Note: These tests verify UI behavior, not actual authentication.
+ * Verifies login/signup pages render correctly with all expected elements,
+ * form validation works, and protected routes enforce authentication.
  */
 
-test.describe('Authentication', () => {
-  test.describe('Login Page', () => {
-    test('login page loads correctly', async ({ page }) => {
-      const response = await page.goto('/login');
-
-      // Should load successfully
-      expect([200, 307, 308]).toContain(response?.status());
-    });
-
-    test('login form has required fields', async ({ page }) => {
-      await page.goto('/login');
-
-      // Check for email/username input
-      const emailInput = page.locator(
-        'input[type="email"], input[name="email"], input[placeholder*="email" i]'
-      );
-
-      // Check for password input
-      const passwordInput = page.locator('input[type="password"], input[name="password"]');
-
-      // Check for submit button
-      const submitButton = page.locator(
-        'button[type="submit"], input[type="submit"], button:has-text("Log in"), button:has-text("Sign in")'
-      );
-
-      // At least email and password should be present
-      if ((await emailInput.count()) > 0) {
-        await expect(emailInput.first()).toBeVisible();
-      }
-
-      if ((await passwordInput.count()) > 0) {
-        await expect(passwordInput.first()).toBeVisible();
-      }
-
-      if ((await submitButton.count()) > 0) {
-        await expect(submitButton.first()).toBeVisible();
-      }
-    });
-
-    test('login form shows validation errors', async ({ page }) => {
-      await page.goto('/login');
-
-      // Find and click submit without filling form
-      const submitButton = page.locator(
-        'button[type="submit"], input[type="submit"], button:has-text("Log in"), button:has-text("Sign in")'
-      );
-
-      if ((await submitButton.count()) > 0) {
-        await submitButton.first().click();
-
-        // Wait a moment for validation
-        await page.waitForTimeout(500);
-
-        // Check for any validation message or required attribute behavior
-        const pageText = await page.textContent('body');
-        const hasValidation =
-          pageText?.toLowerCase().includes('required') ||
-          pageText?.toLowerCase().includes('invalid') ||
-          pageText?.toLowerCase().includes('error') ||
-          pageText?.toLowerCase().includes('please');
-
-        // Either HTML5 validation or custom validation should trigger
-        // This is a soft check as validation may not show text
-        expect(hasValidation !== undefined).toBeTruthy();
-      }
-    });
-
-    test('password field masks input', async ({ page }) => {
-      await page.goto('/login');
-
-      const passwordInput = page.locator('input[type="password"], input[name="password"]');
-
-      if ((await passwordInput.count()) > 0) {
-        const inputType = await passwordInput.first().getAttribute('type');
-        expect(inputType).toBe('password');
-      }
-    });
-
-    test('login page has link to signup', async ({ page }) => {
-      await page.goto('/login');
-
-      const signupLink = page.locator(
-        'a[href*="signup"], a[href*="register"], a:has-text("Sign up"), a:has-text("Create account")'
-      );
-
-      if ((await signupLink.count()) > 0) {
-        await expect(signupLink.first()).toBeVisible();
-      }
-    });
+test.describe('Authentication - Login Page', () => {
+  test('login page loads with 200 status', async ({ page }) => {
+    const response = await page.goto('/login');
+    expect(response?.status()).toBe(200);
   });
 
-  test.describe('Signup Page', () => {
-    test('signup page loads correctly', async ({ page }) => {
-      const response = await page.goto('/signup');
+  test('login form has email input, password input, and submit button', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
-      // Should load or redirect
-      expect([200, 307, 308, 404]).toContain(response?.status());
-    });
+    // Email input must exist and be visible
+    const emailInput = page.locator('input#email[type="email"]');
+    await expect(emailInput).toBeVisible();
+    await expect(emailInput).toHaveAttribute('required', '');
 
-    test('signup form has required fields', async ({ page }) => {
-      await page.goto('/signup');
+    // Password input must exist and be visible
+    const passwordInput = page.locator('input#password[type="password"]');
+    await expect(passwordInput).toBeVisible();
+    await expect(passwordInput).toHaveAttribute('required', '');
 
-      // Check for email input
-      const emailInput = page.locator(
-        'input[type="email"], input[name="email"], input[placeholder*="email" i]'
-      );
-
-      // Check for password input
-      const passwordInput = page.locator('input[type="password"], input[name="password"]');
-
-      if ((await emailInput.count()) > 0) {
-        await expect(emailInput.first()).toBeVisible();
-      }
-
-      if ((await passwordInput.count()) > 0) {
-        await expect(passwordInput.first()).toBeVisible();
-      }
-    });
-
-    test('signup page has link to login', async ({ page }) => {
-      await page.goto('/signup');
-
-      const loginLink = page.locator(
-        'a[href*="login"], a[href*="signin"], a:has-text("Log in"), a:has-text("Sign in")'
-      );
-
-      if ((await loginLink.count()) > 0) {
-        await expect(loginLink.first()).toBeVisible();
-      }
-    });
+    // Submit button must exist
+    const submitButton = page.locator('button[type="submit"]');
+    await expect(submitButton).toBeVisible();
+    await expect(submitButton).toContainText(/sign in/i);
   });
 
-  test.describe('Protected Routes', () => {
-    test('dashboard redirects unauthenticated users', async ({ page }) => {
-      await page.goto('/dashboard');
+  test('password field masks input by default', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
-      // Should redirect to login or show unauthorized
-      await page.waitForLoadState('domcontentloaded');
+    const passwordInput = page.locator('input#password');
+    await expect(passwordInput).toHaveAttribute('type', 'password');
+  });
 
-      const currentUrl = page.url();
-      const isRedirected =
-        currentUrl.includes('login') ||
-        currentUrl.includes('signin') ||
-        currentUrl.includes('auth');
+  test('login page has link to signup page', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
-      // Either redirected or showing some form of auth requirement
-      if (!isRedirected) {
-        const pageText = await page.textContent('body');
-        const hasAuthMessage =
-          pageText?.toLowerCase().includes('sign in') ||
-          pageText?.toLowerCase().includes('log in') ||
-          pageText?.toLowerCase().includes('unauthorized');
+    const signupLink = page.locator('a[href*="/signup"]');
+    await expect(signupLink).toBeVisible();
+  });
 
-        // This is acceptable - page may handle auth differently
-        expect(hasAuthMessage !== undefined).toBeTruthy();
-      }
-    });
+  test('login page has link to forgot password', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
-    test('chat page handles unauthenticated access', async ({ page }) => {
-      await page.goto('/chat');
+    const forgotLink = page.locator('a[href*="/forgot-password"]');
+    await expect(forgotLink).toBeVisible();
+  });
 
-      await page.waitForLoadState('domcontentloaded');
+  test('login page has OAuth buttons (Google, GitHub)', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
 
-      // Should either redirect or show auth requirement
-      const response = page.url();
-      // Page should load without crashing
-      expect(response).toBeTruthy();
-    });
+    const googleButton = page.locator('button:has-text("Continue with Google")');
+    await expect(googleButton).toBeVisible();
+
+    const githubButton = page.locator('button:has-text("Continue with GitHub")');
+    await expect(githubButton).toBeVisible();
+  });
+
+  test('login page has proper ARIA landmarks', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
+
+    const main = page.locator('[role="main"], main');
+    await expect(main).toBeVisible();
+  });
+
+  test('login page has back-to-home link', async ({ page }) => {
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
+
+    const homeLink = page.locator('a[href="/"]');
+    await expect(homeLink.first()).toBeVisible();
+  });
+});
+
+test.describe('Authentication - Signup Page', () => {
+  test('signup page loads with 200 status', async ({ page }) => {
+    const response = await page.goto('/signup');
+    expect(response?.status()).toBe(200);
+  });
+
+  test('signup form has all required fields', async ({ page }) => {
+    await page.goto('/signup');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Full name
+    const nameInput = page.locator('input#full_name');
+    await expect(nameInput).toBeVisible();
+
+    // Email
+    const emailInput = page.locator('input#email[type="email"]');
+    await expect(emailInput).toBeVisible();
+
+    // Password with minLength
+    const passwordInput = page.locator('input#password[type="password"]');
+    await expect(passwordInput).toBeVisible();
+
+    // Confirm password
+    const confirmInput = page.locator('input#confirmPassword');
+    await expect(confirmInput).toBeVisible();
+
+    // Submit button
+    const submitButton = page.locator('button[type="submit"]');
+    await expect(submitButton).toBeVisible();
+    await expect(submitButton).toContainText(/create account/i);
+  });
+
+  test('signup page has link to login page', async ({ page }) => {
+    await page.goto('/signup');
+    await page.waitForLoadState('domcontentloaded');
+
+    const loginLink = page.locator('a[href*="/login"]');
+    await expect(loginLink.first()).toBeVisible();
+  });
+
+  test('signup page has OAuth buttons', async ({ page }) => {
+    await page.goto('/signup');
+    await page.waitForLoadState('domcontentloaded');
+
+    const googleButton = page.locator('button:has-text("Continue with Google")');
+    await expect(googleButton).toBeVisible();
+
+    const githubButton = page.locator('button:has-text("Continue with GitHub")');
+    await expect(githubButton).toBeVisible();
+  });
+
+  test('signup page has user agreement checkbox', async ({ page }) => {
+    await page.goto('/signup');
+    await page.waitForLoadState('domcontentloaded');
+
+    const agreementCheckbox = page.locator('input#agreement[type="checkbox"]');
+    await expect(agreementCheckbox).toBeAttached();
+  });
+});
+
+test.describe('Authentication - Protected Routes', () => {
+  test('settings page redirects unauthenticated users to login', async ({ page }) => {
+    await page.goto('/settings');
+    await page.waitForLoadState('domcontentloaded');
+
+    const url = page.url();
+    expect(url).toMatch(/login|signin|auth/i);
+  });
+
+  test('chat page handles unauthenticated access without crashing', async ({ page }) => {
+    const response = await page.goto('/chat');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Should not be a server error
+    expect(response?.status()).not.toBe(500);
+
+    // Page should render
+    await expect(page.locator('body')).toBeVisible();
+  });
+
+  test('code-lab page handles unauthenticated access', async ({ page }) => {
+    await page.goto('/code-lab');
+    await page.waitForLoadState('domcontentloaded');
+
+    const url = page.url();
+    // Either redirected to login or shows the page (with auth prompt)
+    const handlesAuth = url.includes('login') || url.includes('code-lab') || url.includes('auth');
+    expect(handlesAuth).toBe(true);
   });
 });
