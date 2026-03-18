@@ -1,7 +1,7 @@
 # JCIL AI Micro — Master Task Tracker
 
 **Created:** 2026-02-22
-**Last Updated:** 2026-03-06
+**Last Updated:** 2026-03-18
 **Purpose:** Single source of truth for all work items. Check off tasks as they're completed. Carry this across every session.
 
 > **Instructions for new sessions:** Find the first unchecked `[ ]` item. That's your starting point. Mark tasks `[x]` with the completion date when done.
@@ -300,7 +300,19 @@
 - [ ] **4.2.3** Add file system sandboxing
 - [ ] **4.2.4** Add support for additional languages
 
-### 4.3 Autonomous Task Execution
+### 4.3 Live Browsing & Screenshot Streaming in Chat
+
+> **Why:** Users should see real browser output (screenshots, page content) inline in the chat. Currently browser_visit returns text-only results; desktop_sandbox returns base64 but the chat UI doesn't render it. This is a major UX gap vs competitors (Manus shows live browser, ChatGPT shows browsing activity).
+
+- [ ] **4.3.1** Stream browser screenshots inline in chat — when `browser_visit` returns a screenshot (base64), render it as an `<img>` in the message bubble instead of just saying "Screenshot captured"
+- [ ] **4.3.2** Stream desktop_sandbox screenshots inline — render base64 screenshots from `desktop_sandbox` tool as inline images in the chat message
+- [ ] **4.3.3** Add a "Browser View" panel/card in chat — show a visual card with the page title, URL, and thumbnail when browser_visit extracts content (similar to link previews)
+- [ ] **4.3.4** Live browsing progress indicator — show a "Browsing [url]..." status indicator while browser_visit or desktop_sandbox is executing (similar to how "Searching..." appears for web_search)
+- [ ] **4.3.5** Screenshot gallery for multi-step browsing — when the AI takes multiple screenshots in a conversation, render them in a scrollable gallery
+- [ ] **4.3.6** Click-to-expand for screenshots — thumbnail in chat, full-size in a modal/lightbox on click
+- [ ] **4.3.7** Browser action replay — show a timeline of browser actions (navigated to X, clicked Y, scrolled, screenshot) so users can follow what the AI did
+
+### 4.4 Autonomous Task Execution
 
 > **Why:** Manus and Codex both support fire-and-forget. This is the "agent" differentiator.
 
@@ -309,7 +321,7 @@
 - [ ] **4.3.3** Add result review and approval workflow
 - [ ] **4.3.4** Add multi-step planning with rollback capability
 
-### 4.4 Skills/Plugin System
+### 4.5 Skills/Plugin System
 
 > **Why:** OpenClaw has 5,700+ community skills. Extensibility creates network effects.
 
@@ -318,7 +330,7 @@
 - [ ] **4.4.3** Allow user-created skills
 - [ ] **4.4.4** Provide templates and documentation
 
-### 4.5 Enterprise Features
+### 4.6 Enterprise Features
 
 > **Why:** Enterprise is >50% of Claude Code revenue. This is where the money is.
 
@@ -348,9 +360,9 @@
 | Phase 1: Foundation           | 50          | 50        | 100%       |
 | Phase 2: Core Quality         | 57          | 57        | 100%       |
 | Phase 3: Production Readiness | 38          | 25        | 66%        |
-| Phase 4: Differentiation      | 23          | 8         | 35%        |
+| Phase 4: Differentiation      | 30          | 8         | 27%        |
 | Doc Cleanup                   | 4           | 4         | 100%       |
-| **Total**                     | **172**     | **144**   | **84%**    |
+| **Total**                     | **179**     | **144**   | **80%**    |
 
 > Update this summary table as tasks are completed.
 
@@ -478,6 +490,23 @@
 - Playwright E2E smoke tests (3.6.1)
 - Remaining 83 oversized component files
 - Coverage threshold increase to 60% (3.6.5)
+
+### Session: 2026-03-18 (Browser Capability Fix)
+
+**What was done:**
+
+- **Root-caused why AI refused to browse**: System prompt only mentioned "search tools" but never told Opus about `browser_visit`, `desktop_sandbox`, `capture_webpage`, or any of the 52 available tools. Opus literally didn't know it could browse.
+- **Rewrote system prompt TOOLS section**: Added `YOUR FULL CAPABILITIES` listing all 52 tools organized by category (Web, Code, Documents, Media, Data, Scientific, Security) with explicit `CRITICAL RULES` forbidding the AI from denying these capabilities.
+- **Increased browser tool timeouts**: `browser_visit` and `desktop_sandbox` timeout bumped from 30s to 90s in `chat-tools.ts` (E2B sandbox startup + Puppeteer install + page load can exceed 30s).
+- **Added Phase 4.3**: Live Browsing & Screenshot Streaming feature (7 tasks) to TASK_TRACKER.md.
+- All commits pass TSC, ESLint, and full build.
+
+**What's next:**
+
+- Phase 4.3: Live browsing & screenshot streaming in chat UI
+- Verify browser_visit works end-to-end in production after deploy
+- 83 component files still over 400-line threshold
+- Phase 3.6: Test coverage push (40% → 60%)
 
 ---
 
