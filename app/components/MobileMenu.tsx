@@ -126,7 +126,7 @@ export default function MobileMenu() {
             </li>
             <li>
               <Link
-                href="#pricing"
+                href="/signup"
                 onClick={handleLinkClick}
                 className="flex items-center gap-3 px-4 py-4 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition font-medium"
               >

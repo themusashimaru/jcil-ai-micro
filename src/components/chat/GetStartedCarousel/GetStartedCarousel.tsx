@@ -2,14 +2,8 @@
  * GET STARTED CAROUSEL
  *
  * Horizontal scrollable carousel shown on empty/new chats.
- * Provides quick access to creative tools and AI agents.
- *
- * Card order:
- * - Edit Image
- * - Create Image
- * - Research Agent (all users)
- * - Deep Research (admin only)
- * - Deep Strategy (admin only)
+ * Showcases tool categories with example prompts users can click to try.
+ * Rotates through different suggestions to demonstrate breadth.
  */
 
 'use client';
@@ -24,55 +18,79 @@ interface GetStartedCarouselProps {
   onDismiss?: () => void;
 }
 
-// Card definitions - order matters
-// Unified charcoal/gray color scheme
+// Tool showcase cards — each represents a category with a concrete example prompt
 const ALL_CARDS: CarouselCardData[] = [
-  {
-    id: 'edit-image',
-    title: 'Edit Image',
-    description: 'Transform photos with AI-powered editing',
-    iconBg: 'bg-gray-700/50',
-    iconColor: 'text-gray-300',
-    icon: 'wand',
-    adminOnly: false,
-  },
-  {
-    id: 'create-image',
-    title: 'Create Image',
-    description: 'Generate stunning visuals from text',
-    iconBg: 'bg-gray-700/50',
-    iconColor: 'text-gray-300',
-    icon: 'image-plus',
-    adminOnly: false,
-  },
   {
     id: 'research',
     title: 'Research',
-    description: 'Deep web research with citations',
+    description: 'Search the web and analyze sources',
     iconBg: 'bg-gray-700/50',
     iconColor: 'text-gray-300',
     icon: 'search',
     adminOnly: false,
   },
   {
-    id: 'deep-research',
-    title: 'Deep Research',
-    description: 'Autonomous agents with puppeteering and vision',
+    id: 'create-document',
+    title: 'Documents',
+    description: 'Create reports, spreadsheets, PDFs',
     iconBg: 'bg-gray-700/50',
     iconColor: 'text-gray-300',
-    icon: 'brain-circuit',
-    adminOnly: true,
-    badge: 'Opus + Sonnet + Haiku',
+    icon: 'file-text',
+    adminOnly: false,
   },
   {
-    id: 'deep-strategy',
-    title: 'Deep Strategy',
-    description: 'Multi-agent army for complex problems',
+    id: 'business',
+    title: 'Business',
+    description: 'SWOT, proposals, OKRs, contracts',
     iconBg: 'bg-gray-700/50',
     iconColor: 'text-gray-300',
-    icon: 'sparkles',
-    adminOnly: true,
-    badge: 'Opus + Sonnet + Haiku',
+    icon: 'briefcase',
+    adminOnly: false,
+  },
+  {
+    id: 'education',
+    title: 'Education',
+    description: 'Lesson plans, quizzes, rubrics',
+    iconBg: 'bg-gray-700/50',
+    iconColor: 'text-gray-300',
+    icon: 'graduation-cap',
+    adminOnly: false,
+  },
+  {
+    id: 'ministry',
+    title: 'Ministry',
+    description: 'Sermons, devotionals, Bible study',
+    iconBg: 'bg-gray-700/50',
+    iconColor: 'text-gray-300',
+    icon: 'book-open',
+    adminOnly: false,
+  },
+  {
+    id: 'create-image',
+    title: 'Images',
+    description: 'Generate and edit visuals with AI',
+    iconBg: 'bg-gray-700/50',
+    iconColor: 'text-gray-300',
+    icon: 'image-plus',
+    adminOnly: false,
+  },
+  {
+    id: 'code',
+    title: 'Code',
+    description: 'Write, run, and debug code',
+    iconBg: 'bg-gray-700/50',
+    iconColor: 'text-gray-300',
+    icon: 'terminal',
+    adminOnly: false,
+  },
+  {
+    id: 'planning',
+    title: 'Planning',
+    description: 'Trip plans, meal plans, budgets',
+    iconBg: 'bg-gray-700/50',
+    iconColor: 'text-gray-300',
+    icon: 'calendar',
+    adminOnly: false,
   },
 ];
 
@@ -128,10 +146,10 @@ export function GetStartedCarousel({
   if (isDismissed) return null;
 
   return (
-    <div className="w-full max-w-xl mx-auto">
-      {/* Header - minimal */}
+    <div className="w-full max-w-2xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-1.5 px-1">
-        <h3 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">Quick actions</h3>
+        <h3 className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">What can I help you with?</h3>
         <button
           onClick={handleDismiss}
           className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
@@ -141,7 +159,7 @@ export function GetStartedCarousel({
         </button>
       </div>
 
-      {/* Carousel Container - centered with flex wrap for small screens */}
+      {/* Carousel Container */}
       <div className="relative group">
         {/* Left scroll button */}
         {canScrollLeft && (
@@ -154,7 +172,7 @@ export function GetStartedCarousel({
           </button>
         )}
 
-        {/* Scrollable container - start from left, scroll horizontally */}
+        {/* Scrollable container */}
         <div
           ref={scrollContainerRef}
           className="flex gap-2 overflow-x-auto scrollbar-hide scroll-smooth pb-1 px-1"

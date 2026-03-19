@@ -1,7 +1,7 @@
 /**
  * TOOLS SHOWCASE SECTION
  *
- * Displays the 51 real tools organized by category.
+ * Displays the 91 real tools organized by category.
  * Composio-inspired clean grid with unified styling.
  */
 

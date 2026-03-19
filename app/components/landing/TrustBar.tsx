@@ -7,8 +7,7 @@ export default function TrustBar() {
     <section className="relative border-y border-white/[0.06] bg-zinc-950/50">
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-6">
-          <Metric value="51" label="Real AI Tools" />
-          <Metric value="6" label="AI Agents" />
+          <Metric value="91" label="Real AI Tools" />
           <Metric value="5" label="LLM Providers" />
           <Metric value="67+" label="Integrations" />
           <Metric value="FLUX.2" label="Image Gen" />

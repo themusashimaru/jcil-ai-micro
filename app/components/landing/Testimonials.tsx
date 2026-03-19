@@ -82,7 +82,7 @@ export default function SocialProof() {
             </div>
             <h3 className="text-xl font-bold text-white mb-3">Real Development Tools</h3>
             <p className="text-slate-400 text-sm leading-relaxed">
-              Code Lab isn&apos;t a toy. 51 real tools, E2B sandboxed execution, GitHub integration,
+              Code Lab isn&apos;t a toy. 91 real tools, E2B sandboxed execution, GitHub integration,
               and planning mode. Build real apps for your church or ministry.
             </p>
           </div>
@@ -105,7 +105,7 @@ export default function SocialProof() {
               <div className="text-xs text-slate-500 mt-1">Type-safe codebase</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">51</div>
+              <div className="text-3xl lg:text-4xl font-bold text-amber-400 mb-2">91</div>
               <div className="text-sm text-slate-400">Real Tools</div>
               <div className="text-xs text-slate-500 mt-1">Zero stubs</div>
             </div>

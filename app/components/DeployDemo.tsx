@@ -209,20 +209,7 @@ export default function DeployDemo() {
           {/* Success State */}
           {isComplete && (
             <div className="mt-6 text-center">
-              <a
-                href="#"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-500 transition"
-              >
-                <span>View Live Site</span>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
+              <p className="text-green-400 font-semibold">Deployed successfully</p>
             </div>
           )}
         </div>

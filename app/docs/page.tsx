@@ -15,8 +15,8 @@ const DOC_SECTIONS = [
   },
   {
     title: 'Capabilities',
-    tag: '51 Tools',
-    desc: 'Complete reference of all 51 production tools with descriptions and use cases.',
+    tag: '91 Tools',
+    desc: 'Complete reference of all 91 production tools with descriptions and use cases.',
     href: '/capabilities',
     status: 'available' as const,
   },

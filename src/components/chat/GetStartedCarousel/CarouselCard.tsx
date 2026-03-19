@@ -7,7 +7,10 @@
 
 'use client';
 
-import { Wand2, ImagePlus, Presentation, Search, BrainCircuit, Sparkles } from 'lucide-react';
+import {
+  Wand2, ImagePlus, Presentation, Search, BrainCircuit, Sparkles,
+  FileText, Briefcase, GraduationCap, BookOpen, Terminal, Calendar,
+} from 'lucide-react';
 
 export interface CarouselCardData {
   id: string;
@@ -15,7 +18,7 @@ export interface CarouselCardData {
   description: string;
   iconBg: string;
   iconColor: string;
-  icon: 'wand' | 'image-plus' | 'presentation' | 'search' | 'brain-circuit' | 'sparkles';
+  icon: string;
   comingSoon?: boolean;
   adminOnly?: boolean;
   badge?: string;
@@ -26,17 +29,23 @@ interface CarouselCardProps {
   onClick: () => void;
 }
 
-const ICONS = {
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   wand: Wand2,
   'image-plus': ImagePlus,
   presentation: Presentation,
   search: Search,
   'brain-circuit': BrainCircuit,
   sparkles: Sparkles,
+  'file-text': FileText,
+  briefcase: Briefcase,
+  'graduation-cap': GraduationCap,
+  'book-open': BookOpen,
+  terminal: Terminal,
+  calendar: Calendar,
 };
 
 export function CarouselCard({ card, onClick }: CarouselCardProps) {
-  const IconComponent = ICONS[card.icon];
+  const IconComponent = ICONS[card.icon] || Sparkles;
 
   return (
     <button

@@ -49,7 +49,7 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 51 tools total — all with real implementations.
+ * 70 tools total — all with real implementations.
  * Consolidated 2026-03-17: removed redundant screenshot, capture_webpage,
  * create_spreadsheet (use excel_advanced), and parallel_research (agent pattern).
  */
@@ -603,6 +603,94 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Batch document generation with template variable substitution',
     dependencies: [],
   },
+
+  // =========================================================================
+  // EVERYDAY — Practical daily-use tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'calendar_event', file: 'calendar-event-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Create calendar events as downloadable .ics files', dependencies: [] },
+  { name: 'budget_calculator', file: 'budget-calc-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Financial calculator: loans, savings, budgets, debt payoff', dependencies: [] },
+  { name: 'draft_email', file: 'email-draft-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Draft and format professional emails with tone control', dependencies: [] },
+  { name: 'build_resume', file: 'resume-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Build ATS-friendly resumes and cover letters', dependencies: [] },
+  { name: 'generate_invoice', file: 'invoice-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Generate professional invoices with tax and discounts', dependencies: [] },
+  { name: 'meal_planner', file: 'meal-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Create meal plans with categorized grocery lists', dependencies: [] },
+  { name: 'create_flashcards', file: 'flashcard-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Create study flashcard sets (Anki, CSV, Markdown)', dependencies: [] },
+  { name: 'plan_trip', file: 'trip-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Build travel itineraries with packing lists and budgets', dependencies: [] },
+
+  // =========================================================================
+  // PRODUCTIVITY & PLANNING — Business and personal planning tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'project_timeline', file: 'project-timeline-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Project timeline and Gantt chart generator', dependencies: [] },
+  { name: 'decision_matrix', file: 'decision-matrix-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Weighted decision matrix for comparing options', dependencies: [] },
+  { name: 'plan_event', file: 'event-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Event planner with timeline, vendors, and budget', dependencies: [] },
+  { name: 'content_calendar', file: 'content-calendar-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Social media content calendar across platforms', dependencies: [] },
+  { name: 'create_sop', file: 'sop-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Standard operating procedure document generator', dependencies: [] },
+
+  // =========================================================================
+  // BUSINESS & STRATEGY — Executive and management tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_swot_analysis', file: 'swot-analysis-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'SWOT analysis with strategic recommendations and action plans', dependencies: [] },
+  { name: 'create_business_canvas', file: 'business-canvas-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Business Model Canvas with all 9 building blocks', dependencies: [] },
+  { name: 'create_okr_plan', file: 'okr-planner-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'OKR plans with objectives, key results, and progress tracking', dependencies: [] },
+  { name: 'create_meeting_minutes', file: 'meeting-minutes-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured meeting minutes with agenda, decisions, and action items', dependencies: [] },
+  { name: 'create_raci_matrix', file: 'raci-matrix-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'RACI matrices for project task assignment and accountability', dependencies: [] },
+  { name: 'create_risk_assessment', file: 'risk-assessment-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Risk registers with likelihood/impact scoring and heat maps', dependencies: [] },
+  { name: 'create_proposal', file: 'proposal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Business proposals and RFP responses with scope, pricing, and timeline', dependencies: [] },
+
+  // =========================================================================
+  // EDUCATION — Teaching and assessment tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_lesson_plan', file: 'lesson-plan-tool.ts', status: 'active', category: 'document', tier: 'extended', description: "Bloom's taxonomy-aligned lesson plans with activities and assessments", dependencies: [] },
+  { name: 'create_rubric', file: 'rubric-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Scoring rubrics with criteria, performance levels, and grade scales', dependencies: [] },
+  { name: 'create_quiz', file: 'quiz-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Quizzes with multiple choice, short answer, true/false, and essay questions', dependencies: [] },
+  { name: 'create_training_manual', file: 'training-manual-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Employee training manuals with modules, exercises, and assessments', dependencies: [] },
+
+  // =========================================================================
+  // LEGAL & COMPLIANCE — Contract and policy tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_contract', file: 'contract-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Contracts and NDAs with customizable clauses and signature blocks', dependencies: [] },
+  { name: 'create_policy_document', file: 'policy-document-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Company policy documents (AUP, privacy, code of conduct) with sections', dependencies: [] },
+
+  // =========================================================================
+  // HR & MANAGEMENT — People management tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_performance_review', file: 'performance-review-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Employee performance reviews with competency ratings and goals', dependencies: [] },
+  { name: 'create_job_description', file: 'job-description-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Professional job descriptions with qualifications and EEO statements', dependencies: [] },
+
+  // =========================================================================
+  // MARKETING & COMMUNICATIONS — PR and content tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_press_release', file: 'press-release-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'AP-style press releases with datelines, quotes, and media contacts', dependencies: [] },
+  { name: 'create_case_study', file: 'case-study-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Customer success case studies with metrics and testimonials', dependencies: [] },
+
+  // =========================================================================
+  // NONPROFIT & GRANTS — Fundraising tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_grant_proposal', file: 'grant-proposal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Grant proposals with executive summary, budget, and timeline', dependencies: [] },
+
+  // =========================================================================
+  // REAL ESTATE — Property tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_property_listing', file: 'property-listing-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'MLS-quality property listings with features, schools, and agent contact', dependencies: [] },
+
+  // =========================================================================
+  // HEALTHCARE — Clinical tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_care_plan', file: 'care-plan-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Patient care plans with goals, interventions, and medications', dependencies: [] },
+
+  // =========================================================================
+  // SCRIPTURE & MINISTRY — Christian mission tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'scripture_reference', file: 'scripture-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Bible cross-reference study sheets with word studies', dependencies: [] },
+  { name: 'sermon_outline', file: 'sermon-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured sermon and Bible lesson outlines', dependencies: [] },
+  { name: 'prayer_journal', file: 'prayer-journal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured prayer journal entries (ACTS framework)', dependencies: [] },
+  { name: 'daily_devotional', file: 'devotional-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Daily devotional readings with scripture and application', dependencies: [] },
+  { name: 'small_group_guide', file: 'small-group-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Small group Bible study discussion guides (OIA method)', dependencies: [] },
+  { name: 'create_church_budget', file: 'church-budget-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Church budget reports with income, expenses, missions giving, and building fund', dependencies: [] },
+
+  // =========================================================================
+  // ORCHESTRATION — Agent spawning and parallel execution
+  // =========================================================================
+  { name: 'spawn_agents', file: 'spawn-agent-tool.ts', status: 'active', category: 'core', tier: 'core', description: 'Spawn parallel sub-agents for concurrent task execution', dependencies: ['@anthropic-ai/sdk'] },
 ];
 
 // =========================================================================

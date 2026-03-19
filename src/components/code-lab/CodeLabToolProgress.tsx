@@ -33,51 +33,6 @@ interface CodeLabToolProgressProps {
   className?: string;
 }
 
-const TOOL_ICONS: Record<string, string> = {
-  // File operations
-  Read: '📖',
-  Write: '✏️',
-  Edit: '📝',
-  Glob: '🔍',
-  Grep: '🔎',
-
-  // Bash/Terminal
-  Bash: '💻',
-  Terminal: '🖥️',
-
-  // Git
-  GitStatus: '📊',
-  GitCommit: '✅',
-  GitPush: '🚀',
-  GitPull: '⬇️',
-  GitDiff: '📋',
-
-  // Web
-  WebFetch: '🌐',
-  WebSearch: '🔍',
-
-  // AI
-  Think: '🧠',
-  Analyze: '🔬',
-
-  // Default
-  default: '⚙️',
-};
-
-function getToolIcon(toolName: string): string {
-  // Try exact match first
-  if (TOOL_ICONS[toolName]) return TOOL_ICONS[toolName];
-
-  // Try partial match
-  for (const [key, icon] of Object.entries(TOOL_ICONS)) {
-    if (toolName.toLowerCase().includes(key.toLowerCase())) {
-      return icon;
-    }
-  }
-
-  return TOOL_ICONS.default;
-}
-
 function formatDuration(startTime?: Date, endTime?: Date): string {
   if (!startTime) return '';
 
@@ -113,7 +68,6 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
           <div className="tool-list">
             {runningTools.map((tool) => (
               <div key={tool.id} className="tool-item running">
-                <span className="tool-icon">{getToolIcon(tool.name)}</span>
                 <div className="tool-info">
                   <span className="tool-name">{tool.name}</span>
                   {tool.description && <span className="tool-desc">{tool.description}</span>}
@@ -143,7 +97,6 @@ export function CodeLabToolProgress({ tools, className = '' }: CodeLabToolProgre
                 className={`tool-item ${tool.status}`}
                 onClick={() => setExpandedId(expandedId === tool.id ? null : tool.id)}
               >
-                <span className="tool-icon">{getToolIcon(tool.name)}</span>
                 <div className="tool-info">
                   <span className="tool-name">{tool.name}</span>
                   {tool.description && <span className="tool-desc">{tool.description}</span>}
