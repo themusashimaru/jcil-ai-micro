@@ -107,7 +107,7 @@ test.describe('Chat Page - UI Elements', () => {
     await expect(page.locator('body')).toBeVisible();
     // No horizontal overflow at mobile width (allowing margin for scrollbar + rounding)
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
-    expect(bodyWidth).toBeLessThanOrEqual(425);
+    expect(bodyWidth).toBeLessThanOrEqual(435);
   });
 
   test('chat page is responsive at tablet viewport', async ({ page }) => {

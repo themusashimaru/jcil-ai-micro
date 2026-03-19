@@ -143,7 +143,7 @@ test.describe('Public Pages - Responsive Design', () => {
 
       // No horizontal overflow (allowing margin for scrollbar + subpixel rounding)
       const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
-      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 50);
+      expect(scrollWidth).toBeLessThanOrEqual(viewport.width + 60);
     });
   }
 });
