@@ -632,6 +632,9 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'create_business_canvas', file: 'business-canvas-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Business Model Canvas with all 9 building blocks', dependencies: [] },
   { name: 'create_okr_plan', file: 'okr-planner-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'OKR plans with objectives, key results, and progress tracking', dependencies: [] },
   { name: 'create_meeting_minutes', file: 'meeting-minutes-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured meeting minutes with agenda, decisions, and action items', dependencies: [] },
+  { name: 'create_raci_matrix', file: 'raci-matrix-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'RACI matrices for project task assignment and accountability', dependencies: [] },
+  { name: 'create_risk_assessment', file: 'risk-assessment-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Risk registers with likelihood/impact scoring and heat maps', dependencies: [] },
+  { name: 'create_proposal', file: 'proposal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Business proposals and RFP responses with scope, pricing, and timeline', dependencies: [] },
 
   // =========================================================================
   // EDUCATION — Teaching and assessment tools (added 2026-03-19)
@@ -639,6 +642,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'create_lesson_plan', file: 'lesson-plan-tool.ts', status: 'active', category: 'document', tier: 'extended', description: "Bloom's taxonomy-aligned lesson plans with activities and assessments", dependencies: [] },
   { name: 'create_rubric', file: 'rubric-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Scoring rubrics with criteria, performance levels, and grade scales', dependencies: [] },
   { name: 'create_quiz', file: 'quiz-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Quizzes with multiple choice, short answer, true/false, and essay questions', dependencies: [] },
+  { name: 'create_training_manual', file: 'training-manual-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Employee training manuals with modules, exercises, and assessments', dependencies: [] },
 
   // =========================================================================
   // LEGAL & COMPLIANCE — Contract and policy tools (added 2026-03-19)
@@ -650,6 +654,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   // HR & MANAGEMENT — People management tools (added 2026-03-19)
   // =========================================================================
   { name: 'create_performance_review', file: 'performance-review-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Employee performance reviews with competency ratings and goals', dependencies: [] },
+  { name: 'create_job_description', file: 'job-description-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Professional job descriptions with qualifications and EEO statements', dependencies: [] },
 
   // =========================================================================
   // MARKETING & COMMUNICATIONS — PR and content tools (added 2026-03-19)
@@ -680,6 +685,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'prayer_journal', file: 'prayer-journal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured prayer journal entries (ACTS framework)', dependencies: [] },
   { name: 'daily_devotional', file: 'devotional-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Daily devotional readings with scripture and application', dependencies: [] },
   { name: 'small_group_guide', file: 'small-group-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Small group Bible study discussion guides (OIA method)', dependencies: [] },
+  { name: 'create_church_budget', file: 'church-budget-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Church budget reports with income, expenses, missions giving, and building fund', dependencies: [] },
 ];
 
 // =========================================================================

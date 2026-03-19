@@ -169,11 +169,15 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   create_business_canvas: () => import('./business-canvas-tool'),
   create_okr_plan: () => import('./okr-planner-tool'),
   create_meeting_minutes: () => import('./meeting-minutes-tool'),
+  create_raci_matrix: () => import('./raci-matrix-tool'),
+  create_risk_assessment: () => import('./risk-assessment-tool'),
+  create_proposal: () => import('./proposal-tool'),
 
   // Education tools
   create_lesson_plan: () => import('./lesson-plan-tool'),
   create_rubric: () => import('./rubric-tool'),
   create_quiz: () => import('./quiz-tool'),
+  create_training_manual: () => import('./training-manual-tool'),
 
   // Legal & compliance tools
   create_contract: () => import('./contract-tool'),
@@ -181,6 +185,7 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
 
   // HR & management tools
   create_performance_review: () => import('./performance-review-tool'),
+  create_job_description: () => import('./job-description-tool'),
 
   // Marketing & communications tools
   create_press_release: () => import('./press-release-tool'),
@@ -196,6 +201,7 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   create_care_plan: () => import('./care-plan-tool'),
 
   // Scripture & ministry tools
+  create_church_budget: () => import('./church-budget-tool'),
   scripture_reference: () => import('./scripture-tool'),
   sermon_outline: () => import('./sermon-tool'),
   prayer_journal: () => import('./prayer-journal-tool'),
@@ -594,11 +600,15 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   create_business_canvas: { importPath: './business-canvas-tool', toolExport: 'businessCanvasTool', executorExport: 'executeBusinessCanvas', availabilityExport: 'isBusinessCanvasAvailable' },
   create_okr_plan: { importPath: './okr-planner-tool', toolExport: 'okrPlannerTool', executorExport: 'executeOkrPlanner', availabilityExport: 'isOkrPlannerAvailable' },
   create_meeting_minutes: { importPath: './meeting-minutes-tool', toolExport: 'meetingMinutesTool', executorExport: 'executeMeetingMinutes', availabilityExport: 'isMeetingMinutesAvailable' },
+  create_raci_matrix: { importPath: './raci-matrix-tool', toolExport: 'raciMatrixTool', executorExport: 'executeRaciMatrix', availabilityExport: 'isRaciMatrixAvailable' },
+  create_risk_assessment: { importPath: './risk-assessment-tool', toolExport: 'riskAssessmentTool', executorExport: 'executeRiskAssessment', availabilityExport: 'isRiskAssessmentAvailable' },
+  create_proposal: { importPath: './proposal-tool', toolExport: 'proposalTool', executorExport: 'executeProposal', availabilityExport: 'isProposalAvailable' },
 
   // Education tools
   create_lesson_plan: { importPath: './lesson-plan-tool', toolExport: 'lessonPlanTool', executorExport: 'executeLessonPlan', availabilityExport: 'isLessonPlanAvailable' },
   create_rubric: { importPath: './rubric-tool', toolExport: 'rubricTool', executorExport: 'executeRubric', availabilityExport: 'isRubricAvailable' },
   create_quiz: { importPath: './quiz-tool', toolExport: 'quizTool', executorExport: 'executeQuiz', availabilityExport: 'isQuizAvailable' },
+  create_training_manual: { importPath: './training-manual-tool', toolExport: 'trainingManualTool', executorExport: 'executeTrainingManual', availabilityExport: 'isTrainingManualAvailable' },
 
   // Legal & compliance tools
   create_contract: { importPath: './contract-tool', toolExport: 'contractTool', executorExport: 'executeContract', availabilityExport: 'isContractAvailable' },
@@ -606,6 +616,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
 
   // HR & management tools
   create_performance_review: { importPath: './performance-review-tool', toolExport: 'performanceReviewTool', executorExport: 'executePerformanceReview', availabilityExport: 'isPerformanceReviewAvailable' },
+  create_job_description: { importPath: './job-description-tool', toolExport: 'jobDescriptionTool', executorExport: 'executeJobDescription', availabilityExport: 'isJobDescriptionAvailable' },
 
   // Marketing & communications tools
   create_press_release: { importPath: './press-release-tool', toolExport: 'pressReleaseTool', executorExport: 'executePressRelease', availabilityExport: 'isPressReleaseAvailable' },
@@ -621,6 +632,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   create_care_plan: { importPath: './care-plan-tool', toolExport: 'carePlanTool', executorExport: 'executeCarePlan', availabilityExport: 'isCarePlanAvailable' },
 
   // Scripture & ministry tools
+  create_church_budget: { importPath: './church-budget-tool', toolExport: 'churchBudgetTool', executorExport: 'executeChurchBudget', availabilityExport: 'isChurchBudgetAvailable' },
   scripture_reference: { importPath: './scripture-tool', toolExport: 'scriptureTool', executorExport: 'executeScripture', availabilityExport: 'isScriptureAvailable' },
   sermon_outline: { importPath: './sermon-tool', toolExport: 'sermonTool', executorExport: 'executeSermon', availabilityExport: 'isSermonAvailable' },
   prayer_journal: { importPath: './prayer-journal-tool', toolExport: 'prayerJournalTool', executorExport: 'executePrayerJournal', availabilityExport: 'isPrayerJournalAvailable' },
