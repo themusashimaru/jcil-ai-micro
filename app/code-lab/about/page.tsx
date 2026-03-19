@@ -15,11 +15,11 @@ import FeatureCard, { StatCard } from '../../components/landing/FeatureCard';
 export const metadata = {
   title: 'Code Lab - Enterprise AI Development Environment | JCIL.AI',
   description:
-    'AI development environment with 51 real tools, 5 AI models, E2B sandboxed execution, and 67+ Composio integrations. Build in your browser with zero installation.',
+    'AI development environment with 91 real tools, 5 AI models, E2B sandboxed execution, and 67+ Composio integrations. Build in your browser with zero installation.',
   keywords: 'AI IDE, agentic development, cloud IDE, code execution sandbox, E2B, multi-model AI',
 };
 
-// 51 Real Tools organized by category
+// 91 Real Tools organized by category
 const TOOL_CATEGORIES = [
   {
     title: 'File Operations',
@@ -308,14 +308,14 @@ export default function CodeLabTechnicalPage() {
 
             {/* Subheadline */}
             <p className="mx-auto max-w-3xl text-lg sm:text-xl text-slate-400 leading-relaxed mb-8">
-              A powerful AI development environment on the web. 51 real tools, 5 MCP servers, E2B
+              A powerful AI development environment on the web. 91 real tools, 5 MCP servers, E2B
               sandboxed execution, and real-time collaboration—all with{' '}
               <span className="text-fuchsia-400 font-semibold">zero installation required</span>.
             </p>
 
             {/* Stats Row */}
             <div className="flex flex-wrap items-center justify-center gap-6 lg:gap-10 mb-10">
-              <StatCard value="51" label="Real Tools" color="fuchsia" />
+              <StatCard value="91" label="Real Tools" color="fuchsia" />
               <StatCard value="5" label="MCP Servers" color="fuchsia" />
               <StatCard value="5" label="AI Models" color="fuchsia" />
               <StatCard value="19,600+" label="Tests Passing" color="fuchsia" />
@@ -350,7 +350,7 @@ export default function CodeLabTechnicalPage() {
       <Section background="muted" padding="md" className="border-y border-white/5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto text-center">
           <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
-            <div className="text-3xl font-bold text-fuchsia-400 mb-1">51</div>
+            <div className="text-3xl font-bold text-fuchsia-400 mb-1">91</div>
             <div className="text-sm text-slate-400">Real AI Tools</div>
           </div>
           <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
@@ -380,7 +380,7 @@ export default function CodeLabTechnicalPage() {
                 Claude Code in Your Browser
               </h2>
               <p className="text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
-                A complete AI development environment in your browser. 51 real tools, E2B sandboxed
+                A complete AI development environment in your browser. 91 real tools, E2B sandboxed
                 execution, multi-model support, and enterprise-grade security—with collaboration,
                 Vim mode, and checkpoint/rewind built in.
               </p>
@@ -392,7 +392,7 @@ export default function CodeLabTechnicalPage() {
                 <div className="text-sm text-slate-400">Tests Passing</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
-                <div className="text-2xl font-bold text-white mb-1">51</div>
+                <div className="text-2xl font-bold text-white mb-1">91</div>
                 <div className="text-sm text-slate-400">Real Tools</div>
               </div>
               <div className="bg-black/30 rounded-xl p-4 text-center border border-white/5">
@@ -512,10 +512,10 @@ export default function CodeLabTechnicalPage() {
         </div>
       </Section>
 
-      {/* 51 Real Tools */}
+      {/* 91 Real Tools */}
       <Section padding="lg">
         <SectionHeader
-          badge="51 Tools"
+          badge="91 Tools"
           badgeColor="blue"
           title="Complete AI Toolkit"
           description="Every tool listed here is real, implemented, and deployed. No stubs, no fakes."
@@ -1127,7 +1127,7 @@ POST   /api/code-lab/debug          # Debug operations`}
               Ready to Code Differently?
             </h2>
             <p className="text-lg text-slate-400 mb-8 max-w-xl mx-auto">
-              Enterprise-grade AI development in your browser. 51 real tools, 5 AI models, E2B
+              Enterprise-grade AI development in your browser. 91 real tools, 5 AI models, E2B
               sandbox. No installation. No configuration. Just code.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

@@ -93,7 +93,7 @@ export function WorkSection() {
 
       <div className="mt-12 text-right">
         <a href="/capabilities" className="font-mono text-xs text-accent hover:text-accent/80 transition-colors uppercase tracking-widest">
-          View all 51 tools &rarr;
+          View all 91 tools &rarr;
         </a>
       </div>
     </section>

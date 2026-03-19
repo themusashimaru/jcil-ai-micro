@@ -42,7 +42,7 @@ const useCases: UseCase[] = [
     description:
       'Code Lab gives you a full AI development environment in your browser. Build apps for your church, ministry, or faith-based startup with an AI that shares your values.',
     features: [
-      '51 real tools',
+      '91 real tools',
       'GitHub integration',
       'E2B sandboxed execution',
       'Project persistence',

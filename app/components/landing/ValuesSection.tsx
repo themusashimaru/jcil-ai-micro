@@ -60,7 +60,7 @@ export default function ValuesSection() {
           <p className="text-zinc-400 leading-relaxed mb-6">
             Because none of them were built for you. They don&apos;t align with Christian conservative moral
             values. They don&apos;t filter content through a Biblical lens. They don&apos;t remember your
-            preferences across sessions. They don&apos;t give you 51 real tools, 6 AI agents, a full IDE,
+            preferences across sessions. They don&apos;t give you 91 real tools, a full IDE,
             and document generation — all in one place. And they certainly weren&apos;t built to serve pastors,
             ministries, Christian developers, and believing families.
           </p>

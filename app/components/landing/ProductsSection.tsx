@@ -57,10 +57,10 @@ export default function ProductsSection() {
               Gemini, Grok, and DeepSeek mid-conversation. File browser, git, terminal — zero installation.
             </p>
             <div className="mt-6 flex gap-6 text-sm">
-              <Stat value="51" label="Tools" />
+              <Stat value="91" label="Tools" />
               <Stat value="5" label="Models" />
               <Stat value="67+" label="Integrations" />
-              <Stat value="6" label="Agents" />
+              <Stat value="E2B" label="Sandbox" />
             </div>
             <ul className="mt-6 space-y-2.5 text-sm text-zinc-400">
               <Feature>BYOK: Bring your own API keys for any provider</Feature>

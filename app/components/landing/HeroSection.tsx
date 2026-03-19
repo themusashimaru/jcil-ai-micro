@@ -50,7 +50,7 @@ export default function HeroSection() {
 
         {/* Subtitle — slide up delayed */}
         <p className="mx-auto mt-8 max-w-2xl animate-[fadeInUp_0.8s_ease-out_0.3s_both] text-lg leading-relaxed text-zinc-400 sm:text-xl">
-          51 real tools. 6 AI agents. 5 LLM providers. Full IDE. Sandboxed execution. Enterprise
+          91 real tools. 67+ integrations. Full IDE. Sandboxed execution. Enterprise
           security. All grounded in Scripture.
         </p>
 

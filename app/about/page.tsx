@@ -49,7 +49,7 @@ export default function AboutPage() {
               </p>
               <p>
                 So we built our own. Not a watered-down alternative. Not a &quot;safe&quot; version
-                with fewer features. A full enterprise-grade AI platform with 51 real tools, E2B
+                with fewer features. A full enterprise-grade AI platform with 91 real tools, E2B
                 sandboxed execution, persistent memory, multi-model support, and 67+ Composio
                 integrations.
               </p>
@@ -79,7 +79,7 @@ export default function AboutPage() {
                 },
                 {
                   title: 'Excellence Without Compromise',
-                  desc: "Faith-founded doesn't mean feature-limited. We compete on capability. 51 real tools, multi-model support, full GitHub workflow, sandboxed execution\u2014everything you need from enterprise AI.",
+                  desc: "Faith-founded doesn't mean feature-limited. We compete on capability. 91 real tools, multi-model support, full GitHub workflow, sandboxed execution\u2014everything you need from enterprise AI.",
                 },
                 {
                   title: 'Open to Everyone',

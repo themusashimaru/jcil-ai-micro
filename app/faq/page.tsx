@@ -9,15 +9,15 @@ const faqs = [
     questions: [
       {
         q: 'What is JCIL.AI?',
-        a: 'JCIL.AI is an enterprise-grade AI platform with 51 real tools, multi-model support (Claude, GPT, Gemini, Grok, DeepSeek), persistent memory, 67+ Composio integrations, and E2B sandboxed execution. Built on faith, open to all.',
+        a: 'JCIL.AI is an enterprise-grade AI platform with 91 real tools, multi-model support (Claude, GPT, Gemini, Grok, DeepSeek), persistent memory, 67+ Composio integrations, and E2B sandboxed execution. Built on faith, open to all.',
       },
       {
         q: 'How is this different from other AI tools?',
-        a: 'We compete on capability, not limitations. 51 real tools (zero stubs), multi-model AI, full GitHub integration, E2B sandboxed code execution, and 67+ app integrations via Composio. We also prioritize Scripture-grounded responses and Christian values.',
+        a: 'We compete on capability, not limitations. 91 real tools (zero stubs), multi-model AI, full GitHub integration, E2B sandboxed code execution, and 67+ app integrations via Composio. We also prioritize Scripture-grounded responses and Christian values.',
       },
       {
         q: 'What is Code Lab?',
-        a: 'Code Lab is our full development environment in the browser. E2B sandboxed execution, 51 real tools, multi-model support, project persistence, GitHub integration, and document generation\u2014with zero installation required.',
+        a: 'Code Lab is our full development environment in the browser. E2B sandboxed execution, 91 real tools, multi-model support, project persistence, GitHub integration, and document generation\u2014with zero installation required.',
       },
     ],
   },

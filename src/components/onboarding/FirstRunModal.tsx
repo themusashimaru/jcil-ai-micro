@@ -2,7 +2,7 @@
  * FIRST-RUN ONBOARDING MODAL
  *
  * Shown to new users on their first visit. A 4-step walkthrough:
- *   1. Welcome — brief overview of what JCIL AI can do
+ *   1. Welcome — showcase the breadth of 91 real tools across domains
  *   2. Connectors — explain how integrations work (Gmail, Slack, Calendar, etc.)
  *   3. Scheduled Tasks — show how to automate workflows in plain English
  *   4. Name — collect user's name to personalize the experience
@@ -94,7 +94,7 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
       tabIndex={-1}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-[520px] w-[90%] shadow-2xl">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-8 max-w-[560px] w-[90%] shadow-2xl max-h-[90vh] overflow-y-auto">
         {/* Progress indicator */}
         <div className="flex items-center gap-1.5 mb-6">
           {STEPS.map((s, i) => (
@@ -107,50 +107,77 @@ export function FirstRunModal({ isOpen, onComplete }: FirstRunModalProps) {
           ))}
         </div>
 
-        {/* Step 1: Welcome */}
+        {/* Step 1: Welcome — Showcase real capabilities */}
         {step === 'welcome' && (
           <>
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <h2 className="text-2xl font-bold text-white mb-2">Welcome to JCIL AI</h2>
               <p className="text-sm text-zinc-400">
-                Your intelligent assistant for research, coding, documents, and more.
+                91 real tools. Not demos. Not stubs. Real, production tools you can use right now.
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-2.5 mb-5">
               {[
                 {
-                  icon: '\u{1F50D}',
-                  title: 'Web Search & Research',
-                  desc: 'Get current information, analyze websites, and do deep research.',
+                  icon: '\u{1F4BC}',
+                  title: 'Business & Strategy',
+                  examples: 'SWOT analysis, proposals, contracts, OKRs, meeting minutes',
                 },
                 {
-                  icon: '\u{1F4BB}',
-                  title: 'Code Execution',
-                  desc: 'Run Python and JavaScript code in a secure sandbox.',
+                  icon: '\u{1F393}',
+                  title: 'Education',
+                  examples: 'Lesson plans, rubrics, quizzes, training manuals',
+                },
+                {
+                  icon: '\u{1F4D6}',
+                  title: 'Scripture & Ministry',
+                  examples: 'Sermons, devotionals, Bible study, church budgets',
                 },
                 {
                   icon: '\u{1F4C4}',
-                  title: 'Document Generation',
-                  desc: 'Create Excel spreadsheets, Word documents, and PDFs.',
+                  title: 'Documents & Office',
+                  examples: 'PDFs, spreadsheets, presentations, invoices',
                 },
                 {
-                  icon: '\u{1F5BC}',
-                  title: 'Image Generation & Analysis',
-                  desc: 'Create images and analyze visual content.',
+                  icon: '\u{1F50D}',
+                  title: 'Research & Web',
+                  examples: 'Live web search, site visits, YouTube transcripts',
+                },
+                {
+                  icon: '\u{1F4BB}',
+                  title: 'Code & Development',
+                  examples: 'Run Python/JS, debug, refactor, GitHub integration',
+                },
+                {
+                  icon: '\u2696\uFE0F',
+                  title: 'Legal & HR',
+                  examples: 'Contracts, NDAs, job descriptions, performance reviews',
+                },
+                {
+                  icon: '\u{1F3E0}',
+                  title: 'Real Estate & More',
+                  examples: 'Property listings, care plans, grant proposals',
                 },
               ].map((item) => (
-                <div key={item.title} className="flex items-start gap-3">
-                  <span className="text-2xl shrink-0 mt-0.5" role="img" aria-hidden="true">
+                <div
+                  key={item.title}
+                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50"
+                >
+                  <span className="text-lg shrink-0 mt-0.5" role="img" aria-hidden="true">
                     {item.icon}
                   </span>
-                  <div>
-                    <strong className="block text-white text-sm mb-0.5">{item.title}</strong>
-                    <p className="text-zinc-400 text-xs leading-relaxed m-0">{item.desc}</p>
+                  <div className="min-w-0">
+                    <strong className="block text-white text-xs">{item.title}</strong>
+                    <p className="text-zinc-500 text-[10px] leading-snug m-0">{item.examples}</p>
                   </div>
                 </div>
               ))}
             </div>
+
+            <p className="text-center text-zinc-500 text-[11px] mb-4">
+              Just ask for what you need. JCIL will use the right tools automatically.
+            </p>
 
             <button
               className="w-full py-2.5 px-6 rounded-lg text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors"
