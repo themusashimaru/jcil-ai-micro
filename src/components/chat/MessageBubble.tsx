@@ -26,21 +26,6 @@ const AnalyticsBlock = lazy(() =>
   import('@/components/analytics/AnalyticsBlock').then((mod) => ({ default: mod.AnalyticsBlock }))
 );
 
-const TOOL_ICONS: Record<string, string> = {
-  web_search: '🔍',
-  maps: '🗺️',
-  places: '📍',
-  weather: '⛅',
-  image_gen: '🎨',
-  video_gen: '🎬',
-  file_analysis: '📊',
-  amazon_search: '🛒',
-  desktop_sandbox: '🖥️',
-  screenshot: '📸',
-  run_code: '⚡',
-  workspace: '💻',
-};
-
 const TOOL_STATUS_COLORS: Record<string, string> = {
   pending: 'bg-gray-500/20 text-gray-300',
   running: 'bg-blue-500/20 text-blue-300 animate-pulse',
@@ -188,7 +173,6 @@ export const MessageBubble = memo(
                   aria-label={`Tool ${tool.name.replace(/_/g, ' ')}: ${tool.status}`}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${TOOL_STATUS_COLORS[tool.status] || TOOL_STATUS_COLORS.pending}`}
                 >
-                  <span>{TOOL_ICONS[tool.name] || '🔧'}</span>
                   <span className="capitalize">{tool.name.replace(/_/g, ' ')}</span>
                   {getToolEntry(tool.name)?.status === 'beta' && (
                     <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-amber-400">

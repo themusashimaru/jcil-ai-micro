@@ -27,37 +27,37 @@ interface ChainProgressCardProps {
   data: ChainProgressData;
 }
 
-// Tool name → human-readable label + icon
-const TOOL_DISPLAY: Record<string, { label: string; icon: string }> = {
-  web_search: { label: 'Searching the web', icon: '\u{1F310}' },
-  fetch_url: { label: 'Fetching page', icon: '\u{1F4E5}' },
-  create_chart: { label: 'Creating chart', icon: '\u{1F4CA}' },
-  create_document: { label: 'Generating document', icon: '\u{1F4C4}' },
-  create_presentation: { label: 'Building presentation', icon: '\u{1F4CA}' },
-  excel_advanced: { label: 'Processing spreadsheet', icon: '\u{1F4CA}' },
-  run_code: { label: 'Running code', icon: '\u{1F4BB}' },
-  browser_visit: { label: 'Browsing page', icon: '\u{1F310}' },
-  analyze_image: { label: 'Analyzing image', icon: '\u{1F441}\uFE0F' },
-  extract_pdf: { label: 'Extracting PDF', icon: '\u{1F4C3}' },
-  extract_table: { label: 'Extracting table data', icon: '\u{1F5C2}\uFE0F' },
-  analyze_text_nlp: { label: 'Analyzing text', icon: '\u{1F9E0}' },
-  audio_transcribe: { label: 'Transcribing audio', icon: '\u{1F3A4}' },
-  ocr_extract_text: { label: 'Reading text from image', icon: '\u{1F524}' },
-  generate_qr_code: { label: 'Generating QR code', icon: '\u{1F4F1}' },
-  sql_query: { label: 'Querying data', icon: '\u{1F5C3}\uFE0F' },
-  pdf_manipulate: { label: 'Processing PDF', icon: '\u{1F4C4}' },
-  transform_image: { label: 'Transforming image', icon: '\u{1F3A8}' },
-  composio_GMAIL_SEND_EMAIL: { label: 'Sending email', icon: '\u2709\uFE0F' },
-  composio_GMAIL_CREATE_EMAIL_DRAFT: { label: 'Creating draft', icon: '\u2709\uFE0F' },
-  composio_GMAIL_FETCH_EMAILS: { label: 'Fetching emails', icon: '\u{1F4E8}' },
-  composio_GMAIL_FORWARD_MESSAGE: { label: 'Forwarding email', icon: '\u{1F4E4}' },
-  composio_GOOGLECALENDAR_CREATE_EVENT: { label: 'Creating event', icon: '\u{1F4C5}' },
-  composio_GOOGLECALENDAR_LIST_EVENTS: { label: 'Listing events', icon: '\u{1F4C5}' },
-  composio_SLACK_SEND_MESSAGE: { label: 'Sending to Slack', icon: '\u{1F4AC}' },
-  composio_GITHUB_CREATE_AN_ISSUE: { label: 'Creating issue', icon: '\u{1F41B}' },
+// Tool name → human-readable label (no emoji icons)
+const TOOL_DISPLAY: Record<string, { label: string }> = {
+  web_search: { label: 'Searching the web' },
+  fetch_url: { label: 'Fetching page' },
+  create_chart: { label: 'Creating chart' },
+  create_document: { label: 'Generating document' },
+  create_presentation: { label: 'Building presentation' },
+  excel_advanced: { label: 'Processing spreadsheet' },
+  run_code: { label: 'Running code' },
+  browser_visit: { label: 'Browsing page' },
+  analyze_image: { label: 'Analyzing image' },
+  extract_pdf: { label: 'Extracting PDF' },
+  extract_table: { label: 'Extracting table data' },
+  analyze_text_nlp: { label: 'Analyzing text' },
+  audio_transcribe: { label: 'Transcribing audio' },
+  ocr_extract_text: { label: 'Reading text from image' },
+  generate_qr_code: { label: 'Generating QR code' },
+  sql_query: { label: 'Querying data' },
+  pdf_manipulate: { label: 'Processing PDF' },
+  transform_image: { label: 'Transforming image' },
+  composio_GMAIL_SEND_EMAIL: { label: 'Sending email' },
+  composio_GMAIL_CREATE_EMAIL_DRAFT: { label: 'Creating draft' },
+  composio_GMAIL_FETCH_EMAILS: { label: 'Fetching emails' },
+  composio_GMAIL_FORWARD_MESSAGE: { label: 'Forwarding email' },
+  composio_GOOGLECALENDAR_CREATE_EVENT: { label: 'Creating event' },
+  composio_GOOGLECALENDAR_LIST_EVENTS: { label: 'Listing events' },
+  composio_SLACK_SEND_MESSAGE: { label: 'Sending to Slack' },
+  composio_GITHUB_CREATE_AN_ISSUE: { label: 'Creating issue' },
 };
 
-function getToolDisplay(toolName: string): { label: string; icon: string } {
+function getToolDisplay(toolName: string): { label: string } {
   if (TOOL_DISPLAY[toolName]) return TOOL_DISPLAY[toolName];
   // Clean up composio prefix for display
   const clean = toolName
@@ -65,7 +65,7 @@ function getToolDisplay(toolName: string): { label: string; icon: string } {
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
-  return { label: clean, icon: '\u{1F527}' };
+  return { label: clean };
 }
 
 function StatusIcon({ status }: { status: ChainStep['status'] }) {
@@ -159,7 +159,6 @@ export default function ChainProgressCard({ data }: ChainProgressCardProps) {
                           : 'text-gray-500'
                   }`}
                 >
-                  <span className="mr-1.5">{display.icon}</span>
                   {step.status === 'running'
                     ? (step.label || display.label) + '...'
                     : step.label || display.label}
