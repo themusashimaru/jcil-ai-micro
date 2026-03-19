@@ -24,7 +24,7 @@ const footerLinks: Record<string, FooterSection> = {
     links: [
       { label: 'Chat', href: '/chat' },
       { label: 'Code Lab', href: '/code-lab/about' },
-      { label: 'Pricing', href: '/#pricing' },
+      { label: 'Pricing', href: '/signup' },
     ],
   },
   resources: {

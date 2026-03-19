@@ -12,9 +12,9 @@ import { useState, useEffect } from 'react';
 import LandingLogo from '../LandingLogo';
 
 const navItems = [
-  { label: 'Products', href: '/#products' },
+  { label: 'Products', href: '/capabilities' },
   { label: 'Code Lab', href: '/code-lab/about' },
-  { label: 'Pricing', href: '/#pricing' },
+  { label: 'Pricing', href: '/signup' },
   { label: 'Docs', href: '/docs' },
   { label: 'About', href: '/about' },
 ];
