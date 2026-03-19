@@ -443,6 +443,9 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
         if (reader) {
           let accumulatedContent = '';
           const activeToolCalls: ToolCall[] = [];
+          // Throttle UI updates to ~30fps to avoid overwhelming mobile devices
+          let lastUIUpdate = 0;
+          const UI_THROTTLE_MS = 33;
           try {
             let buffer = '';
             while (true) {
@@ -505,42 +508,61 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
               } else {
                 accumulatedContent += chunk;
 
-                // Parse tool activity markers from stream
-                const toolStartMatches = accumulatedContent.matchAll(/<!--TOOL_START:([^>]+)-->/g);
-                for (const match of toolStartMatches) {
-                  const toolName = match[1];
-                  if (!activeToolCalls.find((t) => t.name === toolName && t.status === 'running')) {
-                    activeToolCalls.push({
-                      id: `tool-${toolName}-${Date.now()}`,
-                      name: toolName,
-                      status: 'running',
-                    });
+                // Parse tool activity markers from the NEW chunk only (not full content)
+                // Wrapped in try-catch to prevent streaming loop crash
+                try {
+                  const startMatches = chunk.matchAll(/<!--TOOL_START:([^>]+)-->/g);
+                  for (const match of startMatches) {
+                    const toolName = match[1];
+                    if (
+                      toolName &&
+                      !activeToolCalls.find((t) => t.name === toolName && t.status === 'running')
+                    ) {
+                      activeToolCalls.push({
+                        id: `tool-${toolName}-${Date.now()}`,
+                        name: toolName,
+                        status: 'running',
+                      });
+                    }
                   }
-                }
-                const toolResultMatches = accumulatedContent.matchAll(
-                  /<!--TOOL_RESULT:([^:]+):(success|error)-->/g
-                );
-                for (const match of toolResultMatches) {
-                  const toolName = match[1];
-                  const status = match[2] === 'success' ? 'completed' : 'error';
-                  const existing = activeToolCalls.find(
-                    (t) => t.name === toolName && t.status === 'running'
+                  const resultMatches = chunk.matchAll(
+                    /<!--TOOL_RESULT:([^:]+):(success|error)-->/g
                   );
-                  if (existing) {
-                    existing.status = status;
+                  for (const match of resultMatches) {
+                    const toolName = match[1];
+                    const status = match[2] === 'success' ? 'completed' : 'error';
+                    if (toolName) {
+                      const existing = activeToolCalls.find(
+                        (t) => t.name === toolName && t.status === 'running'
+                      );
+                      if (existing) {
+                        existing.status = status;
+                      }
+                    }
                   }
+                  // Cap array to prevent unbounded growth
+                  if (activeToolCalls.length > 100) {
+                    activeToolCalls.splice(0, activeToolCalls.length - 100);
+                  }
+                } catch {
+                  // Non-critical: tool markers are UX-only, don't crash the stream
                 }
 
-                if (currentChatIdRef.current === newChatId) {
+                // Throttle UI updates to avoid overwhelming mobile devices
+                const now = Date.now();
+                if (
+                  currentChatIdRef.current === newChatId &&
+                  now - lastUIUpdate >= UI_THROTTLE_MS
+                ) {
+                  lastUIUpdate = now;
                   // Keep thinking tags in the content — MessageBubble renders
                   // them as a live-streaming thinking block (DeepSeek-style).
-                  // Only strip non-display markers (DONE, followups, tool markers).
+                  // Strip non-display markers in a single pass for efficiency.
                   const displayContent = accumulatedContent
-                    .replace(/\n?\[DONE]\n?/g, '')
-                    .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
-                    .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
-                    .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
-                    .replace(/<suggested-followups>[\s\S]*$/g, '')
+                    .replace(
+                      /\n?\[DONE]\n?|<suggested-followups>[\s\S]*?<\/suggested-followups>|<suggested-followups>[\s\S]*$|\n?<!--TOOL_(?:START|RESULT):[^>]+-->/g,
+                      ''
+                    )
                     .trimEnd();
                   setMessages((prev) =>
                     prev.map((msg) =>
@@ -563,9 +585,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
               // Stream was interrupted but we have partial content — show it
               // with truncation notice so user knows it was cut off
               streamFinalContent = accumulatedContent
-                .replace(/\n?\[DONE]\n?/g, '')
-                .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
-                .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
+                .replace(/\n?\[DONE]\n?|\n?<!--TOOL_(?:START|RESULT):[^>]+-->/g, '')
                 .trimEnd();
               streamFinalContent +=
                 '\n\n---\n*Response was interrupted. You can ask me to continue.*';
@@ -578,13 +598,15 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
               );
             } else throw readerError;
           } finally {
-            reader.releaseLock();
+            try {
+              reader.releaseLock();
+            } catch {
+              // Reader may already be released
+            }
           }
           if (!streamFinalContent && accumulatedContent) {
             streamFinalContent = accumulatedContent
-              .replace(/\n?\[DONE]\n?/g, '')
-              .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
-              .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
+              .replace(/\n?\[DONE]\n?|\n?<!--TOOL_(?:START|RESULT):[^>]+-->/g, '')
               .trimEnd();
           }
         }
