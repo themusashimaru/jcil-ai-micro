@@ -103,6 +103,34 @@ function invoiceHtml(a: InvoiceArgs, items: CalcItem[], t: Totals): string {
 <div style="display:flex;justify-content:flex-end;"><div style="width:280px;">${tots}</div></div>${ft ? `<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;">${ft}</div>` : ''}</div>`;
 }
 
+function invoicePlainText(a: InvoiceArgs, items: CalcItem[], t: Totals): string {
+  const c = a.currency || 'USD', d = fmtDate(a.date || todayISO());
+  const sep = '='.repeat(60), dW = 30, qW = 6, pW = 12, aW = 12;
+  const l: string[] = [a.business_name.toUpperCase()];
+  if (a.business_address) l.push(a.business_address);
+  if (a.business_email) l.push(a.business_email);
+  l.push(sep, '', `INVOICE: ${a.invoice_number}`, `Date:    ${d}`);
+  if (a.due_date) l.push(`Due:     ${fmtDate(a.due_date)}`);
+  l.push('', `Bill To: ${a.client_name}`);
+  if (a.client_address) l.push(`         ${a.client_address}`);
+  if (a.client_email) l.push(`         ${a.client_email}`);
+  l.push('', '-'.repeat(60));
+  l.push('Description'.padEnd(dW) + 'Qty'.padStart(qW) + 'Unit Price'.padStart(pW) + 'Amount'.padStart(aW));
+  l.push('-'.repeat(60));
+  for (const i of items) {
+    const desc = i.description.length > dW - 1 ? i.description.substring(0, dW - 2) + '.' : i.description;
+    l.push(desc.padEnd(dW) + String(i.quantity).padStart(qW) + fmtC(i.unit_price, c).padStart(pW) + fmtC(i.lineTotal, c).padStart(aW));
+  }
+  l.push('-'.repeat(60));
+  l.push('Subtotal'.padEnd(dW + qW + pW) + fmtC(t.subtotal, c).padStart(aW));
+  if (t.discountAmount > 0) l.push(`Discount (${a.discount_percent ?? 0}%)`.padEnd(dW + qW + pW) + ('-' + fmtC(t.discountAmount, c)).padStart(aW));
+  if (t.taxTotal > 0) l.push('Tax'.padEnd(dW + qW + pW) + fmtC(t.taxTotal, c).padStart(aW));
+  l.push(sep, 'TOTAL'.padEnd(dW + qW + pW) + fmtC(t.grandTotal, c).padStart(aW), sep);
+  if (a.payment_terms) l.push('', `Payment Terms: ${a.payment_terms}`);
+  if (a.notes) l.push('', `Notes: ${a.notes}`);
+  return l.join('\n');
+}
+
 function invoiceMarkdown(a: InvoiceArgs, items: CalcItem[], t: Totals): string {
   const c = a.currency || 'USD', d = fmtDate(a.date || todayISO());
   const l: string[] = [`# ${a.business_name}`];
@@ -137,7 +165,9 @@ export async function executeInvoice(toolCall: UnifiedToolCall): Promise<Unified
   try {
     const format = args.format || 'html', c = args.currency || 'USD';
     const { calc, totals } = calculate(args.line_items, args.tax_rate ?? 0, args.discount_percent ?? 0);
-    const document = format === 'markdown' ? invoiceMarkdown(args, calc, totals) : invoiceHtml(args, calc, totals);
+    const document = format === 'markdown' ? invoiceMarkdown(args, calc, totals)
+      : format === 'plain_text' ? invoicePlainText(args, calc, totals)
+      : invoiceHtml(args, calc, totals);
     return { toolCallId: toolCall.id, content: JSON.stringify({
       success: true, invoiceNumber: args.invoice_number, format, document,
       totals: { subtotal: fmtC(totals.subtotal, c), discount: totals.discountAmount > 0 ? fmtC(totals.discountAmount, c) : null,
