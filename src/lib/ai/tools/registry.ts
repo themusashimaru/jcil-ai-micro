@@ -49,7 +49,7 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 65 tools total — all with real implementations.
+ * 70 tools total — all with real implementations.
  * Consolidated 2026-03-17: removed redundant screenshot, capture_webpage,
  * create_spreadsheet (use excel_advanced), and parallel_research (agent pattern).
  */
@@ -615,6 +615,15 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'meal_planner', file: 'meal-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Create meal plans with categorized grocery lists', dependencies: [] },
   { name: 'create_flashcards', file: 'flashcard-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Create study flashcard sets (Anki, CSV, Markdown)', dependencies: [] },
   { name: 'plan_trip', file: 'trip-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Build travel itineraries with packing lists and budgets', dependencies: [] },
+
+  // =========================================================================
+  // PRODUCTIVITY & PLANNING — Business and personal planning tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'project_timeline', file: 'project-timeline-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Project timeline and Gantt chart generator', dependencies: [] },
+  { name: 'decision_matrix', file: 'decision-matrix-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Weighted decision matrix for comparing options', dependencies: [] },
+  { name: 'plan_event', file: 'event-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Event planner with timeline, vendors, and budget', dependencies: [] },
+  { name: 'content_calendar', file: 'content-calendar-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Social media content calendar across platforms', dependencies: [] },
+  { name: 'create_sop', file: 'sop-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Standard operating procedure document generator', dependencies: [] },
 
   // =========================================================================
   // SCRIPTURE & MINISTRY — Christian mission tools (added 2026-03-19)

@@ -157,6 +157,13 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   create_flashcards: () => import('./flashcard-tool'),
   plan_trip: () => import('./trip-planner-tool'),
 
+  // Productivity & planning tools
+  project_timeline: () => import('./project-timeline-tool'),
+  decision_matrix: () => import('./decision-matrix-tool'),
+  plan_event: () => import('./event-planner-tool'),
+  content_calendar: () => import('./content-calendar-tool'),
+  create_sop: () => import('./sop-tool'),
+
   // Scripture & ministry tools
   scripture_reference: () => import('./scripture-tool'),
   sermon_outline: () => import('./sermon-tool'),
@@ -543,6 +550,13 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   meal_planner: { importPath: './meal-planner-tool', toolExport: 'mealPlannerTool', executorExport: 'executeMealPlanner', availabilityExport: 'isMealPlannerAvailable' },
   create_flashcards: { importPath: './flashcard-tool', toolExport: 'flashcardTool', executorExport: 'executeFlashcard', availabilityExport: 'isFlashcardAvailable' },
   plan_trip: { importPath: './trip-planner-tool', toolExport: 'tripPlannerTool', executorExport: 'executeTripPlanner', availabilityExport: 'isTripPlannerAvailable' },
+
+  // Productivity & planning tools
+  project_timeline: { importPath: './project-timeline-tool', toolExport: 'projectTimelineTool', executorExport: 'executeProjectTimeline', availabilityExport: 'isProjectTimelineAvailable' },
+  decision_matrix: { importPath: './decision-matrix-tool', toolExport: 'decisionMatrixTool', executorExport: 'executeDecisionMatrix', availabilityExport: 'isDecisionMatrixAvailable' },
+  plan_event: { importPath: './event-planner-tool', toolExport: 'eventPlannerTool', executorExport: 'executeEventPlanner', availabilityExport: 'isEventPlannerAvailable' },
+  content_calendar: { importPath: './content-calendar-tool', toolExport: 'contentCalendarTool', executorExport: 'executeContentCalendar', availabilityExport: 'isContentCalendarAvailable' },
+  create_sop: { importPath: './sop-tool', toolExport: 'sopTool', executorExport: 'executeSop', availabilityExport: 'isSopAvailable' },
 
   // Scripture & ministry tools
   scripture_reference: { importPath: './scripture-tool', toolExport: 'scriptureTool', executorExport: 'executeScripture', availabilityExport: 'isScriptureAvailable' },
