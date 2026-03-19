@@ -134,7 +134,7 @@ export function MessageFooter({ message, isUser, isAdmin, onReply, onRetry }: Me
           Retry
         </button>
       )}
-      {isAdmin && !isUser && message.model && (
+      {!isUser && message.model && (
         <span
           className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
             message.model.includes('haiku')

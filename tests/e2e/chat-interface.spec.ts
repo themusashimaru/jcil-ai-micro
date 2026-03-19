@@ -130,13 +130,11 @@ test.describe('Chat Page - UI Elements', () => {
 test.describe('Chat Page - Accessibility', () => {
   test('chat page has ARIA landmarks', async ({ page }) => {
     await page.goto('/chat');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForLoadState('networkidle');
 
-    // Should have at least one landmark role
-    const landmarks = await page
-      .locator('[role="main"], main, [role="navigation"], nav, [role="banner"], header')
-      .count();
-    expect(landmarks).toBeGreaterThan(0);
+    // Should have at least one landmark role (wait for React hydration)
+    const landmarks = page.locator('[role="main"], main, [role="navigation"], nav, [role="banner"], header');
+    await expect(landmarks.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('chat page has skip-to-content link', async ({ page }) => {

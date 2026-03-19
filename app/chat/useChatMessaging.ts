@@ -6,7 +6,7 @@ import { analyzeResponse, isConfirmation, isDecline } from '@/lib/response-analy
 // Agent mode imports removed — agent system deprecated
 import type { SearchMode } from '@/components/chat/ChatComposer';
 import type { SelectedRepoInfo } from '@/components/chat/ChatComposer';
-import type { Message } from './types';
+import type { Message, ToolCall } from './types';
 import { extractCitationsFromText } from './types';
 import { detectDocumentTypeFromMessage, isGenericTitle, formatMessagesForApi } from './chatUtils';
 import { saveMessageToDatabase, createConversationInDatabase, safeJsonParse } from './chatApi';
@@ -442,6 +442,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
 
         if (reader) {
           let accumulatedContent = '';
+          const activeToolCalls: ToolCall[] = [];
           try {
             let buffer = '';
             while (true) {
@@ -503,19 +504,54 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
                 }
               } else {
                 accumulatedContent += chunk;
+
+                // Parse tool activity markers from stream
+                const toolStartMatches = accumulatedContent.matchAll(/<!--TOOL_START:([^>]+)-->/g);
+                for (const match of toolStartMatches) {
+                  const toolName = match[1];
+                  if (!activeToolCalls.find((t) => t.name === toolName && t.status === 'running')) {
+                    activeToolCalls.push({
+                      id: `tool-${toolName}-${Date.now()}`,
+                      name: toolName,
+                      status: 'running',
+                    });
+                  }
+                }
+                const toolResultMatches = accumulatedContent.matchAll(
+                  /<!--TOOL_RESULT:([^:]+):(success|error)-->/g
+                );
+                for (const match of toolResultMatches) {
+                  const toolName = match[1];
+                  const status = match[2] === 'success' ? 'completed' : 'error';
+                  const existing = activeToolCalls.find(
+                    (t) => t.name === toolName && t.status === 'running'
+                  );
+                  if (existing) {
+                    existing.status = status;
+                  }
+                }
+
                 if (currentChatIdRef.current === newChatId) {
                   // Keep thinking tags in the content — MessageBubble renders
                   // them as a live-streaming thinking block (DeepSeek-style).
-                  // Only strip non-display markers (DONE, followups).
+                  // Only strip non-display markers (DONE, followups, tool markers).
                   const displayContent = accumulatedContent
                     .replace(/\n?\[DONE]\n?/g, '')
+                    .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
+                    .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
                     .replace(/<suggested-followups>[\s\S]*?<\/suggested-followups>/g, '')
                     .replace(/<suggested-followups>[\s\S]*$/g, '')
                     .trimEnd();
                   setMessages((prev) =>
                     prev.map((msg) =>
                       msg.id === assistantMessageId
-                        ? { ...msg, content: displayContent, isStreaming: true }
+                        ? {
+                            ...msg,
+                            content: displayContent,
+                            isStreaming: true,
+                            toolCalls:
+                              activeToolCalls.length > 0 ? [...activeToolCalls] : undefined,
+                          }
                         : msg
                     )
                   );
@@ -526,7 +562,11 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
             if (accumulatedContent.length > 0) {
               // Stream was interrupted but we have partial content — show it
               // with truncation notice so user knows it was cut off
-              streamFinalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
+              streamFinalContent = accumulatedContent
+                .replace(/\n?\[DONE]\n?/g, '')
+                .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
+                .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
+                .trimEnd();
               streamFinalContent +=
                 '\n\n---\n*Response was interrupted. You can ask me to continue.*';
               setMessages((prev) =>
@@ -541,7 +581,11 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
             reader.releaseLock();
           }
           if (!streamFinalContent && accumulatedContent) {
-            streamFinalContent = accumulatedContent.replace(/\n?\[DONE]\n?/g, '').trimEnd();
+            streamFinalContent = accumulatedContent
+              .replace(/\n?\[DONE]\n?/g, '')
+              .replace(/\n?<!--TOOL_START:[^>]+-->/g, '')
+              .replace(/\n?<!--TOOL_RESULT:[^>]+-->/g, '')
+              .trimEnd();
           }
         }
       }

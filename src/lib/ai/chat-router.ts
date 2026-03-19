@@ -643,6 +643,8 @@ export async function routeChatWithTools(
                     arguments: {},
                   };
                   toolArgsBuffer = '';
+                  // Emit marker so the frontend can show real-time tool activity
+                  controller.enqueue(encoder.encode(`\n<!--TOOL_START:${chunk.toolCall.name}-->`));
                   log.debug('Tool call started', {
                     name: chunk.toolCall.name,
                     id: chunk.toolCall.id,
@@ -856,6 +858,13 @@ export async function routeChatWithTools(
                     completedToolCalls.push({ name: toolCall.name, params: parsedArgs });
                   }
 
+                  // Emit result marker so frontend knows tool finished
+                  controller.enqueue(
+                    encoder.encode(
+                      `\n<!--TOOL_RESULT:${toolCall.name}:${result.isError ? 'error' : 'success'}-->`
+                    )
+                  );
+
                   log.debug('Tool execution complete', {
                     name: toolCall.name,
                     resultLength: result.content.length,
@@ -877,6 +886,9 @@ export async function routeChatWithTools(
                   if (detectedChain) {
                     chainTelemetry.stepFailed(detectedChain.name, toolCall.name, errorMsg);
                   }
+
+                  // Emit error marker so frontend knows tool failed
+                  controller.enqueue(encoder.encode(`\n<!--TOOL_RESULT:${toolCall.name}:error-->`));
 
                   // Build fallback hint for Claude
                   const fallbacks = getToolFallbacks(toolCall.name);
