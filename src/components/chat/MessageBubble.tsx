@@ -9,7 +9,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import type { ActionPreviewData } from './ActionPreviewCard';
 import type { DestructiveActionData } from './DestructiveActionCard';
 import type { ScheduledActionData } from './ScheduledActionCard';
-import { getToolEntry } from '@/lib/ai/tools/registry';
+import { ToolActivityBubbles } from './ToolActivityBubbles';
 import { CodePreviewBlock } from './CodePreviewBlock';
 import { MessageFooter } from './MessageFooter';
 import { MessageCitations } from './MessageCitations';
@@ -25,13 +25,6 @@ const MultiPagePreview = lazy(() => import('./MultiPagePreview'));
 const AnalyticsBlock = lazy(() =>
   import('@/components/analytics/AnalyticsBlock').then((mod) => ({ default: mod.AnalyticsBlock }))
 );
-
-const TOOL_STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-gray-500/20 text-gray-300',
-  running: 'bg-blue-500/20 text-blue-300 animate-pulse',
-  completed: 'bg-green-500/20 text-green-300',
-  error: 'bg-red-500/20 text-red-300',
-};
 
 interface MessageBubbleProps {
   message: Message;
@@ -163,43 +156,9 @@ export const MessageBubble = memo(
         )}
 
         <div className="space-y-0 overflow-x-hidden flex-1 max-w-full">
-          {/* Tool Calls */}
+          {/* Tool Activity Bubbles — real-time tool execution indicators */}
           {message.toolCalls && message.toolCalls.length > 0 && (
-            <div className="flex flex-wrap gap-0">
-              {message.toolCalls.map((tool) => (
-                <div
-                  key={tool.id}
-                  role="status"
-                  aria-label={`Tool ${tool.name.replace(/_/g, ' ')}: ${tool.status}`}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${TOOL_STATUS_COLORS[tool.status] || TOOL_STATUS_COLORS.pending}`}
-                >
-                  <span className="capitalize">{tool.name.replace(/_/g, ' ')}</span>
-                  {getToolEntry(tool.name)?.status === 'beta' && (
-                    <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold uppercase leading-none text-amber-400">
-                      beta
-                    </span>
-                  )}
-                  {tool.status === 'running' && (
-                    <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  )}
-                </div>
-              ))}
-            </div>
+            <ToolActivityBubbles toolCalls={message.toolCalls} />
           )}
 
           {/* Attachments */}
@@ -425,4 +384,3 @@ function DownloadLink({
     </a>
   );
 }
-
