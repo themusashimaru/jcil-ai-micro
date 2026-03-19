@@ -235,7 +235,7 @@ export async function executeE2BChart(toolCall: UnifiedToolCall): Promise<Unifie
 
       return {
         toolCallId: id,
-        content: `Chart "${title}" generated successfully.\n\ndata:image/png;base64,${base64}`,
+        content: `Chart "${title}" generated successfully.\n\n![${title || 'Chart'}](data:image/png;base64,${base64})`,
         isError: false,
       };
     } catch {
