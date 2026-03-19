@@ -207,6 +207,9 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   prayer_journal: () => import('./prayer-journal-tool'),
   daily_devotional: () => import('./devotional-tool'),
   small_group_guide: () => import('./small-group-tool'),
+
+  // Orchestration tools
+  spawn_agents: () => import('./spawn-agent-tool'),
 };
 
 // ============================================================================
@@ -638,6 +641,9 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   prayer_journal: { importPath: './prayer-journal-tool', toolExport: 'prayerJournalTool', executorExport: 'executePrayerJournal', availabilityExport: 'isPrayerJournalAvailable' },
   daily_devotional: { importPath: './devotional-tool', toolExport: 'devotionalTool', executorExport: 'executeDevotional', availabilityExport: 'isDevotionalAvailable' },
   small_group_guide: { importPath: './small-group-tool', toolExport: 'smallGroupTool', executorExport: 'executeSmallGroup', availabilityExport: 'isSmallGroupAvailable' },
+
+  // Orchestration tools
+  spawn_agents: { importPath: './spawn-agent-tool', toolExport: 'spawnAgentTool', executorExport: 'executeSpawnAgent', availabilityExport: 'isSpawnAgentAvailable' },
 };
 
 // ============================================================================
