@@ -9,8 +9,8 @@ import type { ToolCall } from '@/app/chat/types';
  */
 const TOOL_META: Record<string, { label: string; domain?: string }> = {
   // Research & web
-  web_search: { label: 'Searching', domain: 'google.com' },
-  fetch_url: { label: 'Fetching page', domain: 'www.google.com' },
+  web_search: { label: 'Searching the web', domain: 'google.com' },
+  fetch_url: { label: 'Reading sources', domain: 'www.google.com' },
   browser_visit: { label: 'Browsing', domain: 'www.google.com' },
   extract_pdf_url: { label: 'Reading PDF', domain: 'pdf.org' },
   // Documents
@@ -50,13 +50,37 @@ const TOOL_META: Record<string, { label: string; domain?: string }> = {
 
 function getToolMeta(name: string): { label: string; domain?: string } {
   if (TOOL_META[name]) return TOOL_META[name];
-  // Fallback: clean up the tool name
   const label = name
     .replace(/^composio_/, '')
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
   return { label };
+}
+
+/** Group tool calls by name, tracking counts and aggregate status */
+interface ToolGroup {
+  name: string;
+  total: number;
+  running: number;
+  completed: number;
+  errored: number;
+}
+
+function groupToolCalls(toolCalls: ToolCall[]): ToolGroup[] {
+  const map = new Map<string, ToolGroup>();
+  for (const tc of toolCalls) {
+    let group = map.get(tc.name);
+    if (!group) {
+      group = { name: tc.name, total: 0, running: 0, completed: 0, errored: 0 };
+      map.set(tc.name, group);
+    }
+    group.total++;
+    if (tc.status === 'running') group.running++;
+    else if (tc.status === 'completed') group.completed++;
+    else if (tc.status === 'error') group.errored++;
+  }
+  return Array.from(map.values());
 }
 
 interface ToolActivityBubblesProps {
@@ -66,21 +90,23 @@ interface ToolActivityBubblesProps {
 export function ToolActivityBubbles({ toolCalls }: ToolActivityBubblesProps) {
   if (!toolCalls || toolCalls.length === 0) return null;
 
+  const groups = groupToolCalls(toolCalls);
+
   return (
     <div
       className="flex flex-wrap items-center gap-2 py-2"
       role="status"
       aria-label="Tool activity"
     >
-      {toolCalls.map((tool) => {
-        const meta = getToolMeta(tool.name);
-        const isRunning = tool.status === 'running';
-        const isError = tool.status === 'error';
-        const isCompleted = tool.status === 'completed';
+      {groups.map((group) => {
+        const meta = getToolMeta(group.name);
+        const isRunning = group.running > 0;
+        const isError = !isRunning && group.errored > 0;
+        const isCompleted = !isRunning && !isError && group.completed === group.total;
 
         return (
           <div
-            key={tool.id}
+            key={group.name}
             className={`
               inline-flex items-center gap-2 rounded-full px-3 py-1.5
               text-xs font-medium transition-all duration-300
@@ -94,9 +120,9 @@ export function ToolActivityBubbles({ toolCalls }: ToolActivityBubblesProps) {
                       : 'bg-zinc-500/15 text-zinc-400 border border-zinc-500/30'
               }
             `}
-            aria-label={`${meta.label}: ${tool.status}`}
+            aria-label={`${meta.label}: ${isRunning ? 'running' : isCompleted ? 'completed' : isError ? 'error' : 'pending'}${group.total > 1 ? ` (${group.total})` : ''}`}
           >
-            {/* Favicon or status icon */}
+            {/* Favicon or status dot */}
             {meta.domain ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -107,7 +133,6 @@ export function ToolActivityBubbles({ toolCalls }: ToolActivityBubblesProps) {
                 className={`rounded-full ${isRunning ? 'animate-pulse' : ''} ${isCompleted || isError ? 'opacity-60' : ''}`}
                 loading="lazy"
                 onError={(e) => {
-                  // Hide broken favicons
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
@@ -130,6 +155,27 @@ export function ToolActivityBubbles({ toolCalls }: ToolActivityBubblesProps) {
 
             {/* Label */}
             <span className={isCompleted || isError ? 'opacity-70' : ''}>{meta.label}</span>
+
+            {/* Count badge when > 1 */}
+            {group.total > 1 && (
+              <span
+                className={`
+                  inline-flex items-center justify-center min-w-[18px] h-[18px]
+                  rounded-full px-1 text-[10px] font-bold leading-none
+                  ${
+                    isRunning
+                      ? 'bg-blue-400/30 text-blue-200'
+                      : isCompleted
+                        ? 'bg-emerald-400/30 text-emerald-200'
+                        : isError
+                          ? 'bg-red-400/30 text-red-200'
+                          : 'bg-zinc-400/30 text-zinc-300'
+                  }
+                `}
+              >
+                {group.total}
+              </span>
+            )}
 
             {/* Running spinner */}
             {isRunning && (
