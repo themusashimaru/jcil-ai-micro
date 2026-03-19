@@ -49,7 +49,7 @@ export interface ToolRegistryEntry {
 
 /**
  * Master registry of all tools.
- * 51 tools total — all with real implementations.
+ * 65 tools total — all with real implementations.
  * Consolidated 2026-03-17: removed redundant screenshot, capture_webpage,
  * create_spreadsheet (use excel_advanced), and parallel_research (agent pattern).
  */
@@ -603,6 +603,27 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     description: 'Batch document generation with template variable substitution',
     dependencies: [],
   },
+
+  // =========================================================================
+  // EVERYDAY — Practical daily-use tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'calendar_event', file: 'calendar-event-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Create calendar events as downloadable .ics files', dependencies: [] },
+  { name: 'budget_calculator', file: 'budget-calc-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Financial calculator: loans, savings, budgets, debt payoff', dependencies: [] },
+  { name: 'draft_email', file: 'email-draft-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Draft and format professional emails with tone control', dependencies: [] },
+  { name: 'build_resume', file: 'resume-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Build ATS-friendly resumes and cover letters', dependencies: [] },
+  { name: 'generate_invoice', file: 'invoice-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Generate professional invoices with tax and discounts', dependencies: [] },
+  { name: 'meal_planner', file: 'meal-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Create meal plans with categorized grocery lists', dependencies: [] },
+  { name: 'create_flashcards', file: 'flashcard-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Create study flashcard sets (Anki, CSV, Markdown)', dependencies: [] },
+  { name: 'plan_trip', file: 'trip-planner-tool.ts', status: 'active', category: 'data', tier: 'extended', description: 'Build travel itineraries with packing lists and budgets', dependencies: [] },
+
+  // =========================================================================
+  // SCRIPTURE & MINISTRY — Christian mission tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'scripture_reference', file: 'scripture-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Bible cross-reference study sheets with word studies', dependencies: [] },
+  { name: 'sermon_outline', file: 'sermon-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured sermon and Bible lesson outlines', dependencies: [] },
+  { name: 'prayer_journal', file: 'prayer-journal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured prayer journal entries (ACTS framework)', dependencies: [] },
+  { name: 'daily_devotional', file: 'devotional-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Daily devotional readings with scripture and application', dependencies: [] },
+  { name: 'small_group_guide', file: 'small-group-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Small group Bible study discussion guides (OIA method)', dependencies: [] },
 ];
 
 // =========================================================================

@@ -230,7 +230,7 @@ export interface ToolPropertySchema {
   enum?: string[];
   items?: ToolPropertySchema;
   properties?: Record<string, ToolPropertySchema>;
-  required?: string[];
+  required?: string[] | boolean;
   default?: unknown;
 }
 

@@ -146,6 +146,23 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   create_email_template: () => import('./email-template-tool'),
   document_template: () => import('./document-templates-tool'),
   mail_merge: () => import('./mail-merge-tool'),
+
+  // Everyday & lifestyle tools
+  calendar_event: () => import('./calendar-event-tool'),
+  budget_calculator: () => import('./budget-calc-tool'),
+  draft_email: () => import('./email-draft-tool'),
+  build_resume: () => import('./resume-tool'),
+  generate_invoice: () => import('./invoice-tool'),
+  meal_planner: () => import('./meal-planner-tool'),
+  create_flashcards: () => import('./flashcard-tool'),
+  plan_trip: () => import('./trip-planner-tool'),
+
+  // Scripture & ministry tools
+  scripture_reference: () => import('./scripture-tool'),
+  sermon_outline: () => import('./sermon-tool'),
+  prayer_journal: () => import('./prayer-journal-tool'),
+  daily_devotional: () => import('./devotional-tool'),
+  small_group_guide: () => import('./small-group-tool'),
 };
 
 // ============================================================================
@@ -516,6 +533,23 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeMailMerge',
     availabilityExport: 'isMailMergeAvailable',
   },
+
+  // Everyday & lifestyle tools
+  calendar_event: { importPath: './calendar-event-tool', toolExport: 'calendarEventTool', executorExport: 'executeCalendarEvent', availabilityExport: 'isCalendarEventAvailable' },
+  budget_calculator: { importPath: './budget-calc-tool', toolExport: 'budgetCalcTool', executorExport: 'executeBudgetCalc', availabilityExport: 'isBudgetCalcAvailable' },
+  draft_email: { importPath: './email-draft-tool', toolExport: 'emailDraftTool', executorExport: 'executeEmailDraft', availabilityExport: 'isEmailDraftAvailable' },
+  build_resume: { importPath: './resume-tool', toolExport: 'resumeTool', executorExport: 'executeResume', availabilityExport: 'isResumeAvailable' },
+  generate_invoice: { importPath: './invoice-tool', toolExport: 'invoiceTool', executorExport: 'executeInvoice', availabilityExport: 'isInvoiceAvailable' },
+  meal_planner: { importPath: './meal-planner-tool', toolExport: 'mealPlannerTool', executorExport: 'executeMealPlanner', availabilityExport: 'isMealPlannerAvailable' },
+  create_flashcards: { importPath: './flashcard-tool', toolExport: 'flashcardTool', executorExport: 'executeFlashcard', availabilityExport: 'isFlashcardAvailable' },
+  plan_trip: { importPath: './trip-planner-tool', toolExport: 'tripPlannerTool', executorExport: 'executeTripPlanner', availabilityExport: 'isTripPlannerAvailable' },
+
+  // Scripture & ministry tools
+  scripture_reference: { importPath: './scripture-tool', toolExport: 'scriptureTool', executorExport: 'executeScripture', availabilityExport: 'isScriptureAvailable' },
+  sermon_outline: { importPath: './sermon-tool', toolExport: 'sermonTool', executorExport: 'executeSermon', availabilityExport: 'isSermonAvailable' },
+  prayer_journal: { importPath: './prayer-journal-tool', toolExport: 'prayerJournalTool', executorExport: 'executePrayerJournal', availabilityExport: 'isPrayerJournalAvailable' },
+  daily_devotional: { importPath: './devotional-tool', toolExport: 'devotionalTool', executorExport: 'executeDevotional', availabilityExport: 'isDevotionalAvailable' },
+  small_group_guide: { importPath: './small-group-tool', toolExport: 'smallGroupTool', executorExport: 'executeSmallGroup', availabilityExport: 'isSmallGroupAvailable' },
 };
 
 // ============================================================================
