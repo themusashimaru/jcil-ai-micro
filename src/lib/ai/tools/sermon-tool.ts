@@ -5,12 +5,7 @@
  * main points with illustrations, and conclusion. The AI generates all content
  * and passes it as structured arguments; this tool formats it for the pulpit.
  */
-
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
-
-// ============================================================================
-// TOOL DEFINITION
-// ============================================================================
 
 export const sermonTool: UnifiedTool = {
   name: 'sermon_outline',
@@ -80,49 +75,20 @@ Returns a complete, structured outline with scripture references, illustrations,
   },
 };
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// -- Types --
 
-interface MainPoint {
-  point: string;
-  scripture?: string;
-  explanation?: string;
-  illustration?: string;
-  application?: string;
-}
-
-interface Introduction {
-  hook?: string;
-  context?: string;
-  thesis?: string;
-  transition?: string;
-}
-
-interface Conclusion {
-  summary?: string;
-  call_to_action?: string;
-  closing_prayer_prompt?: string;
-  closing_verse?: string;
-}
-
+interface MainPoint { point: string; scripture?: string; explanation?: string; illustration?: string; application?: string; }
+interface Introduction { hook?: string; context?: string; thesis?: string; transition?: string; }
+interface Conclusion { summary?: string; call_to_action?: string; closing_prayer_prompt?: string; closing_verse?: string; }
 interface SermonArgs {
-  title: string;
-  passage: string;
-  passage_text?: string;
+  title: string; passage: string; passage_text?: string;
   type?: 'sermon' | 'bible_study' | 'devotional_talk' | 'youth_lesson';
-  duration_minutes?: number;
-  audience?: string;
-  introduction?: Introduction;
-  main_points?: MainPoint[];
-  conclusion?: Conclusion;
-  discussion_questions?: string[];
-  format?: 'markdown' | 'html';
+  duration_minutes?: number; audience?: string; introduction?: Introduction;
+  main_points?: MainPoint[]; conclusion?: Conclusion;
+  discussion_questions?: string[]; format?: 'markdown' | 'html';
 }
 
-// ============================================================================
-// TIME ALLOCATION
-// ============================================================================
+// -- Time Allocation --
 
 function computeTimeAllocation(
   duration: number,
@@ -142,9 +108,7 @@ const TYPE_LABELS: Record<string, string> = {
   youth_lesson: 'Youth Lesson',
 };
 
-// ============================================================================
-// MARKDOWN FORMATTER
-// ============================================================================
+// -- Markdown Formatter --
 
 function formatMarkdown(args: SermonArgs): string {
   const lines: string[] = [];
@@ -261,9 +225,7 @@ function formatMarkdown(args: SermonArgs): string {
   return lines.join('\n');
 }
 
-// ============================================================================
-// HTML FORMATTER
-// ============================================================================
+// -- HTML Formatter --
 
 function escapeHtml(str: string): string {
   return str
@@ -362,9 +324,7 @@ function formatHtml(args: SermonArgs): string {
   </div>`;
 }
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
+// -- Utilities --
 
 function toRoman(n: number): string {
   const map: [number, string][] = [
@@ -382,9 +342,7 @@ function toRoman(n: number): string {
   return result;
 }
 
-// ============================================================================
-// TOOL EXECUTOR
-// ============================================================================
+// -- Tool Executor --
 
 export async function executeSermon(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
   const { id, name, arguments: rawArgs } = toolCall;
@@ -420,9 +378,7 @@ export async function executeSermon(toolCall: UnifiedToolCall): Promise<UnifiedT
   };
 }
 
-// ============================================================================
-// AVAILABILITY CHECK
-// ============================================================================
+// -- Availability --
 
 export function isSermonAvailable(): boolean {
   return true; // Pure formatter — always available

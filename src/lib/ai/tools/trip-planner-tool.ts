@@ -1,15 +1,8 @@
 /**
- * TRIP PLANNER TOOL
- *
- * Travel itinerary builder with day-by-day schedule, packing lists,
- * budget breakdowns, and travel tips.
- * Opus generates the content, this tool structures the output.
- *
- * No external dependencies.
- *
- * Created: 2026-03-19
+ * TRIP PLANNER TOOL — Travel itinerary builder with day-by-day schedule,
+ * packing lists, budget breakdowns, and travel tips.
+ * No external dependencies. Created: 2026-03-19
  */
-
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================
@@ -44,15 +37,8 @@ interface BudgetBreakdown {
   total: string;
 }
 
-const PACKING_CATEGORIES: PackingCategory[] = [
-  'documents',
-  'clothing',
-  'toiletries',
-  'electronics',
-  'other',
-];
-
-const PACKING_CATEGORY_LABELS: Record<PackingCategory, string> = {
+const PACKING_CATEGORIES: PackingCategory[] = ['documents', 'clothing', 'toiletries', 'electronics', 'other'];
+const PACKING_LABELS: Record<PackingCategory, string> = {
   documents: 'Documents & Money',
   clothing: 'Clothing',
   toiletries: 'Toiletries',
@@ -64,15 +50,11 @@ const PACKING_CATEGORY_LABELS: Record<PackingCategory, string> = {
 // HELPERS
 // ============================================================================
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function esc(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function groupPackingByCategory(items: PackingItem[]): Map<PackingCategory, PackingItem[]> {
+function groupPacking(items: PackingItem[]): Map<PackingCategory, PackingItem[]> {
   const grouped = new Map<PackingCategory, PackingItem[]>();
   for (const item of items) {
     const cat = PACKING_CATEGORIES.includes(item.category) ? item.category : 'other';
@@ -80,18 +62,16 @@ function groupPackingByCategory(items: PackingItem[]): Map<PackingCategory, Pack
     list.push(item);
     grouped.set(cat, list);
   }
-  for (const [cat, list] of grouped) {
-    list.sort((a, b) => a.item.localeCompare(b.item));
-    grouped.set(cat, list);
-  }
+  for (const [, list] of grouped) list.sort((a, b) => a.item.localeCompare(b.item));
   return grouped;
 }
 
-function computeDuration(startDate: string, endDate: string): number {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const diffMs = end.getTime() - start.getTime();
-  return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+function duration(start: string, end: string): number {
+  return Math.max(1, Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000));
+}
+
+function cap(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // ============================================================================
@@ -99,215 +79,128 @@ function computeDuration(startDate: string, endDate: string): number {
 // ============================================================================
 
 function formatMarkdown(
-  destination: string,
-  startDate: string,
-  endDate: string,
-  travelers: number,
-  budgetLevel: string,
-  itinerary: ItineraryDay[],
-  packingList: PackingItem[],
-  budget: BudgetBreakdown | undefined,
-  travelTips: string[],
+  dest: string, start: string, end: string, travelers: number, level: string,
+  days: ItineraryDay[], packing: PackingItem[],
+  budget: BudgetBreakdown | undefined, tips: string[],
 ): string {
-  const lines: string[] = [];
-  const duration = computeDuration(startDate, endDate);
-
-  lines.push(`# Trip to ${destination}`);
-  lines.push('');
-  lines.push(`**Dates:** ${startDate} to ${endDate} (${duration} days)`);
-  lines.push(`**Travelers:** ${travelers}`);
-  lines.push(`**Budget Level:** ${budgetLevel.charAt(0).toUpperCase() + budgetLevel.slice(1)}`);
-  lines.push('');
-
-  // Itinerary
-  lines.push('## Itinerary');
-  lines.push('');
-  for (const day of itinerary) {
-    lines.push(`### Day ${day.day} — ${day.date}`);
-    lines.push('');
-    lines.push(`| Time | Activity |`);
-    lines.push(`|------|----------|`);
-    lines.push(`| Morning | ${day.morning} |`);
-    lines.push(`| Afternoon | ${day.afternoon} |`);
-    lines.push(`| Evening | ${day.evening} |`);
-    if (day.meals) {
-      lines.push(`| Meals | ${day.meals} |`);
-    }
-    lines.push('');
-    if (day.accommodation) {
-      lines.push(`**Accommodation:** ${day.accommodation}`);
-    }
-    if (day.estimated_cost) {
-      lines.push(`**Estimated Cost:** ${day.estimated_cost}`);
-    }
-    if (day.notes) {
-      lines.push(`> ${day.notes}`);
-    }
-    lines.push('');
+  const L: string[] = [];
+  const dur = duration(start, end);
+  L.push(`# Trip to ${dest}`, '', `**Dates:** ${start} to ${end} (${dur} days)`,
+    `**Travelers:** ${travelers}`, `**Budget Level:** ${cap(level)}`, '', '## Itinerary', '');
+  for (const d of days) {
+    L.push(`### Day ${d.day} — ${d.date}`, '',
+      '| Time | Activity |', '|------|----------|',
+      `| Morning | ${d.morning} |`, `| Afternoon | ${d.afternoon} |`, `| Evening | ${d.evening} |`);
+    if (d.meals) L.push(`| Meals | ${d.meals} |`);
+    L.push('');
+    if (d.accommodation) L.push(`**Accommodation:** ${d.accommodation}`);
+    if (d.estimated_cost) L.push(`**Estimated Cost:** ${d.estimated_cost}`);
+    if (d.notes) L.push(`> ${d.notes}`);
+    L.push('');
   }
-
-  // Budget breakdown
   if (budget) {
-    lines.push('## Budget Breakdown');
-    lines.push('');
-    lines.push('| Category | Amount |');
-    lines.push('|----------|--------|');
-    lines.push(`| Accommodation | ${budget.accommodation} |`);
-    lines.push(`| Food | ${budget.food} |`);
-    lines.push(`| Transportation | ${budget.transportation} |`);
-    lines.push(`| Activities | ${budget.activities} |`);
-    lines.push(`| Miscellaneous | ${budget.miscellaneous} |`);
-    lines.push(`| **Total** | **${budget.total}** |`);
-    lines.push('');
+    L.push('## Budget Breakdown', '', '| Category | Amount |', '|----------|--------|',
+      `| Accommodation | ${budget.accommodation} |`, `| Food | ${budget.food} |`,
+      `| Transportation | ${budget.transportation} |`, `| Activities | ${budget.activities} |`,
+      `| Miscellaneous | ${budget.miscellaneous} |`, `| **Total** | **${budget.total}** |`, '');
   }
-
-  // Packing list
-  if (packingList.length > 0) {
-    lines.push('## Packing List');
-    lines.push('');
-    const grouped = groupPackingByCategory(packingList);
+  if (packing.length > 0) {
+    L.push('## Packing List', '');
+    const grouped = groupPacking(packing);
     for (const cat of PACKING_CATEGORIES) {
       const items = grouped.get(cat);
-      if (!items || items.length === 0) continue;
-      lines.push(`### ${PACKING_CATEGORY_LABELS[cat]}`);
-      lines.push('');
-      for (const item of items) {
-        lines.push(`- [ ] ${item.item}`);
-      }
-      lines.push('');
+      if (!items?.length) continue;
+      L.push(`### ${PACKING_LABELS[cat]}`, '');
+      for (const item of items) L.push(`- [ ] ${item.item}`);
+      L.push('');
     }
   }
-
-  // Travel tips
-  if (travelTips.length > 0) {
-    lines.push('## Travel Tips');
-    lines.push('');
-    for (const tip of travelTips) {
-      lines.push(`- ${tip}`);
-    }
-    lines.push('');
+  if (tips.length > 0) {
+    L.push('## Travel Tips', '');
+    for (const tip of tips) L.push(`- ${tip}`);
+    L.push('');
   }
-
-  return lines.join('\n');
+  return L.join('\n');
 }
 
 // ============================================================================
 // HTML FORMATTER
 // ============================================================================
 
+const CSS = [
+  'body{font-family:system-ui,sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#1a1a1a}',
+  'h1{color:#1a4a7a;border-bottom:2px solid #1a4a7a;padding-bottom:8px}',
+  'h2{color:#2a5a8a;margin-top:28px}h3{color:#3a6a9a;margin-top:18px}',
+  '.meta{background:#e8f0fa;padding:12px 16px;border-radius:6px;margin-bottom:20px}',
+  '.meta span{margin-right:20px}',
+  '.day{border:1px solid #ddd;border-radius:8px;padding:16px;margin:12px 0;background:#fafcff}',
+  '.day h3{margin-top:0;color:#1a4a7a}',
+  'table{width:100%;border-collapse:collapse;margin:8px 0}',
+  'th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}',
+  'th{background:#1a4a7a;color:#fff}tr:nth-child(even){background:#f5f8fc}',
+  '.total{font-weight:700;background:#e8f0fa !important}',
+  '.det{font-size:.9em;color:#555;margin-top:6px}.note{font-style:italic;color:#666;margin-top:4px}',
+  '.cl{list-style:none;padding:0}.cl li{padding:4px 0;display:flex;align-items:center;gap:8px}',
+  '.cl input[type=checkbox]{width:18px;height:18px}',
+  '.tips{background:#f0f7e6;padding:12px 16px;border-radius:6px;border-left:4px solid #2d5016}',
+  '@media print{body{padding:0}.day{break-inside:avoid}}',
+].join('');
+
 function formatHtml(
-  destination: string,
-  startDate: string,
-  endDate: string,
-  travelers: number,
-  budgetLevel: string,
-  itinerary: ItineraryDay[],
-  packingList: PackingItem[],
-  budget: BudgetBreakdown | undefined,
-  travelTips: string[],
+  dest: string, start: string, end: string, travelers: number, level: string,
+  days: ItineraryDay[], packing: PackingItem[],
+  budget: BudgetBreakdown | undefined, tips: string[],
 ): string {
-  const p: string[] = [];
-  const duration = computeDuration(startDate, endDate);
-
-  p.push('<!DOCTYPE html>');
-  p.push('<html lang="en"><head><meta charset="UTF-8">');
-  p.push(`<title>Trip to ${escapeHtml(destination)}</title>`);
-  p.push('<style>');
-  p.push('body{font-family:system-ui,sans-serif;max-width:900px;margin:0 auto;padding:20px;color:#1a1a1a}');
-  p.push('h1{color:#1a4a7a;border-bottom:2px solid #1a4a7a;padding-bottom:8px}');
-  p.push('h2{color:#2a5a8a;margin-top:28px}');
-  p.push('h3{color:#3a6a9a;margin-top:18px}');
-  p.push('.meta{background:#e8f0fa;padding:12px 16px;border-radius:6px;margin-bottom:20px}');
-  p.push('.meta span{margin-right:20px}');
-  p.push('.day-card{border:1px solid #ddd;border-radius:8px;padding:16px;margin:12px 0;background:#fafcff}');
-  p.push('.day-card h3{margin-top:0;color:#1a4a7a}');
-  p.push('table{width:100%;border-collapse:collapse;margin:8px 0}');
-  p.push('th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}');
-  p.push('th{background:#1a4a7a;color:#fff}');
-  p.push('tr:nth-child(even){background:#f5f8fc}');
-  p.push('.budget-total{font-weight:700;background:#e8f0fa !important}');
-  p.push('.detail{font-size:0.9em;color:#555;margin-top:6px}');
-  p.push('.note{font-style:italic;color:#666;margin-top:4px}');
-  p.push('.checklist{list-style:none;padding:0}');
-  p.push('.checklist li{padding:4px 0;display:flex;align-items:center;gap:8px}');
-  p.push('.checklist input[type=checkbox]{width:18px;height:18px}');
-  p.push('.tips{background:#f0f7e6;padding:12px 16px;border-radius:6px;border-left:4px solid #2d5016}');
-  p.push('.tips ul{margin:8px 0;padding-left:20px}');
-  p.push('@media print{body{padding:0}.day-card{break-inside:avoid}}');
-  p.push('</style></head><body>');
-
-  p.push(`<h1>Trip to ${escapeHtml(destination)}</h1>`);
-  p.push('<div class="meta">');
-  p.push(`<span><strong>Dates:</strong> ${escapeHtml(startDate)} to ${escapeHtml(endDate)} (${duration} days)</span>`);
-  p.push(`<span><strong>Travelers:</strong> ${travelers}</span>`);
-  p.push(`<span><strong>Budget:</strong> ${escapeHtml(budgetLevel.charAt(0).toUpperCase() + budgetLevel.slice(1))}</span>`);
-  p.push('</div>');
-
-  // Itinerary
-  p.push('<h2>Itinerary</h2>');
-  for (const day of itinerary) {
-    p.push('<div class="day-card">');
-    p.push(`<h3>Day ${day.day} &mdash; ${escapeHtml(day.date)}</h3>`);
-    p.push('<table><thead><tr><th>Time</th><th>Activity</th></tr></thead><tbody>');
-    p.push(`<tr><td>Morning</td><td>${escapeHtml(day.morning)}</td></tr>`);
-    p.push(`<tr><td>Afternoon</td><td>${escapeHtml(day.afternoon)}</td></tr>`);
-    p.push(`<tr><td>Evening</td><td>${escapeHtml(day.evening)}</td></tr>`);
-    if (day.meals) {
-      p.push(`<tr><td>Meals</td><td>${escapeHtml(day.meals)}</td></tr>`);
-    }
-    p.push('</tbody></table>');
-    if (day.accommodation) {
-      p.push(`<div class="detail"><strong>Accommodation:</strong> ${escapeHtml(day.accommodation)}</div>`);
-    }
-    if (day.estimated_cost) {
-      p.push(`<div class="detail"><strong>Estimated Cost:</strong> ${escapeHtml(day.estimated_cost)}</div>`);
-    }
-    if (day.notes) {
-      p.push(`<div class="note">${escapeHtml(day.notes)}</div>`);
-    }
-    p.push('</div>');
+  const h: string[] = [];
+  const dur = duration(start, end);
+  h.push(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Trip to ${esc(dest)}</title>`);
+  h.push(`<style>${CSS}</style></head><body>`);
+  h.push(`<h1>Trip to ${esc(dest)}</h1>`);
+  h.push(`<div class="meta"><span><strong>Dates:</strong> ${esc(start)} to ${esc(end)} (${dur} days)</span>`);
+  h.push(`<span><strong>Travelers:</strong> ${travelers}</span>`);
+  h.push(`<span><strong>Budget:</strong> ${esc(cap(level))}</span></div>`);
+  h.push('<h2>Itinerary</h2>');
+  for (const d of days) {
+    h.push(`<div class="day"><h3>Day ${d.day} &mdash; ${esc(d.date)}</h3>`);
+    h.push('<table><thead><tr><th>Time</th><th>Activity</th></tr></thead><tbody>');
+    h.push(`<tr><td>Morning</td><td>${esc(d.morning)}</td></tr>`);
+    h.push(`<tr><td>Afternoon</td><td>${esc(d.afternoon)}</td></tr>`);
+    h.push(`<tr><td>Evening</td><td>${esc(d.evening)}</td></tr>`);
+    if (d.meals) h.push(`<tr><td>Meals</td><td>${esc(d.meals)}</td></tr>`);
+    h.push('</tbody></table>');
+    if (d.accommodation) h.push(`<div class="det"><strong>Accommodation:</strong> ${esc(d.accommodation)}</div>`);
+    if (d.estimated_cost) h.push(`<div class="det"><strong>Estimated Cost:</strong> ${esc(d.estimated_cost)}</div>`);
+    if (d.notes) h.push(`<div class="note">${esc(d.notes)}</div>`);
+    h.push('</div>');
   }
-
-  // Budget
   if (budget) {
-    p.push('<h2>Budget Breakdown</h2>');
-    p.push('<table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>');
-    p.push(`<tr><td>Accommodation</td><td>${escapeHtml(budget.accommodation)}</td></tr>`);
-    p.push(`<tr><td>Food</td><td>${escapeHtml(budget.food)}</td></tr>`);
-    p.push(`<tr><td>Transportation</td><td>${escapeHtml(budget.transportation)}</td></tr>`);
-    p.push(`<tr><td>Activities</td><td>${escapeHtml(budget.activities)}</td></tr>`);
-    p.push(`<tr><td>Miscellaneous</td><td>${escapeHtml(budget.miscellaneous)}</td></tr>`);
-    p.push(`<tr class="budget-total"><td><strong>Total</strong></td><td><strong>${escapeHtml(budget.total)}</strong></td></tr>`);
-    p.push('</tbody></table>');
+    h.push('<h2>Budget Breakdown</h2><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>');
+    h.push(`<tr><td>Accommodation</td><td>${esc(budget.accommodation)}</td></tr>`);
+    h.push(`<tr><td>Food</td><td>${esc(budget.food)}</td></tr>`);
+    h.push(`<tr><td>Transportation</td><td>${esc(budget.transportation)}</td></tr>`);
+    h.push(`<tr><td>Activities</td><td>${esc(budget.activities)}</td></tr>`);
+    h.push(`<tr><td>Miscellaneous</td><td>${esc(budget.miscellaneous)}</td></tr>`);
+    h.push(`<tr class="total"><td><strong>Total</strong></td><td><strong>${esc(budget.total)}</strong></td></tr>`);
+    h.push('</tbody></table>');
   }
-
-  // Packing list
-  if (packingList.length > 0) {
-    p.push('<h2>Packing List</h2>');
-    const grouped = groupPackingByCategory(packingList);
+  if (packing.length > 0) {
+    h.push('<h2>Packing List</h2>');
+    const grouped = groupPacking(packing);
     for (const cat of PACKING_CATEGORIES) {
       const items = grouped.get(cat);
-      if (!items || items.length === 0) continue;
-      p.push(`<h3>${PACKING_CATEGORY_LABELS[cat]}</h3>`);
-      p.push('<ul class="checklist">');
-      for (const item of items) {
-        p.push(`<li><input type="checkbox"><span>${escapeHtml(item.item)}</span></li>`);
-      }
-      p.push('</ul>');
+      if (!items?.length) continue;
+      h.push(`<h3>${PACKING_LABELS[cat]}</h3><ul class="cl">`);
+      for (const item of items) h.push(`<li><input type="checkbox"><span>${esc(item.item)}</span></li>`);
+      h.push('</ul>');
     }
   }
-
-  // Travel tips
-  if (travelTips.length > 0) {
-    p.push('<div class="tips"><h2 style="margin-top:0">Travel Tips</h2><ul>');
-    for (const tip of travelTips) {
-      p.push(`<li>${escapeHtml(tip)}</li>`);
-    }
-    p.push('</ul></div>');
+  if (tips.length > 0) {
+    h.push('<div class="tips"><h2 style="margin-top:0">Travel Tips</h2><ul>');
+    for (const tip of tips) h.push(`<li>${esc(tip)}</li>`);
+    h.push('</ul></div>');
   }
-
-  p.push('</body></html>');
-  return p.join('\n');
+  h.push('</body></html>');
+  return h.join('\n');
 }
 
 // ============================================================================
@@ -329,22 +222,10 @@ Returns a complete travel plan with daily schedule, packing checklist, budget su
   parameters: {
     type: 'object',
     properties: {
-      destination: {
-        type: 'string',
-        description: 'Trip destination',
-      },
-      start_date: {
-        type: 'string',
-        description: 'Trip start date (e.g., "2026-04-01")',
-      },
-      end_date: {
-        type: 'string',
-        description: 'Trip end date (e.g., "2026-04-07")',
-      },
-      travelers: {
-        type: 'number',
-        description: 'Number of travelers. Default: 1',
-      },
+      destination: { type: 'string', description: 'Trip destination' },
+      start_date: { type: 'string', description: 'Trip start date (e.g., "2026-04-01")' },
+      end_date: { type: 'string', description: 'Trip end date (e.g., "2026-04-07")' },
+      travelers: { type: 'number', description: 'Number of travelers. Default: 1' },
       budget_level: {
         type: 'string',
         enum: ['budget', 'moderate', 'luxury'],
@@ -385,10 +266,7 @@ Returns a complete travel plan with daily schedule, packing checklist, budget su
         },
         description: 'Categorized packing list',
       },
-      budget_breakdown: {
-        type: 'object',
-        description: 'Budget breakdown by category',
-      },
+      budget_breakdown: { type: 'object', description: 'Budget breakdown by category' },
       travel_tips: {
         type: 'array',
         items: { type: 'string' },
@@ -409,7 +287,6 @@ Returns a complete travel plan with daily schedule, packing checklist, budget su
 // ============================================================================
 
 export function isTripPlannerAvailable(): boolean {
-  // Pure formatting — always available
   return true;
 }
 
@@ -431,43 +308,22 @@ export async function executeTripPlanner(toolCall: UnifiedToolCall): Promise<Uni
     format?: 'markdown' | 'html';
   };
 
-  // Validate required parameters
-  if (!args.destination || !args.destination.trim()) {
-    return {
-      toolCallId: toolCall.id,
-      content: 'Error: destination parameter is required',
-      isError: true,
-    };
+  if (!args.destination?.trim()) {
+    return { toolCallId: toolCall.id, content: 'Error: destination parameter is required', isError: true };
   }
-
   if (!args.start_date) {
-    return {
-      toolCallId: toolCall.id,
-      content: 'Error: start_date parameter is required',
-      isError: true,
-    };
+    return { toolCallId: toolCall.id, content: 'Error: start_date parameter is required', isError: true };
   }
-
   if (!args.end_date) {
-    return {
-      toolCallId: toolCall.id,
-      content: 'Error: end_date parameter is required',
-      isError: true,
-    };
+    return { toolCallId: toolCall.id, content: 'Error: end_date parameter is required', isError: true };
   }
-
   if (!Array.isArray(args.itinerary) || args.itinerary.length === 0) {
-    return {
-      toolCallId: toolCall.id,
-      content: 'Error: itinerary array is required and must not be empty',
-      isError: true,
-    };
+    return { toolCallId: toolCall.id, content: 'Error: itinerary array is required and must not be empty', isError: true };
   }
 
-  // Validate each itinerary day
   for (let i = 0; i < args.itinerary.length; i++) {
-    const day = args.itinerary[i];
-    if (typeof day.day !== 'number' || !day.date || !day.morning || !day.afternoon || !day.evening) {
+    const d = args.itinerary[i];
+    if (typeof d.day !== 'number' || !d.date || !d.morning || !d.afternoon || !d.evening) {
       return {
         toolCallId: toolCall.id,
         content: `Error: itinerary entry at index ${i} is missing required fields (day, date, morning, afternoon, evening)`,
@@ -476,7 +332,6 @@ export async function executeTripPlanner(toolCall: UnifiedToolCall): Promise<Uni
     }
   }
 
-  // Validate packing list items if provided
   if (args.packing_list) {
     for (let i = 0; i < args.packing_list.length; i++) {
       const item = args.packing_list[i];
@@ -490,7 +345,6 @@ export async function executeTripPlanner(toolCall: UnifiedToolCall): Promise<Uni
     }
   }
 
-  // Validate budget breakdown if provided
   if (args.budget_breakdown) {
     const b = args.budget_breakdown;
     if (!b.accommodation || !b.food || !b.transportation || !b.activities || !b.miscellaneous || !b.total) {
@@ -502,56 +356,35 @@ export async function executeTripPlanner(toolCall: UnifiedToolCall): Promise<Uni
     }
   }
 
-  const format = args.format ?? 'markdown';
+  const fmt = args.format ?? 'markdown';
   const travelers = args.travelers ?? 1;
-  const budgetLevel = args.budget_level ?? 'moderate';
-  const packingList = args.packing_list ?? [];
-  const travelTips = args.travel_tips ?? [];
-  const duration = computeDuration(args.start_date, args.end_date);
+  const level = args.budget_level ?? 'moderate';
+  const packing = args.packing_list ?? [];
+  const tips = args.travel_tips ?? [];
+  const dur = duration(args.start_date, args.end_date);
 
   try {
-    const formatted =
-      format === 'html'
-        ? formatHtml(
-            args.destination,
-            args.start_date,
-            args.end_date,
-            travelers,
-            budgetLevel,
-            args.itinerary,
-            packingList,
-            args.budget_breakdown,
-            travelTips,
-          )
-        : formatMarkdown(
-            args.destination,
-            args.start_date,
-            args.end_date,
-            travelers,
-            budgetLevel,
-            args.itinerary,
-            packingList,
-            args.budget_breakdown,
-            travelTips,
-          );
+    const formatted = fmt === 'html'
+      ? formatHtml(args.destination, args.start_date, args.end_date, travelers, level, args.itinerary, packing, args.budget_breakdown, tips)
+      : formatMarkdown(args.destination, args.start_date, args.end_date, travelers, level, args.itinerary, packing, args.budget_breakdown, tips);
 
     return {
       toolCallId: toolCall.id,
       content: JSON.stringify({
         success: true,
-        message: `Trip plan created: ${args.destination} (${duration} days)`,
-        format,
+        message: `Trip plan created: ${args.destination} (${dur} days)`,
+        format: fmt,
         formatted_output: formatted,
         summary: {
           destination: args.destination,
           start_date: args.start_date,
           end_date: args.end_date,
-          duration_days: duration,
+          duration_days: dur,
           travelers,
-          budget_level: budgetLevel,
+          budget_level: level,
           itinerary_days: args.itinerary.length,
-          packing_items: packingList.length,
-          travel_tips_count: travelTips.length,
+          packing_items: packing.length,
+          travel_tips_count: tips.length,
           has_budget: !!args.budget_breakdown,
         },
       }),
