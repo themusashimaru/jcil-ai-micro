@@ -220,18 +220,23 @@ export interface UnifiedMessage {
 /**
  * JSON Schema for tool parameters
  */
+/**
+ * Property definition for tool parameters.
+ * Supports nested objects and arrays via recursive structure.
+ */
+export interface ToolPropertySchema {
+  type: string;
+  description?: string;
+  enum?: string[];
+  items?: ToolPropertySchema;
+  properties?: Record<string, ToolPropertySchema>;
+  required?: string[];
+  default?: unknown;
+}
+
 export interface ToolParameterSchema {
   type: 'object';
-  properties: Record<
-    string,
-    {
-      type: string;
-      description?: string;
-      enum?: string[];
-      items?: { type: string };
-      default?: unknown;
-    }
-  >;
+  properties: Record<string, ToolPropertySchema>;
   required?: string[];
 }
 
