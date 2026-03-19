@@ -626,6 +626,53 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'create_sop', file: 'sop-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Standard operating procedure document generator', dependencies: [] },
 
   // =========================================================================
+  // BUSINESS & STRATEGY — Executive and management tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_swot_analysis', file: 'swot-analysis-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'SWOT analysis with strategic recommendations and action plans', dependencies: [] },
+  { name: 'create_business_canvas', file: 'business-canvas-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Business Model Canvas with all 9 building blocks', dependencies: [] },
+  { name: 'create_okr_plan', file: 'okr-planner-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'OKR plans with objectives, key results, and progress tracking', dependencies: [] },
+  { name: 'create_meeting_minutes', file: 'meeting-minutes-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Structured meeting minutes with agenda, decisions, and action items', dependencies: [] },
+
+  // =========================================================================
+  // EDUCATION — Teaching and assessment tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_lesson_plan', file: 'lesson-plan-tool.ts', status: 'active', category: 'document', tier: 'extended', description: "Bloom's taxonomy-aligned lesson plans with activities and assessments", dependencies: [] },
+  { name: 'create_rubric', file: 'rubric-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Scoring rubrics with criteria, performance levels, and grade scales', dependencies: [] },
+  { name: 'create_quiz', file: 'quiz-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Quizzes with multiple choice, short answer, true/false, and essay questions', dependencies: [] },
+
+  // =========================================================================
+  // LEGAL & COMPLIANCE — Contract and policy tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_contract', file: 'contract-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Contracts and NDAs with customizable clauses and signature blocks', dependencies: [] },
+  { name: 'create_policy_document', file: 'policy-document-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Company policy documents (AUP, privacy, code of conduct) with sections', dependencies: [] },
+
+  // =========================================================================
+  // HR & MANAGEMENT — People management tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_performance_review', file: 'performance-review-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Employee performance reviews with competency ratings and goals', dependencies: [] },
+
+  // =========================================================================
+  // MARKETING & COMMUNICATIONS — PR and content tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_press_release', file: 'press-release-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'AP-style press releases with datelines, quotes, and media contacts', dependencies: [] },
+  { name: 'create_case_study', file: 'case-study-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Customer success case studies with metrics and testimonials', dependencies: [] },
+
+  // =========================================================================
+  // NONPROFIT & GRANTS — Fundraising tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_grant_proposal', file: 'grant-proposal-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Grant proposals with executive summary, budget, and timeline', dependencies: [] },
+
+  // =========================================================================
+  // REAL ESTATE — Property tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_property_listing', file: 'property-listing-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'MLS-quality property listings with features, schools, and agent contact', dependencies: [] },
+
+  // =========================================================================
+  // HEALTHCARE — Clinical tools (added 2026-03-19)
+  // =========================================================================
+  { name: 'create_care_plan', file: 'care-plan-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Patient care plans with goals, interventions, and medications', dependencies: [] },
+
+  // =========================================================================
   // SCRIPTURE & MINISTRY — Christian mission tools (added 2026-03-19)
   // =========================================================================
   { name: 'scripture_reference', file: 'scripture-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Bible cross-reference study sheets with word studies', dependencies: [] },

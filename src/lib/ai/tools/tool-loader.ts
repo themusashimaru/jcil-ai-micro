@@ -164,6 +164,37 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   content_calendar: () => import('./content-calendar-tool'),
   create_sop: () => import('./sop-tool'),
 
+  // Business & strategy tools
+  create_swot_analysis: () => import('./swot-analysis-tool'),
+  create_business_canvas: () => import('./business-canvas-tool'),
+  create_okr_plan: () => import('./okr-planner-tool'),
+  create_meeting_minutes: () => import('./meeting-minutes-tool'),
+
+  // Education tools
+  create_lesson_plan: () => import('./lesson-plan-tool'),
+  create_rubric: () => import('./rubric-tool'),
+  create_quiz: () => import('./quiz-tool'),
+
+  // Legal & compliance tools
+  create_contract: () => import('./contract-tool'),
+  create_policy_document: () => import('./policy-document-tool'),
+
+  // HR & management tools
+  create_performance_review: () => import('./performance-review-tool'),
+
+  // Marketing & communications tools
+  create_press_release: () => import('./press-release-tool'),
+  create_case_study: () => import('./case-study-tool'),
+
+  // Nonprofit & grants tools
+  create_grant_proposal: () => import('./grant-proposal-tool'),
+
+  // Real estate tools
+  create_property_listing: () => import('./property-listing-tool'),
+
+  // Healthcare tools
+  create_care_plan: () => import('./care-plan-tool'),
+
   // Scripture & ministry tools
   scripture_reference: () => import('./scripture-tool'),
   sermon_outline: () => import('./sermon-tool'),
@@ -557,6 +588,37 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   plan_event: { importPath: './event-planner-tool', toolExport: 'eventPlannerTool', executorExport: 'executeEventPlanner', availabilityExport: 'isEventPlannerAvailable' },
   content_calendar: { importPath: './content-calendar-tool', toolExport: 'contentCalendarTool', executorExport: 'executeContentCalendar', availabilityExport: 'isContentCalendarAvailable' },
   create_sop: { importPath: './sop-tool', toolExport: 'sopTool', executorExport: 'executeSop', availabilityExport: 'isSopAvailable' },
+
+  // Business & strategy tools
+  create_swot_analysis: { importPath: './swot-analysis-tool', toolExport: 'swotAnalysisTool', executorExport: 'executeSwotAnalysis', availabilityExport: 'isSwotAnalysisAvailable' },
+  create_business_canvas: { importPath: './business-canvas-tool', toolExport: 'businessCanvasTool', executorExport: 'executeBusinessCanvas', availabilityExport: 'isBusinessCanvasAvailable' },
+  create_okr_plan: { importPath: './okr-planner-tool', toolExport: 'okrPlannerTool', executorExport: 'executeOkrPlanner', availabilityExport: 'isOkrPlannerAvailable' },
+  create_meeting_minutes: { importPath: './meeting-minutes-tool', toolExport: 'meetingMinutesTool', executorExport: 'executeMeetingMinutes', availabilityExport: 'isMeetingMinutesAvailable' },
+
+  // Education tools
+  create_lesson_plan: { importPath: './lesson-plan-tool', toolExport: 'lessonPlanTool', executorExport: 'executeLessonPlan', availabilityExport: 'isLessonPlanAvailable' },
+  create_rubric: { importPath: './rubric-tool', toolExport: 'rubricTool', executorExport: 'executeRubric', availabilityExport: 'isRubricAvailable' },
+  create_quiz: { importPath: './quiz-tool', toolExport: 'quizTool', executorExport: 'executeQuiz', availabilityExport: 'isQuizAvailable' },
+
+  // Legal & compliance tools
+  create_contract: { importPath: './contract-tool', toolExport: 'contractTool', executorExport: 'executeContract', availabilityExport: 'isContractAvailable' },
+  create_policy_document: { importPath: './policy-document-tool', toolExport: 'policyDocumentTool', executorExport: 'executePolicyDocument', availabilityExport: 'isPolicyDocumentAvailable' },
+
+  // HR & management tools
+  create_performance_review: { importPath: './performance-review-tool', toolExport: 'performanceReviewTool', executorExport: 'executePerformanceReview', availabilityExport: 'isPerformanceReviewAvailable' },
+
+  // Marketing & communications tools
+  create_press_release: { importPath: './press-release-tool', toolExport: 'pressReleaseTool', executorExport: 'executePressRelease', availabilityExport: 'isPressReleaseAvailable' },
+  create_case_study: { importPath: './case-study-tool', toolExport: 'caseStudyTool', executorExport: 'executeCaseStudy', availabilityExport: 'isCaseStudyAvailable' },
+
+  // Nonprofit & grants tools
+  create_grant_proposal: { importPath: './grant-proposal-tool', toolExport: 'grantProposalTool', executorExport: 'executeGrantProposal', availabilityExport: 'isGrantProposalAvailable' },
+
+  // Real estate tools
+  create_property_listing: { importPath: './property-listing-tool', toolExport: 'propertyListingTool', executorExport: 'executePropertyListing', availabilityExport: 'isPropertyListingAvailable' },
+
+  // Healthcare tools
+  create_care_plan: { importPath: './care-plan-tool', toolExport: 'carePlanTool', executorExport: 'executeCarePlan', availabilityExport: 'isCarePlanAvailable' },
 
   // Scripture & ministry tools
   scripture_reference: { importPath: './scripture-tool', toolExport: 'scriptureTool', executorExport: 'executeScripture', availabilityExport: 'isScriptureAvailable' },
