@@ -50,6 +50,7 @@ import { getMemoryContext, processConversationForMemory } from '@/lib/memory';
 import { getLearningContext, observeAndLearn } from '@/lib/learning';
 import { searchUserDocuments } from '@/lib/documents/userSearch';
 import { executeChatTool } from '@/lib/ai/tools';
+import { setSpawnContext, clearSpawnContext } from '@/lib/ai/tools/spawn-agent-tool';
 import { loadAllTools } from '@/app/api/chat/chat-tools';
 import { executeComposioTool, isComposioTool } from '@/lib/composio';
 import { trackTokenUsage } from '@/lib/usage/track';
@@ -1335,6 +1336,14 @@ async function handleClaudeProvider(
         let cacheReadTokens = 0;
         let cacheWriteTokens = 0;
 
+        // Set spawn context so spawn_agents tool can create sub-agents
+        setSpawnContext({
+          userId: user.id,
+          conversationId: sessionId,
+          apiKey: claudeByokConfig?.apiKey,
+          model: effectiveModel,
+        });
+
         // Tool execution loop
         const currentMessages = [...messages];
         let currentResponse = response;
@@ -1470,62 +1479,64 @@ async function handleClaudeProvider(
             }
             currentMessages.push({ role: 'assistant', content: assistantContent });
 
+            // Execute all pending tools in parallel
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const toolResults: any[] = [];
-            for (const tc of pendingToolCalls) {
-              try {
-                let resultContent: string;
-                let resultIsError = false;
+            const toolResults: any[] = await Promise.all(
+              pendingToolCalls.map(async (tc) => {
+                try {
+                  let resultContent: string;
+                  let resultIsError = false;
 
-                if (isComposioTool(tc.name)) {
-                  log.info('Executing Composio tool', { tool: tc.name });
-                  const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
-                  resultContent =
-                    typeof composioResult === 'string'
-                      ? composioResult
-                      : JSON.stringify(composioResult);
-                } else {
-                  let toolArgs = tc.input;
-                  if (tc.name === 'github' && userGitHubToken) {
-                    const parsedArgs =
-                      typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
-                    parsedArgs._githubToken = userGitHubToken;
-                    toolArgs = parsedArgs;
+                  if (isComposioTool(tc.name)) {
+                    log.info('Executing Composio tool', { tool: tc.name });
+                    const composioResult = await executeComposioTool(user.id, tc.name, tc.input);
+                    resultContent =
+                      typeof composioResult === 'string'
+                        ? composioResult
+                        : JSON.stringify(composioResult);
+                  } else {
+                    let toolArgs = tc.input;
+                    if (tc.name === 'github' && userGitHubToken) {
+                      const parsedArgs =
+                        typeof toolArgs === 'string' ? JSON.parse(toolArgs) : { ...toolArgs };
+                      parsedArgs._githubToken = userGitHubToken;
+                      toolArgs = parsedArgs;
+                    }
+                    const toolCall: UnifiedToolCall = {
+                      id: tc.id,
+                      name: tc.name,
+                      arguments: toolArgs,
+                    };
+                    const result = await executeChatTool(toolCall);
+                    resultContent =
+                      typeof result.content === 'string'
+                        ? result.content
+                        : JSON.stringify(result.content);
+                    resultIsError = result.isError || false;
                   }
-                  const toolCall: UnifiedToolCall = {
-                    id: tc.id,
-                    name: tc.name,
-                    arguments: toolArgs,
-                  };
-                  const result = await executeChatTool(toolCall);
-                  resultContent =
-                    typeof result.content === 'string'
-                      ? result.content
-                      : JSON.stringify(result.content);
-                  resultIsError = result.isError || false;
-                }
 
-                toolResults.push({
-                  type: 'tool_result',
-                  tool_use_id: tc.id,
-                  content: resultContent,
-                  is_error: resultIsError,
-                });
-                controller.enqueue(
-                  encoder.encode(
-                    `\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`
-                  )
-                );
-              } catch (toolErr) {
-                log.error('Tool execution error', { tool: tc.name, error: toolErr });
-                toolResults.push({
-                  type: 'tool_result',
-                  tool_use_id: tc.id,
-                  content: `Error: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}`,
-                  is_error: true,
-                });
-              }
-            }
+                  controller.enqueue(
+                    encoder.encode(
+                      `\n<!--TOOL_RESULT:${tc.name}:${resultIsError ? 'error' : 'ok'}-->`
+                    )
+                  );
+                  return {
+                    type: 'tool_result',
+                    tool_use_id: tc.id,
+                    content: resultContent,
+                    is_error: resultIsError,
+                  };
+                } catch (toolErr) {
+                  log.error('Tool execution error', { tool: tc.name, error: toolErr });
+                  return {
+                    type: 'tool_result',
+                    tool_use_id: tc.id,
+                    content: `Error: ${toolErr instanceof Error ? toolErr.message : 'Unknown error'}`,
+                    is_error: true,
+                  };
+                }
+              })
+            );
             currentMessages.push({ role: 'user', content: toolResults });
 
             fullContent = '';
@@ -1622,6 +1633,7 @@ async function handleClaudeProvider(
         controller.enqueue(encoder.encode(userMessage));
         controller.close();
       } finally {
+        clearSpawnContext();
         keepalive.stop();
       }
     },

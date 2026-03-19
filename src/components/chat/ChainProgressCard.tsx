@@ -55,6 +55,7 @@ const TOOL_DISPLAY: Record<string, { label: string }> = {
   composio_GOOGLECALENDAR_LIST_EVENTS: { label: 'Listing events' },
   composio_SLACK_SEND_MESSAGE: { label: 'Sending to Slack' },
   composio_GITHUB_CREATE_AN_ISSUE: { label: 'Creating issue' },
+  spawn_agents: { label: 'Delegating to sub-agents' },
 };
 
 function getToolDisplay(toolName: string): { label: string } {

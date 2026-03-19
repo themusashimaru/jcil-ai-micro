@@ -169,6 +169,15 @@ export {
   isScheduleTaskAvailable,
 } from './schedule-task-tool';
 
+// Spawn Agent (parallel sub-agent orchestration)
+export {
+  spawnAgentTool,
+  executeSpawnAgent,
+  isSpawnAgentAvailable,
+  setSpawnContext,
+  clearSpawnContext,
+} from './spawn-agent-tool';
+
 // Media Processing (FFmpeg.js)
 export { mediaTool, executeMedia, isMediaAvailable } from './media-tool';
 
@@ -390,6 +399,10 @@ async function initializeTools() {
   const { scheduleTaskTool, executeScheduleTask, isScheduleTaskAvailable } =
     await import('./schedule-task-tool');
 
+  // Spawn Agent (parallel sub-agent orchestration)
+  const { spawnAgentTool, executeSpawnAgent, isSpawnAgentAvailable } =
+    await import('./spawn-agent-tool');
+
   // Register all tools
   CHAT_TOOLS.push(
     // Core API tools
@@ -549,6 +562,13 @@ async function initializeTools() {
       tool: scheduleTaskTool,
       executor: executeScheduleTask,
       checkAvailability: isScheduleTaskAvailable,
+    },
+
+    // Spawn agent (parallel sub-agent orchestration)
+    {
+      tool: spawnAgentTool,
+      executor: executeSpawnAgent,
+      checkAvailability: isSpawnAgentAvailable,
     }
   );
 

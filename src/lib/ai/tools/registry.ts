@@ -686,6 +686,11 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { name: 'daily_devotional', file: 'devotional-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Daily devotional readings with scripture and application', dependencies: [] },
   { name: 'small_group_guide', file: 'small-group-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Small group Bible study discussion guides (OIA method)', dependencies: [] },
   { name: 'create_church_budget', file: 'church-budget-tool.ts', status: 'active', category: 'document', tier: 'extended', description: 'Church budget reports with income, expenses, missions giving, and building fund', dependencies: [] },
+
+  // =========================================================================
+  // ORCHESTRATION — Agent spawning and parallel execution
+  // =========================================================================
+  { name: 'spawn_agents', file: 'spawn-agent-tool.ts', status: 'active', category: 'core', tier: 'core', description: 'Spawn parallel sub-agents for concurrent task execution', dependencies: ['@anthropic-ai/sdk'] },
 ];
 
 // =========================================================================

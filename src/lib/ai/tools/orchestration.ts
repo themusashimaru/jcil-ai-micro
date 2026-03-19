@@ -191,6 +191,7 @@ const TOOL_DISPLAY_LABELS: Record<string, string> = {
   composio_SLACK_SEND_MESSAGE: 'Sending to Slack',
   composio_GITHUB_CREATE_AN_ISSUE: 'Creating GitHub issue',
   composio_GOOGLEDRIVE_UPLOAD_FILE: 'Uploading to Drive',
+  spawn_agents: 'Delegating to sub-agents',
 };
 
 /**
@@ -1145,6 +1146,27 @@ When a user asks to schedule an action for a specific time, show a scheduled-act
 \`\`\`
 Wait for user confirmation before scheduling.
 </tool_orchestration>`);
+
+  sections.push(`<agent_orchestration>
+You have the ability to spawn parallel sub-agents via the spawn_agents tool. Each sub-agent is a full Opus instance with access to all tools.
+
+When to use spawn_agents:
+- Multiple independent research tasks (e.g., "compare X, Y, and Z" — spawn 3 agents)
+- Complex requests with separable sub-tasks (research + document creation)
+- Gathering information from multiple sources simultaneously
+- Any time parallel execution saves meaningful time over sequential
+
+When NOT to use spawn_agents:
+- Simple sequential tool chains (just call tools directly)
+- Tasks with strong dependencies between steps (results from step 1 feed step 2)
+- Single, focused requests that don't benefit from parallelism
+
+You have full autonomy to decide when parallelism helps. Trust your judgment. Each sub-agent costs tokens, so use it when the value is clear. Max 5 concurrent agents.
+
+Sub-agents can use ANY tool (web_search, run_code, create_chart, create_document, etc.) and chain tools within their own execution. They cannot spawn further sub-agents (no recursion).
+
+Give each agent a clear, specific task with all context it needs — sub-agents have no conversation history.
+</agent_orchestration>`);
 
   // Add artifact context if there are any from the current session
   if (artifactStore?.hasArtifacts()) {
