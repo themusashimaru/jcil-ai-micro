@@ -88,6 +88,22 @@ const ESSENTIAL_ACTIONS: TwitterAction[] = [
     priority: 1,
   },
 
+  // Media - Core
+  {
+    name: 'TWITTER_UPLOAD_MEDIA',
+    label: 'Upload Media',
+    category: 'tweets',
+    priority: 1,
+    writeOperation: true,
+  },
+  {
+    name: 'TWITTER_UPLOAD_LARGE_MEDIA',
+    label: 'Upload Large Media',
+    category: 'tweets',
+    priority: 1,
+    writeOperation: true,
+  },
+
   // Search - Core
   {
     name: 'TWITTER_RECENT_SEARCH',
@@ -164,6 +180,29 @@ const IMPORTANT_ACTIONS: TwitterAction[] = [
     label: 'Full Archive Counts',
     category: 'search',
     priority: 2,
+  },
+
+  // Media - Chunked Upload
+  {
+    name: 'TWITTER_INITIALIZE_MEDIA_UPLOAD',
+    label: 'Init Media Upload',
+    category: 'tweets',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'TWITTER_APPEND_MEDIA_UPLOAD',
+    label: 'Append Media Chunk',
+    category: 'tweets',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'TWITTER_FINALIZE_MEDIA_UPLOAD',
+    label: 'Finalize Media Upload',
+    category: 'tweets',
+    priority: 2,
+    writeOperation: true,
   },
 
   // Lists - Core
@@ -608,6 +647,11 @@ You have **full Twitter/X access** through the user's connected account. Use the
 - Bookmark and unbookmark tweets
 - Like and unlike posts
 - Hide replies on your tweets
+
+### Media Upload
+- Upload images (JPEG, PNG, GIF, WEBP) and videos (MP4) to attach to tweets
+- Large file upload support for videos (chunked upload)
+- Check media upload processing status
 
 ### Search & Discover
 - Search recent tweets with powerful query syntax (from:, to:, has:media, is:retweet, lang:, etc.)

@@ -74,6 +74,8 @@ import { getEvernoteActionNamesByPriority } from './evernote-toolkit';
 import { getWebflowActionNamesByPriority } from './webflow-toolkit';
 import { getPagerDutyActionNamesByPriority } from './pagerduty-toolkit';
 import { getLoomActionNamesByPriority } from './loom-toolkit';
+import { getTikTokActionNamesByPriority } from './tiktok-toolkit';
+import { getFacebookActionNamesByPriority } from './facebook-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -209,6 +211,29 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
     popular: true,
     featuredActions: getYouTubeActionNamesByPriority(2),
     toolLimit: 24,
+  },
+  {
+    id: 'TIKTOK',
+    displayName: 'TikTok',
+    description: 'TikTok integration: upload videos, post photos, publish content, analytics',
+    icon: '🎵',
+    category: 'social' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getTikTokActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+  {
+    id: 'FACEBOOK',
+    displayName: 'Facebook',
+    description:
+      'Facebook Pages integration: posts with photos/videos, albums, comments, events, insights',
+    icon: '📘',
+    category: 'social' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getFacebookActionNamesByPriority(2),
+    toolLimit: 20,
   },
 
   // Development - Core
@@ -453,6 +478,27 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     popular: true,
     featuredActions: getYouTubeActionNamesByPriority(2),
     toolLimit: 24,
+  },
+  {
+    id: 'TIKTOK',
+    displayName: 'TikTok',
+    description: 'TikTok integration: upload videos, post photos, publish content, analytics',
+    icon: '🎵',
+    category: 'social',
+    authType: 'oauth2',
+    featuredActions: getTikTokActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+  {
+    id: 'FACEBOOK',
+    displayName: 'Facebook',
+    description:
+      'Facebook Pages integration: posts with photos/videos, albums, comments, events, insights',
+    icon: '📘',
+    category: 'social',
+    authType: 'oauth2',
+    featuredActions: getFacebookActionNamesByPriority(2),
+    toolLimit: 20,
   },
   {
     id: 'REDDIT',
@@ -1083,9 +1129,10 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     featuredActions: getLoomActionNamesByPriority(2),
     toolLimit: 15,
   },
-].filter((toolkit, index, self) =>
-  // Deduplicate by ID — keep first occurrence only
-  self.findIndex((t) => t.id === toolkit.id) === index
+].filter(
+  (toolkit, index, self) =>
+    // Deduplicate by ID — keep first occurrence only
+    self.findIndex((t) => t.id === toolkit.id) === index
 ) as ToolkitConfig[];
 
 // ============================================================================

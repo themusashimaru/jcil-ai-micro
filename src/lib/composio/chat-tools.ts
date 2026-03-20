@@ -112,6 +112,18 @@ import {
   getYouTubeCapabilitySummary,
 } from './youtube-toolkit';
 import {
+  sortByTikTokPriority,
+  getTikTokSystemPrompt,
+  logTikTokToolkitStats,
+  getTikTokCapabilitySummary,
+} from './tiktok-toolkit';
+import {
+  sortByFacebookPriority,
+  getFacebookSystemPrompt,
+  logFacebookToolkitStats,
+  getFacebookCapabilitySummary,
+} from './facebook-toolkit';
+import {
   sortByVercelPriority,
   getVercelSystemPrompt,
   logVercelToolkitStats,
@@ -624,6 +636,28 @@ const TOOLKIT_REGISTRY: ToolkitIntegration[] = [
     systemPromptFn: getYouTubeSystemPrompt,
     logStatsFn: logYouTubeToolkitStats,
     capabilitySummaryFn: getYouTubeCapabilitySummary,
+  },
+  {
+    id: 'TIKTOK',
+    displayName: 'TikTok',
+    prefix: 'composio_TIKTOK_',
+    cap: 500,
+    appMatchers: ['tiktok'],
+    sortFn: sortByTikTokPriority,
+    systemPromptFn: getTikTokSystemPrompt,
+    logStatsFn: logTikTokToolkitStats,
+    capabilitySummaryFn: getTikTokCapabilitySummary,
+  },
+  {
+    id: 'FACEBOOK',
+    displayName: 'Facebook',
+    prefix: 'composio_FACEBOOK_',
+    cap: 500,
+    appMatchers: ['facebook', 'facebookpages'],
+    sortFn: sortByFacebookPriority,
+    systemPromptFn: getFacebookSystemPrompt,
+    logStatsFn: logFacebookToolkitStats,
+    capabilitySummaryFn: getFacebookCapabilitySummary,
   },
   {
     id: 'VERCEL',
