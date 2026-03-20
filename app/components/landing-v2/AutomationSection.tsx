@@ -1,15 +1,17 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { cn } from './utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { SiGmail, SiStripe, SiSlack, SiGooglecalendar } from 'react-icons/si';
+import { TbWorldSearch } from 'react-icons/tb';
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface TimelineEvent {
   time: string;
-  icon: string;
+  icon: ReactNode;
   platform: string;
   action: string;
   detail: string;
@@ -18,7 +20,7 @@ interface TimelineEvent {
 const timeline: TimelineEvent[] = [
   {
     time: '7:00 AM',
-    icon: '\u2709\uFE0F',
+    icon: <SiGmail />,
     platform: 'Gmail + Calendar',
     action: 'Morning Briefing',
     detail:
@@ -26,7 +28,7 @@ const timeline: TimelineEvent[] = [
   },
   {
     time: '9:00 AM',
-    icon: '\u{1F4CA}',
+    icon: <SiStripe />,
     platform: 'Stripe + Gmail',
     action: 'Daily Revenue Report',
     detail:
@@ -34,7 +36,7 @@ const timeline: TimelineEvent[] = [
   },
   {
     time: '12:00 PM',
-    icon: '\u{1F4DD}',
+    icon: <SiGooglecalendar />,
     platform: 'JCIL AI + Gmail',
     action: 'Blog Post Draft',
     detail:
@@ -42,7 +44,7 @@ const timeline: TimelineEvent[] = [
   },
   {
     time: '3:00 PM',
-    icon: '\u{1F4AC}',
+    icon: <SiSlack />,
     platform: 'Slack + GitHub',
     action: 'Team Progress Update',
     detail:
@@ -50,7 +52,7 @@ const timeline: TimelineEvent[] = [
   },
   {
     time: 'Friday',
-    icon: '\u{1F4C8}',
+    icon: <TbWorldSearch />,
     platform: 'Research + Gmail',
     action: 'Weekly Stock Research',
     detail:
@@ -218,7 +220,7 @@ export function AutomationSection() {
                       <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                         {event.time}
                       </span>
-                      <span className="text-sm">{event.icon}</span>
+                      <span className="text-sm text-accent/70">{event.icon}</span>
                       <span
                         className={cn(
                           'font-mono text-[10px] uppercase tracking-widest transition-colors duration-300',

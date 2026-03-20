@@ -7,14 +7,12 @@
  * context-aware tool loading for both Chat and Code Lab.
  *
  * Categories:
- * - Leads (create, list, get, update, convert, delete)
- * - Contacts (create, list, get, update, delete)
- * - Accounts (create, list, get, update, delete)
- * - Opportunities (create, list, get, update, delete)
- * - Cases (create, list, get, update, close, delete)
- * - Tasks (create, list, update, complete, delete)
- * - Reports (list, run)
- * - Records (search, create, get, update, delete, SOQL, describe, batch)
+ * - Leads (create, update, convert, qualify, assign, search)
+ * - Opportunities (create, update, stage management, pipeline, history)
+ * - Accounts (create, update, search, manage business accounts)
+ * - Contacts (create, update, search, manage contact records)
+ * - Cases (create, update, close, escalate, manage support cases)
+ * - Reports (run reports, dashboards, analytics, SOQL queries)
  */
 
 import { logger } from '@/lib/logger';
@@ -27,13 +25,11 @@ const log = logger('SalesforceToolkit');
 
 export type SalesforceActionCategory =
   | 'leads'
-  | 'contacts'
-  | 'accounts'
   | 'opportunities'
+  | 'accounts'
+  | 'contacts'
   | 'cases'
-  | 'tasks'
-  | 'reports'
-  | 'records';
+  | 'reports';
 
 export interface SalesforceAction {
   name: string; // Composio action name (e.g., SALESFORCE_CREATE_LEAD)
@@ -49,7 +45,7 @@ export interface SalesforceAction {
 // ============================================================================
 
 const ESSENTIAL_ACTIONS: SalesforceAction[] = [
-  // Leads
+  // Leads - Core
   {
     name: 'SALESFORCE_CREATE_LEAD',
     label: 'Create Lead',
@@ -70,35 +66,13 @@ const ESSENTIAL_ACTIONS: SalesforceAction[] = [
     priority: 1,
   },
   {
-    name: 'SALESFORCE_UPDATE_LEAD',
-    label: 'Update Lead',
+    name: 'SALESFORCE_SEARCH_LEADS',
+    label: 'Search Leads',
     category: 'leads',
     priority: 1,
-    writeOperation: true,
   },
 
-  // Contacts
-  {
-    name: 'SALESFORCE_CREATE_CONTACT',
-    label: 'Create Contact',
-    category: 'contacts',
-    priority: 1,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_LIST_CONTACTS',
-    label: 'List Contacts',
-    category: 'contacts',
-    priority: 1,
-  },
-  {
-    name: 'SALESFORCE_GET_CONTACT',
-    label: 'Get Contact',
-    category: 'contacts',
-    priority: 1,
-  },
-
-  // Opportunities
+  // Opportunities - Core
   {
     name: 'SALESFORCE_CREATE_OPPORTUNITY',
     label: 'Create Opportunity',
@@ -112,12 +86,46 @@ const ESSENTIAL_ACTIONS: SalesforceAction[] = [
     category: 'opportunities',
     priority: 1,
   },
-
-  // Records
   {
-    name: 'SALESFORCE_SEARCH_RECORDS',
-    label: 'Search Records',
-    category: 'records',
+    name: 'SALESFORCE_GET_OPPORTUNITY',
+    label: 'Get Opportunity',
+    category: 'opportunities',
+    priority: 1,
+  },
+
+  // Accounts - Core
+  {
+    name: 'SALESFORCE_CREATE_ACCOUNT',
+    label: 'Create Account',
+    category: 'accounts',
+    priority: 1,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_LIST_ACCOUNTS',
+    label: 'List Accounts',
+    category: 'accounts',
+    priority: 1,
+  },
+  {
+    name: 'SALESFORCE_GET_ACCOUNT',
+    label: 'Get Account',
+    category: 'accounts',
+    priority: 1,
+  },
+
+  // Contacts - Core
+  {
+    name: 'SALESFORCE_CREATE_CONTACT',
+    label: 'Create Contact',
+    category: 'contacts',
+    priority: 1,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_LIST_CONTACTS',
+    label: 'List Contacts',
+    category: 'contacts',
     priority: 1,
   },
 ];
@@ -127,11 +135,25 @@ const ESSENTIAL_ACTIONS: SalesforceAction[] = [
 // ============================================================================
 
 const IMPORTANT_ACTIONS: SalesforceAction[] = [
-  // Contacts - Extended
+  // Leads - Extended
   {
-    name: 'SALESFORCE_UPDATE_CONTACT',
-    label: 'Update Contact',
-    category: 'contacts',
+    name: 'SALESFORCE_UPDATE_LEAD',
+    label: 'Update Lead',
+    category: 'leads',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_CONVERT_LEAD',
+    label: 'Convert Lead to Opportunity',
+    category: 'leads',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_QUALIFY_LEAD',
+    label: 'Qualify Lead',
+    category: 'leads',
     priority: 2,
     writeOperation: true,
   },
@@ -145,32 +167,20 @@ const IMPORTANT_ACTIONS: SalesforceAction[] = [
     writeOperation: true,
   },
   {
-    name: 'SALESFORCE_GET_OPPORTUNITY',
-    label: 'Get Opportunity',
+    name: 'SALESFORCE_UPDATE_OPPORTUNITY_STAGE',
+    label: 'Update Opportunity Stage',
     category: 'opportunities',
-    priority: 2,
-  },
-
-  // Accounts
-  {
-    name: 'SALESFORCE_CREATE_ACCOUNT',
-    label: 'Create Account',
-    category: 'accounts',
     priority: 2,
     writeOperation: true,
   },
   {
-    name: 'SALESFORCE_LIST_ACCOUNTS',
-    label: 'List Accounts',
-    category: 'accounts',
+    name: 'SALESFORCE_SEARCH_OPPORTUNITIES',
+    label: 'Search Opportunities',
+    category: 'opportunities',
     priority: 2,
   },
-  {
-    name: 'SALESFORCE_GET_ACCOUNT',
-    label: 'Get Account',
-    category: 'accounts',
-    priority: 2,
-  },
+
+  // Accounts - Extended
   {
     name: 'SALESFORCE_UPDATE_ACCOUNT',
     label: 'Update Account',
@@ -178,8 +188,35 @@ const IMPORTANT_ACTIONS: SalesforceAction[] = [
     priority: 2,
     writeOperation: true,
   },
+  {
+    name: 'SALESFORCE_SEARCH_ACCOUNTS',
+    label: 'Search Accounts',
+    category: 'accounts',
+    priority: 2,
+  },
 
-  // Cases
+  // Contacts - Extended
+  {
+    name: 'SALESFORCE_GET_CONTACT',
+    label: 'Get Contact',
+    category: 'contacts',
+    priority: 2,
+  },
+  {
+    name: 'SALESFORCE_UPDATE_CONTACT',
+    label: 'Update Contact',
+    category: 'contacts',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_SEARCH_CONTACTS',
+    label: 'Search Contacts',
+    category: 'contacts',
+    priority: 2,
+  },
+
+  // Cases - Core
   {
     name: 'SALESFORCE_CREATE_CASE',
     label: 'Create Case',
@@ -193,43 +230,6 @@ const IMPORTANT_ACTIONS: SalesforceAction[] = [
     category: 'cases',
     priority: 2,
   },
-  {
-    name: 'SALESFORCE_GET_CASE',
-    label: 'Get Case',
-    category: 'cases',
-    priority: 2,
-  },
-  {
-    name: 'SALESFORCE_UPDATE_CASE',
-    label: 'Update Case',
-    category: 'cases',
-    priority: 2,
-    writeOperation: true,
-  },
-
-  // Tasks
-  {
-    name: 'SALESFORCE_CREATE_TASK',
-    label: 'Create Task',
-    category: 'tasks',
-    priority: 2,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_LIST_TASKS',
-    label: 'List Tasks',
-    category: 'tasks',
-    priority: 2,
-  },
-
-  // Leads - Extended
-  {
-    name: 'SALESFORCE_CONVERT_LEAD',
-    label: 'Convert Lead',
-    category: 'leads',
-    priority: 2,
-    writeOperation: true,
-  },
 ];
 
 // ============================================================================
@@ -237,22 +237,108 @@ const IMPORTANT_ACTIONS: SalesforceAction[] = [
 // ============================================================================
 
 const USEFUL_ACTIONS: SalesforceAction[] = [
+  // Cases - Extended
+  {
+    name: 'SALESFORCE_GET_CASE',
+    label: 'Get Case',
+    category: 'cases',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_UPDATE_CASE',
+    label: 'Update Case',
+    category: 'cases',
+    priority: 3,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_SEARCH_CASES',
+    label: 'Search Cases',
+    category: 'cases',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_CLOSE_CASE',
+    label: 'Close Case',
+    category: 'cases',
+    priority: 3,
+    writeOperation: true,
+  },
+  {
+    name: 'SALESFORCE_ESCALATE_CASE',
+    label: 'Escalate Case',
+    category: 'cases',
+    priority: 3,
+    writeOperation: true,
+  },
+
+  // Reports - Core
+  {
+    name: 'SALESFORCE_RUN_REPORT',
+    label: 'Run Report',
+    category: 'reports',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_LIST_REPORTS',
+    label: 'List Reports',
+    category: 'reports',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_GET_REPORT',
+    label: 'Get Report Details',
+    category: 'reports',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_GET_DASHBOARD',
+    label: 'Get Dashboard',
+    category: 'reports',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_LIST_DASHBOARDS',
+    label: 'List Dashboards',
+    category: 'reports',
+    priority: 3,
+  },
+
+  // Opportunities - Pipeline
+  {
+    name: 'SALESFORCE_GET_PIPELINE_STAGES',
+    label: 'Get Pipeline Stages',
+    category: 'opportunities',
+    priority: 3,
+  },
+  {
+    name: 'SALESFORCE_GET_OPPORTUNITY_HISTORY',
+    label: 'Get Opportunity History',
+    category: 'opportunities',
+    priority: 3,
+  },
+
+  // Leads - Extended
+  {
+    name: 'SALESFORCE_ASSIGN_LEAD',
+    label: 'Assign Lead to Owner',
+    category: 'leads',
+    priority: 3,
+    writeOperation: true,
+  },
+];
+
+// ============================================================================
+// PRIORITY 4 - ADVANCED (Destructive operations & specialized)
+// ============================================================================
+
+const ADVANCED_ACTIONS: SalesforceAction[] = [
   // Leads - Destructive
   {
     name: 'SALESFORCE_DELETE_LEAD',
     label: 'Delete Lead',
     category: 'leads',
-    priority: 3,
-    writeOperation: true,
-    destructive: true,
-  },
-
-  // Contacts - Destructive
-  {
-    name: 'SALESFORCE_DELETE_CONTACT',
-    label: 'Delete Contact',
-    category: 'contacts',
-    priority: 3,
+    priority: 4,
     writeOperation: true,
     destructive: true,
   },
@@ -262,7 +348,7 @@ const USEFUL_ACTIONS: SalesforceAction[] = [
     name: 'SALESFORCE_DELETE_OPPORTUNITY',
     label: 'Delete Opportunity',
     category: 'opportunities',
-    priority: 3,
+    priority: 4,
     writeOperation: true,
     destructive: true,
   },
@@ -272,77 +358,21 @@ const USEFUL_ACTIONS: SalesforceAction[] = [
     name: 'SALESFORCE_DELETE_ACCOUNT',
     label: 'Delete Account',
     category: 'accounts',
-    priority: 3,
+    priority: 4,
     writeOperation: true,
     destructive: true,
   },
 
-  // Cases - Extended
+  // Contacts - Destructive
   {
-    name: 'SALESFORCE_CLOSE_CASE',
-    label: 'Close Case',
-    category: 'cases',
-    priority: 3,
+    name: 'SALESFORCE_DELETE_CONTACT',
+    label: 'Delete Contact',
+    category: 'contacts',
+    priority: 4,
     writeOperation: true,
+    destructive: true,
   },
 
-  // Tasks - Extended
-  {
-    name: 'SALESFORCE_UPDATE_TASK',
-    label: 'Update Task',
-    category: 'tasks',
-    priority: 3,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_COMPLETE_TASK',
-    label: 'Complete Task',
-    category: 'tasks',
-    priority: 3,
-    writeOperation: true,
-  },
-
-  // Reports
-  {
-    name: 'SALESFORCE_LIST_REPORTS',
-    label: 'List Reports',
-    category: 'reports',
-    priority: 3,
-  },
-  {
-    name: 'SALESFORCE_RUN_REPORT',
-    label: 'Run Report',
-    category: 'reports',
-    priority: 3,
-  },
-
-  // Records - Extended
-  {
-    name: 'SALESFORCE_CREATE_NOTE',
-    label: 'Create Note',
-    category: 'records',
-    priority: 3,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_LIST_RECORD_TYPES',
-    label: 'List Record Types',
-    category: 'records',
-    priority: 3,
-  },
-  {
-    name: 'SALESFORCE_GET_RECORD',
-    label: 'Get Record',
-    category: 'records',
-    priority: 3,
-  },
-];
-
-// ============================================================================
-// PRIORITY 4 - ADVANCED (Destructive operations and low-level access)
-// ============================================================================
-
-const ADVANCED_ACTIONS: SalesforceAction[] = [
   // Cases - Destructive
   {
     name: 'SALESFORCE_DELETE_CASE',
@@ -353,63 +383,18 @@ const ADVANCED_ACTIONS: SalesforceAction[] = [
     destructive: true,
   },
 
-  // Tasks - Destructive
-  {
-    name: 'SALESFORCE_DELETE_TASK',
-    label: 'Delete Task',
-    category: 'tasks',
-    priority: 4,
-    writeOperation: true,
-    destructive: true,
-  },
-
-  // Records - Advanced
+  // Reports - Advanced
   {
     name: 'SALESFORCE_EXECUTE_SOQL',
     label: 'Execute SOQL Query',
-    category: 'records',
+    category: 'reports',
     priority: 4,
   },
   {
-    name: 'SALESFORCE_CREATE_RECORD',
-    label: 'Create Record',
-    category: 'records',
+    name: 'SALESFORCE_EXPORT_REPORT',
+    label: 'Export Report Data',
+    category: 'reports',
     priority: 4,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_UPDATE_RECORD',
-    label: 'Update Record',
-    category: 'records',
-    priority: 4,
-    writeOperation: true,
-  },
-  {
-    name: 'SALESFORCE_DELETE_RECORD',
-    label: 'Delete Record',
-    category: 'records',
-    priority: 4,
-    writeOperation: true,
-    destructive: true,
-  },
-  {
-    name: 'SALESFORCE_DESCRIBE_OBJECT',
-    label: 'Describe Object',
-    category: 'records',
-    priority: 4,
-  },
-  {
-    name: 'SALESFORCE_LIST_OBJECTS',
-    label: 'List Objects',
-    category: 'records',
-    priority: 4,
-  },
-  {
-    name: 'SALESFORCE_BATCH_CREATE_RECORDS',
-    label: 'Batch Create Records',
-    category: 'records',
-    priority: 4,
-    writeOperation: true,
   },
 ];
 
@@ -498,73 +483,78 @@ export function getSalesforceSystemPrompt(): string {
   return `
 ## Salesforce CRM Integration (Full Capabilities)
 
-You have **full Salesforce CRM access** through the user's connected account. Use the \`composio_SALESFORCE_*\` tools.
+You have **full Salesforce CRM access** through the user's connected account. Salesforce is an enterprise CRM for managing the full sales pipeline, customer relationships, support cases, and business analytics. Use the \`composio_SALESFORCE_*\` tools.
 
-### Lead Management
-- Create new leads with company, contact, and source information
-- List and search leads by status, source, or custom criteria
-- Get detailed lead information including activity history
-- Update lead fields (status, rating, owner, custom fields)
-- Convert qualified leads into contacts, accounts, and opportunities
+### Leads
+- Create new leads with name, company, email, phone, and source
+- List and search leads across the CRM
+- Get detailed lead information by ID
+- Update lead properties and status
+- Qualify leads and update lead scoring
+- Convert leads into opportunities, accounts, and contacts
+- Assign leads to specific sales representatives
+- Delete leads (with confirmation)
 
-### Contact & Account Management
-- Create and manage contacts with full profile details
-- Associate contacts with accounts and track relationships
-- Create and manage company accounts with hierarchy support
-- Update account details, ownership, and custom fields
-- Search across contacts and accounts with flexible criteria
+### Opportunities
+- Create new opportunities with amount, stage, close date, and account
+- List and search opportunities across the pipeline
+- Get detailed opportunity information by ID
+- Update opportunity properties and move between stages
+- View pipeline stage configurations
+- Track opportunity history and stage progression
+- Delete opportunities (with confirmation)
 
-### Opportunity Tracking
-- Create opportunities with stage, amount, and close date
-- List opportunities by stage, owner, or pipeline
-- Get detailed opportunity information including products and history
-- Update opportunity stages, amounts, and forecasting fields
-- Track opportunity progression through the sales pipeline
+### Accounts
+- Create new business accounts with name, industry, and revenue
+- List and search accounts across the CRM
+- Get detailed account information by ID
+- Update account properties and details
+- Delete accounts (with confirmation)
 
-### Case Management
-- Create support cases with priority, status, and assignment
-- List and filter cases by status, priority, or owner
-- Get case details including comments and activity
-- Update case status, priority, and resolution
+### Contacts
+- Create new contacts associated with accounts
+- List and search contacts across the CRM
+- Get detailed contact information by ID
+- Update contact properties and details
+- Delete contacts (with confirmation)
+
+### Cases
+- Create support cases with priority, status, and description
+- List and search open cases
+- Get detailed case information by ID
+- Update case status and properties
 - Close cases with resolution details
+- Escalate cases to higher priority or different teams
+- Delete cases (with confirmation)
 
-### Tasks & Activities
-- Create tasks assigned to users with due dates and priorities
-- List tasks by status, owner, or related records
-- Update task details and assignments
-- Mark tasks as complete
-
-### SOQL Queries & Records
+### Reports & Analytics
+- Run existing Salesforce reports and retrieve results
+- List available reports and dashboards
+- Get detailed report metadata and configurations
+- View dashboard components and data
 - Execute custom SOQL queries for advanced data retrieval
-- Search records across all Salesforce objects
-- Create, read, update, and delete any standard or custom object record
-- Describe object schemas to understand available fields
-- List available Salesforce objects
-- Batch create records for bulk operations
-
-### Reports
-- List available Salesforce reports
-- Run reports and retrieve results
+- Export report data for analysis
 
 ### Safety Rules
-1. **ALWAYS confirm before deleting CRM data** - deletion may be permanent and can break record relationships:
+1. **ALWAYS preview before creating** - show record details using the action-preview format:
 \`\`\`action-preview
 {
   "platform": "Salesforce",
-  "action": "Delete Record",
-  "recordType": "Lead/Contact/Account/Opportunity",
-  "recordName": "Record name or ID",
-  "toolName": "composio_SALESFORCE_DELETE_*",
-  "toolParams": { "id": "..." }
+  "action": "Create Lead",
+  "details": "Name: Jane Smith, Company: Acme Corp, Email: jane@acme.com",
+  "toolName": "composio_SALESFORCE_CREATE_LEAD",
+  "toolParams": { "FirstName": "Jane", "LastName": "Smith", "Company": "Acme Corp" }
 }
 \`\`\`
-2. **Confirm before converting leads** - lead conversion creates new contacts, accounts, and opportunities and cannot be easily undone
-3. **Confirm before sending communications** - verify recipient, subject, and content before any email or notification actions
-4. **Never bulk delete records without explicit approval** - show the full list of records that will be affected
-5. **For opportunity updates**, clearly show stage changes, amount changes, and close date modifications before applying
-6. **For case management**, confirm status changes and assignments before updating
-7. **Handle CRM data carefully** - always double-check record IDs, field values, and ownership assignments
-8. **For batch operations**, summarize what will be created/modified and get explicit approval
+2. **Confirm before converting leads** - show what opportunity, account, and contact will be created
+3. **Never delete without confirmation** - always show what will be deleted and get explicit approval
+4. **For stage changes**, show the current stage and proposed new stage before updating
+5. **For SOQL queries**, preview the query before executing to avoid unintended data access
+6. **Verify account exists** before associating contacts, opportunities, or cases
+7. **Handle duplicate records gracefully** - search before creating to avoid duplicates
+8. **Respect data integrity** - warn when updating critical fields like opportunity amount or close date
+9. **For case escalation**, confirm the new priority and assignment before proceeding
+10. **For bulk operations**, show a summary of all records that will be affected
 `;
 }
 
@@ -573,7 +563,7 @@ You have **full Salesforce CRM access** through the user's connected account. Us
  */
 export function getSalesforceCapabilitySummary(): string {
   const stats = getSalesforceActionStats();
-  return `Salesforce (${stats.total} actions: leads, contacts, accounts, opportunities, cases, tasks, reports, records)`;
+  return `Salesforce CRM (${stats.total} actions: leads, opportunities, accounts, contacts, cases, reports)`;
 }
 
 export function logSalesforceToolkitStats(): void {

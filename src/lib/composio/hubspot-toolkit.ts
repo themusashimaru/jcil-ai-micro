@@ -7,14 +7,12 @@
  * context-aware tool loading for both Chat and Code Lab.
  *
  * Categories:
- * - Contacts (create, update, search, manage contacts)
- * - Companies (create, update, search, manage companies)
- * - Deals (create, update, search, pipelines, stages)
- * - Tickets (create, update, manage support tickets)
- * - Lists (create, manage contact lists)
- * - Emails (send emails via HubSpot)
- * - Notes (create, manage engagement notes)
- * - Tasks (create, update, complete tasks)
+ * - Contacts (create, update, search, list, batch, delete)
+ * - Deals (create, update, stage changes, pipelines, search)
+ * - Companies (create, update, search, list)
+ * - Tickets (create, update, search, manage support tickets)
+ * - Emails (send, log, track email activity)
+ * - Lists (create, manage, add/remove contacts)
  */
 
 import { logger } from '@/lib/logger';
@@ -27,13 +25,11 @@ const log = logger('HubSpotToolkit');
 
 export type HubSpotActionCategory =
   | 'contacts'
-  | 'companies'
   | 'deals'
+  | 'companies'
   | 'tickets'
-  | 'lists'
   | 'emails'
-  | 'notes'
-  | 'tasks';
+  | 'lists';
 
 export interface HubSpotAction {
   name: string; // Composio action name (e.g., HUBSPOT_CREATE_CONTACT)
@@ -49,7 +45,7 @@ export interface HubSpotAction {
 // ============================================================================
 
 const ESSENTIAL_ACTIONS: HubSpotAction[] = [
-  // Contacts
+  // Contacts - Core
   {
     name: 'HUBSPOT_CREATE_CONTACT',
     label: 'Create Contact',
@@ -70,20 +66,13 @@ const ESSENTIAL_ACTIONS: HubSpotAction[] = [
     priority: 1,
   },
   {
-    name: 'HUBSPOT_UPDATE_CONTACT',
-    label: 'Update Contact',
-    category: 'contacts',
-    priority: 1,
-    writeOperation: true,
-  },
-  {
     name: 'HUBSPOT_SEARCH_CONTACTS',
     label: 'Search Contacts',
     category: 'contacts',
     priority: 1,
   },
 
-  // Deals
+  // Deals - Core
   {
     name: 'HUBSPOT_CREATE_DEAL',
     label: 'Create Deal',
@@ -104,7 +93,7 @@ const ESSENTIAL_ACTIONS: HubSpotAction[] = [
     priority: 1,
   },
 
-  // Companies
+  // Companies - Core
   {
     name: 'HUBSPOT_CREATE_COMPANY',
     label: 'Create Company',
@@ -125,10 +114,26 @@ const ESSENTIAL_ACTIONS: HubSpotAction[] = [
 // ============================================================================
 
 const IMPORTANT_ACTIONS: HubSpotAction[] = [
+  // Contacts - Extended
+  {
+    name: 'HUBSPOT_UPDATE_CONTACT',
+    label: 'Update Contact',
+    category: 'contacts',
+    priority: 2,
+    writeOperation: true,
+  },
+
   // Deals - Extended
   {
     name: 'HUBSPOT_UPDATE_DEAL',
     label: 'Update Deal',
+    category: 'deals',
+    priority: 2,
+    writeOperation: true,
+  },
+  {
+    name: 'HUBSPOT_UPDATE_DEAL_STAGE',
+    label: 'Update Deal Stage',
     category: 'deals',
     priority: 2,
     writeOperation: true,
@@ -161,7 +166,7 @@ const IMPORTANT_ACTIONS: HubSpotAction[] = [
     priority: 2,
   },
 
-  // Tickets
+  // Tickets - Core
   {
     name: 'HUBSPOT_CREATE_TICKET',
     label: 'Create Ticket',
@@ -175,51 +180,8 @@ const IMPORTANT_ACTIONS: HubSpotAction[] = [
     category: 'tickets',
     priority: 2,
   },
-  {
-    name: 'HUBSPOT_GET_TICKET',
-    label: 'Get Ticket',
-    category: 'tickets',
-    priority: 2,
-  },
-  {
-    name: 'HUBSPOT_UPDATE_TICKET',
-    label: 'Update Ticket',
-    category: 'tickets',
-    priority: 2,
-    writeOperation: true,
-  },
 
-  // Notes
-  {
-    name: 'HUBSPOT_CREATE_NOTE',
-    label: 'Create Note',
-    category: 'notes',
-    priority: 2,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_LIST_NOTES',
-    label: 'List Notes',
-    category: 'notes',
-    priority: 2,
-  },
-
-  // Tasks
-  {
-    name: 'HUBSPOT_CREATE_TASK',
-    label: 'Create Task',
-    category: 'tasks',
-    priority: 2,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_LIST_TASKS',
-    label: 'List Tasks',
-    category: 'tasks',
-    priority: 2,
-  },
-
-  // Emails
+  // Emails - Core
   {
     name: 'HUBSPOT_SEND_EMAIL',
     label: 'Send Email',
@@ -234,47 +196,52 @@ const IMPORTANT_ACTIONS: HubSpotAction[] = [
 // ============================================================================
 
 const USEFUL_ACTIONS: HubSpotAction[] = [
-  // Contacts - Destructive
+  // Contacts - Batch
   {
-    name: 'HUBSPOT_DELETE_CONTACT',
-    label: 'Delete Contact',
+    name: 'HUBSPOT_BATCH_CREATE_CONTACTS',
+    label: 'Batch Create Contacts',
     category: 'contacts',
     priority: 3,
     writeOperation: true,
-    destructive: true,
   },
 
-  // Deals - Destructive
+  // Tickets - Extended
   {
-    name: 'HUBSPOT_DELETE_DEAL',
-    label: 'Delete Deal',
-    category: 'deals',
+    name: 'HUBSPOT_GET_TICKET',
+    label: 'Get Ticket',
+    category: 'tickets',
     priority: 3,
-    writeOperation: true,
-    destructive: true,
   },
-
-  // Companies - Destructive
   {
-    name: 'HUBSPOT_DELETE_COMPANY',
-    label: 'Delete Company',
-    category: 'companies',
-    priority: 3,
-    writeOperation: true,
-    destructive: true,
-  },
-
-  // Tickets - Destructive
-  {
-    name: 'HUBSPOT_DELETE_TICKET',
-    label: 'Delete Ticket',
+    name: 'HUBSPOT_UPDATE_TICKET',
+    label: 'Update Ticket',
     category: 'tickets',
     priority: 3,
     writeOperation: true,
-    destructive: true,
+  },
+  {
+    name: 'HUBSPOT_SEARCH_TICKETS',
+    label: 'Search Tickets',
+    category: 'tickets',
+    priority: 3,
   },
 
-  // Lists
+  // Emails - Extended
+  {
+    name: 'HUBSPOT_LOG_EMAIL',
+    label: 'Log Email Activity',
+    category: 'emails',
+    priority: 3,
+    writeOperation: true,
+  },
+  {
+    name: 'HUBSPOT_GET_EMAIL_EVENTS',
+    label: 'Get Email Events',
+    category: 'emails',
+    priority: 3,
+  },
+
+  // Lists - Core
   {
     name: 'HUBSPOT_CREATE_LIST',
     label: 'Create List',
@@ -284,7 +251,7 @@ const USEFUL_ACTIONS: HubSpotAction[] = [
   },
   {
     name: 'HUBSPOT_LIST_LISTS',
-    label: 'List Lists',
+    label: 'List All Lists',
     category: 'lists',
     priority: 3,
   },
@@ -295,63 +262,66 @@ const USEFUL_ACTIONS: HubSpotAction[] = [
     priority: 3,
     writeOperation: true,
   },
-  {
-    name: 'HUBSPOT_REMOVE_CONTACT_FROM_LIST',
-    label: 'Remove Contact from List',
-    category: 'lists',
-    priority: 3,
-    writeOperation: true,
-  },
 
-  // Tasks - Extended
+  // Deals - Pipeline
   {
-    name: 'HUBSPOT_UPDATE_TASK',
-    label: 'Update Task',
-    category: 'tasks',
-    priority: 3,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_COMPLETE_TASK',
-    label: 'Complete Task',
-    category: 'tasks',
-    priority: 3,
-    writeOperation: true,
-  },
-
-  // Associations
-  {
-    name: 'HUBSPOT_ASSOCIATE_OBJECTS',
-    label: 'Associate Objects',
-    category: 'contacts',
-    priority: 3,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_LIST_ASSOCIATIONS',
-    label: 'List Associations',
-    category: 'contacts',
+    name: 'HUBSPOT_LIST_DEAL_PIPELINES',
+    label: 'List Deal Pipelines',
+    category: 'deals',
     priority: 3,
   },
 ];
 
 // ============================================================================
-// PRIORITY 4 - ADVANCED (Destructive operations and specialized tools)
+// PRIORITY 4 - ADVANCED (Destructive operations & specialized)
 // ============================================================================
 
 const ADVANCED_ACTIONS: HubSpotAction[] = [
+  // Contacts - Destructive
   {
-    name: 'HUBSPOT_DELETE_NOTE',
-    label: 'Delete Note',
-    category: 'notes',
+    name: 'HUBSPOT_DELETE_CONTACT',
+    label: 'Delete Contact',
+    category: 'contacts',
     priority: 4,
     writeOperation: true,
     destructive: true,
   },
+
+  // Deals - Destructive
   {
-    name: 'HUBSPOT_DELETE_TASK',
-    label: 'Delete Task',
-    category: 'tasks',
+    name: 'HUBSPOT_DELETE_DEAL',
+    label: 'Delete Deal',
+    category: 'deals',
+    priority: 4,
+    writeOperation: true,
+    destructive: true,
+  },
+
+  // Companies - Destructive
+  {
+    name: 'HUBSPOT_DELETE_COMPANY',
+    label: 'Delete Company',
+    category: 'companies',
+    priority: 4,
+    writeOperation: true,
+    destructive: true,
+  },
+
+  // Tickets - Destructive
+  {
+    name: 'HUBSPOT_DELETE_TICKET',
+    label: 'Delete Ticket',
+    category: 'tickets',
+    priority: 4,
+    writeOperation: true,
+    destructive: true,
+  },
+
+  // Lists - Extended
+  {
+    name: 'HUBSPOT_REMOVE_CONTACT_FROM_LIST',
+    label: 'Remove Contact from List',
+    category: 'lists',
     priority: 4,
     writeOperation: true,
     destructive: true,
@@ -363,44 +333,6 @@ const ADVANCED_ACTIONS: HubSpotAction[] = [
     priority: 4,
     writeOperation: true,
     destructive: true,
-  },
-  {
-    name: 'HUBSPOT_BATCH_CREATE_CONTACTS',
-    label: 'Batch Create Contacts',
-    category: 'contacts',
-    priority: 4,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_BATCH_UPDATE_CONTACTS',
-    label: 'Batch Update Contacts',
-    category: 'contacts',
-    priority: 4,
-    writeOperation: true,
-  },
-  {
-    name: 'HUBSPOT_LIST_PIPELINES',
-    label: 'List Pipelines',
-    category: 'deals',
-    priority: 4,
-  },
-  {
-    name: 'HUBSPOT_GET_PIPELINE',
-    label: 'Get Pipeline',
-    category: 'deals',
-    priority: 4,
-  },
-  {
-    name: 'HUBSPOT_LIST_DEAL_STAGES',
-    label: 'List Deal Stages',
-    category: 'deals',
-    priority: 4,
-  },
-  {
-    name: 'HUBSPOT_LIST_OWNERS',
-    label: 'List Owners',
-    category: 'contacts',
-    priority: 4,
   },
 ];
 
@@ -487,73 +419,68 @@ export function getHubSpotSystemPrompt(): string {
   return `
 ## HubSpot CRM Integration (Full Capabilities)
 
-You have **full HubSpot CRM access** through the user's connected account. Use the \`composio_HUBSPOT_*\` tools.
+You have **full HubSpot CRM access** through the user's connected account. HubSpot is a CRM platform for managing contacts, deals, companies, support tickets, and email campaigns. Use the \`composio_HUBSPOT_*\` tools.
 
-### Contact Management
-- Create, update, and search contacts by name, email, or properties
-- List all contacts with pagination support
-- Delete contacts when explicitly requested
-- Batch create or update contacts for bulk operations
-- Associate contacts with companies, deals, and tickets
-- List contact associations to understand relationships
+### Contacts
+- Create new contacts with name, email, phone, and custom properties
+- List and search contacts across the CRM
+- Get detailed contact information by ID
+- Update contact properties and details
+- Batch create multiple contacts at once
+- Delete contacts (with confirmation)
 
-### Deal Tracking
-- Create deals with pipeline, stage, amount, and close date
-- Update deal properties (stage, amount, owner, etc.)
-- Search deals by name, amount, stage, or custom properties
-- List all deals across pipelines
-- View deal pipelines and their stages
-- Delete deals when explicitly requested
+### Deals
+- Create new deals with amount, stage, and associated contacts
+- List and search deals across pipelines
+- Get detailed deal information by ID
+- Update deal properties and move deals between stages
+- View deal pipeline configurations
+- Delete deals (with confirmation)
 
-### Company Management
-- Create and manage company records
-- Update company properties (name, domain, industry, etc.)
-- Search companies by name, domain, or properties
-- Associate companies with contacts and deals
+### Companies
+- Create new companies with name, domain, and industry
+- List and search companies in the CRM
+- Get detailed company information by ID
+- Update company properties and details
+- Delete companies (with confirmation)
 
-### Ticketing
+### Tickets
 - Create support tickets with priority and status
-- Update ticket properties and status
-- List and search tickets for support tracking
-- Delete tickets when explicitly requested
+- List and search open tickets
+- Get detailed ticket information by ID
+- Update ticket status and properties
+- Delete tickets (with confirmation)
 
-### Email
+### Emails
 - Send emails through HubSpot to contacts
-- Track email engagement and delivery
-
-### Notes & Tasks
-- Create engagement notes on contacts, deals, and companies
-- Create and manage tasks with due dates and assignments
-- Update task status and mark tasks as complete
-- List notes and tasks for activity tracking
+- Log email activity against contact records
+- Track email open and click events
 
 ### Lists
 - Create static or dynamic contact lists
-- Add or remove contacts from lists
-- View all lists and their membership
-
-### Account
-- List owners for assignment to contacts, deals, and tickets
+- View all existing contact lists
+- Add contacts to lists for segmentation
+- Remove contacts from lists
+- Delete lists (with confirmation)
 
 ### Safety Rules
-1. **ALWAYS confirm before sending emails** - show recipient, subject, and body for approval:
+1. **ALWAYS preview before creating** - show record details using the action-preview format:
 \`\`\`action-preview
 {
   "platform": "HubSpot",
-  "action": "Send Email",
-  "to": "recipient@example.com",
-  "subject": "Email subject",
-  "toolName": "composio_HUBSPOT_SEND_EMAIL",
-  "toolParams": { "to": "...", "subject": "...", "body": "..." }
+  "action": "Create Contact",
+  "details": "Name: John Doe, Email: john@example.com",
+  "toolName": "composio_HUBSPOT_CREATE_CONTACT",
+  "toolParams": { "email": "john@example.com", "firstname": "John", "lastname": "Doe" }
 }
 \`\`\`
-2. **Never delete CRM data without explicit approval** - deletion of contacts, deals, companies, and tickets is permanent
-3. **Confirm before bulk operations** - batch create/update operations should be summarized and approved first
-4. **Verify deal amounts and stages** before creating or updating deals - show pipeline, stage, and monetary values
-5. **For contact updates**, confirm the correct contact before modifying properties
-6. **For ticket operations**, clearly show priority, status, and assignment before creating
-7. **Handle CRM data carefully** - always double-check names, emails, and association targets
-8. **For batch operations**, summarize what will happen and get explicit approval
+2. **Confirm before sending emails** - show recipient, subject, and body before sending
+3. **Never delete without confirmation** - always show what will be deleted and get explicit approval
+4. **For deal stage changes**, show the current stage and proposed new stage before updating
+5. **For batch operations**, show a summary of all records that will be affected
+6. **Verify contact exists** before associating with deals, tickets, or lists
+7. **Handle duplicate contacts gracefully** - search before creating to avoid duplicates
+8. **Respect data integrity** - warn when updating critical fields like email or deal amount
 `;
 }
 
@@ -562,7 +489,7 @@ You have **full HubSpot CRM access** through the user's connected account. Use t
  */
 export function getHubSpotCapabilitySummary(): string {
   const stats = getHubSpotActionStats();
-  return `HubSpot CRM (${stats.total} actions: contacts, deals, companies, tickets, emails, tasks)`;
+  return `HubSpot CRM (${stats.total} actions: contacts, deals, companies, tickets, emails, lists)`;
 }
 
 export function logHubSpotToolkitStats(): void {

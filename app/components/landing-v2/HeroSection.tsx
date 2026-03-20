@@ -84,7 +84,7 @@ export function HeroSection() {
             </span>
           </div>
           <div>
-            <span className="font-bebas text-4xl md:text-5xl text-accent">87+</span>
+            <span className="font-bebas text-4xl md:text-5xl text-accent">89+</span>
             <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
               Integrations
             </span>

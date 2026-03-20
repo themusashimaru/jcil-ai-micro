@@ -1,71 +1,111 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, type ReactNode } from 'react';
 import { cn } from './utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import {
+  SiInstagram,
+  SiTiktok,
+  SiFacebook,
+  SiX,
+  SiCanva,
+  SiWordpress,
+  SiStripe,
+  SiPaypal,
+  SiGoogle,
+  SiBamboo,
+  SiSalesforce,
+  SiHubspot,
+} from 'react-icons/si';
+import { TbTicket } from 'react-icons/tb';
 gsap.registerPlugin(ScrollTrigger);
 
-const signals = [
+interface Signal {
+  date: string;
+  title: string;
+  note: string;
+  icon: ReactNode;
+}
+
+const signals: Signal[] = [
   {
     date: 'Social',
     title: 'Instagram',
     note: 'Post photos, reels, carousels. Manage DMs, comments, analytics.',
+    icon: <SiInstagram />,
   },
   {
     date: 'Social',
     title: 'TikTok',
     note: 'Upload videos, post photos, publish content. Full creator toolkit.',
+    icon: <SiTiktok />,
   },
   {
     date: 'Social',
     title: 'Facebook',
     note: 'Page posts with photos and videos. Albums, events, insights.',
+    icon: <SiFacebook />,
   },
   {
     date: 'Social',
     title: 'Twitter/X',
     note: 'Tweet with media. Search, DMs, lists, spaces. 80+ actions.',
+    icon: <SiX />,
   },
   {
     date: 'Design',
     title: 'Canva',
     note: 'Create designs, manage brand kits, export assets. 48 tools.',
+    icon: <SiCanva />,
   },
   {
     date: 'CMS',
     title: 'WordPress',
     note: 'Publish posts, manage pages, upload media. Run your blog from chat.',
+    icon: <SiWordpress />,
   },
   {
     date: 'Payments',
     title: 'Stripe',
     note: 'Process payments, manage subscriptions, handle invoices.',
+    icon: <SiStripe />,
   },
   {
     date: 'Payments',
     title: 'PayPal',
     note: 'Invoices, orders, payouts, subscriptions. Church donations.',
+    icon: <SiPaypal />,
   },
   {
     date: 'Events',
     title: 'Eventbrite',
     note: 'Create events, sell tickets, manage attendees and venues.',
+    icon: <TbTicket />,
   },
   {
     date: 'Suite',
     title: 'Google',
     note: 'Drive, Docs, Sheets, Calendar, Gmail — full workspace access.',
+    icon: <SiGoogle />,
   },
   {
     date: 'HR',
     title: 'BambooHR',
     note: 'Employees, time off, directory, onboarding. Full HR platform.',
+    icon: <SiBamboo />,
   },
   {
     date: 'CRM',
     title: 'Salesforce',
     note: 'Enterprise CRM integration for sales and customer data.',
+    icon: <SiSalesforce />,
+  },
+  {
+    date: 'CRM',
+    title: 'HubSpot',
+    note: 'Contacts, deals, companies, tickets, email campaigns. Full CRM.',
+    icon: <SiHubspot />,
   },
 ];
 
@@ -166,7 +206,7 @@ export function SignalsSection() {
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
           01 / Integrations
         </span>
-        <h2 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">87+ CONNECTIONS</h2>
+        <h2 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">89+ CONNECTIONS</h2>
         <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
           Powered by Composio (SOC 2 certified). Post to Instagram, TikTok, Facebook. Design in
           Canva. Manage invoices in PayPal. Sell on Shopify. Run HR in BambooHR. All from one chat.
@@ -186,13 +226,7 @@ export function SignalsSection() {
   );
 }
 
-function SignalCard({
-  signal,
-  index,
-}: {
-  signal: { date: string; title: string; note: string };
-  index: number;
-}) {
+function SignalCard({ signal, index }: { signal: Signal; index: number }) {
   return (
     <article
       className={cn(
@@ -209,9 +243,14 @@ function SignalCard({
           </span>
           <time className="font-mono text-[10px] text-muted-foreground/60">{signal.date}</time>
         </div>
-        <h3 className="font-bebas text-4xl tracking-tight mb-4 group-hover:text-accent transition-colors duration-300">
-          {signal.title}
-        </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-2xl text-accent/80 group-hover:text-accent transition-colors duration-300">
+            {signal.icon}
+          </span>
+          <h3 className="font-bebas text-4xl tracking-tight group-hover:text-accent transition-colors duration-300">
+            {signal.title}
+          </h3>
+        </div>
         <div className="w-12 h-px bg-accent/60 mb-6 group-hover:w-full transition-all duration-500" />
         <p className="font-mono text-xs text-muted-foreground leading-relaxed">{signal.note}</p>
         <div className="absolute bottom-0 right-0 w-6 h-6 overflow-hidden">
