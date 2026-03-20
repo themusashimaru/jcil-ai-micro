@@ -64,16 +64,22 @@ export function HeroSection() {
         </h2>
 
         <p className="mt-12 max-w-lg font-mono text-sm text-muted-foreground leading-relaxed">
-          91 real tools. Full IDE. 67+ integrations. Enterprise security. All grounded
-          in Scripture. This is AI that shares your values.
+          91 real tools. Builds new ones on the fly. Browses the web live. Runs code. Creates
+          charts, documents, presentations. Powered by Opus 4.6. Grounded in Scripture.
         </p>
 
         {/* Stats row */}
         <div className="mt-10 flex flex-wrap gap-8 md:gap-12">
           <div>
-            <span className="font-bebas text-4xl md:text-5xl text-accent">91</span>
+            <span className="font-bebas text-4xl md:text-5xl text-accent">91+</span>
             <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
               Real Tools
+            </span>
+          </div>
+          <div>
+            <span className="font-bebas text-4xl md:text-5xl text-accent">&infin;</span>
+            <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+              Self-Building
             </span>
           </div>
           <div>
