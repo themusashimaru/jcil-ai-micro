@@ -64,8 +64,9 @@ export function HeroSection() {
         </h2>
 
         <p className="mt-12 max-w-lg font-mono text-sm text-muted-foreground leading-relaxed">
-          91 real tools. Builds new ones on the fly. Browses the web live. Runs code. Creates
-          charts, documents, presentations. Powered by Opus 4.6. Grounded in Scripture.
+          91 real tools. Builds new ones on the fly. Browses the web live. Posts to Instagram,
+          TikTok, Facebook, Twitter. Manages your invoices, HR, events, and e-commerce. Powered by
+          Opus 4.6. Grounded in Scripture.
         </p>
 
         {/* Stats row */}
@@ -73,7 +74,7 @@ export function HeroSection() {
           <div>
             <span className="font-bebas text-4xl md:text-5xl text-accent">91+</span>
             <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-              Real Tools
+              AI Tools
             </span>
           </div>
           <div>
@@ -83,7 +84,7 @@ export function HeroSection() {
             </span>
           </div>
           <div>
-            <span className="font-bebas text-4xl md:text-5xl text-accent">67+</span>
+            <span className="font-bebas text-4xl md:text-5xl text-accent">87+</span>
             <span className="block font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
               Integrations
             </span>

@@ -1,20 +1,72 @@
-"use client";
+'use client';
 
-import { useRef, useState, useEffect } from "react";
-import { cn } from "./utils";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef, useState, useEffect } from 'react';
+import { cn } from './utils';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 gsap.registerPlugin(ScrollTrigger);
 
 const signals = [
-  { date: "Git", title: "GitHub", note: "Read repos, issues, PRs, and commit history. Full git integration." },
-  { date: "Real-time", title: "Slack", note: "Connect your workspace. Automate messages and workflows." },
-  { date: "Payments", title: "Stripe", note: "Process payments, manage subscriptions, handle invoices." },
-  { date: "Suite", title: "Google", note: "Drive, Docs, Sheets, Calendar, Gmail — full workspace access." },
-  { date: "CRM", title: "Salesforce", note: "Enterprise CRM integration for sales and customer data." },
-  { date: "Projects", title: "Jira", note: "Issue tracking, sprint management, agile workflows." },
-  { date: "Database", title: "Supabase", note: "Serverless PostgreSQL with real-time subscriptions." },
-  { date: "Deploy", title: "Vercel", note: "Ship instantly. Preview deployments. Edge functions." },
+  {
+    date: 'Social',
+    title: 'Instagram',
+    note: 'Post photos, reels, carousels. Manage DMs, comments, analytics.',
+  },
+  {
+    date: 'Social',
+    title: 'TikTok',
+    note: 'Upload videos, post photos, publish content. Full creator toolkit.',
+  },
+  {
+    date: 'Social',
+    title: 'Facebook',
+    note: 'Page posts with photos and videos. Albums, events, insights.',
+  },
+  {
+    date: 'Social',
+    title: 'Twitter/X',
+    note: 'Tweet with media. Search, DMs, lists, spaces. 80+ actions.',
+  },
+  {
+    date: 'Design',
+    title: 'Canva',
+    note: 'Create designs, manage brand kits, export assets. 48 tools.',
+  },
+  {
+    date: 'CMS',
+    title: 'WordPress',
+    note: 'Publish posts, manage pages, upload media. Run your blog from chat.',
+  },
+  {
+    date: 'Payments',
+    title: 'Stripe',
+    note: 'Process payments, manage subscriptions, handle invoices.',
+  },
+  {
+    date: 'Payments',
+    title: 'PayPal',
+    note: 'Invoices, orders, payouts, subscriptions. Church donations.',
+  },
+  {
+    date: 'Events',
+    title: 'Eventbrite',
+    note: 'Create events, sell tickets, manage attendees and venues.',
+  },
+  {
+    date: 'Suite',
+    title: 'Google',
+    note: 'Drive, Docs, Sheets, Calendar, Gmail — full workspace access.',
+  },
+  {
+    date: 'HR',
+    title: 'BambooHR',
+    note: 'Employees, time off, directory, onboarding. Full HR platform.',
+  },
+  {
+    date: 'CRM',
+    title: 'Salesforce',
+    note: 'Enterprise CRM integration for sales and customer data.',
+  },
 ];
 
 export function SignalsSection() {
@@ -32,20 +84,25 @@ export function SignalsSection() {
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = section.getBoundingClientRect();
-      gsap.to(cursor, { x: e.clientX - rect.left, y: e.clientY - rect.top, duration: 0.5, ease: "power3.out" });
+      gsap.to(cursor, {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        duration: 0.5,
+        ease: 'power3.out',
+      });
     };
 
     const handleMouseEnter = () => setIsHovering(true);
     const handleMouseLeave = () => setIsHovering(false);
 
-    section.addEventListener("mousemove", handleMouseMove);
-    section.addEventListener("mouseenter", handleMouseEnter);
-    section.addEventListener("mouseleave", handleMouseLeave);
+    section.addEventListener('mousemove', handleMouseMove);
+    section.addEventListener('mouseenter', handleMouseEnter);
+    section.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      section.removeEventListener("mousemove", handleMouseMove);
-      section.removeEventListener("mouseenter", handleMouseEnter);
-      section.removeEventListener("mouseleave", handleMouseLeave);
+      section.removeEventListener('mousemove', handleMouseMove);
+      section.removeEventListener('mouseenter', handleMouseEnter);
+      section.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
 
@@ -53,17 +110,40 @@ export function SignalsSection() {
     if (!sectionRef.current || !headerRef.current || !cardsRef.current) return;
 
     const ctx = gsap.context(() => {
-      gsap.fromTo(headerRef.current, { x: -60, opacity: 0 }, {
-        x: 0, opacity: 1, duration: 1, ease: "power3.out",
-        scrollTrigger: { trigger: headerRef.current, start: "top 85%", toggleActions: "play none none reverse" },
-      });
+      gsap.fromTo(
+        headerRef.current,
+        { x: -60, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: 'top 85%',
+            toggleActions: 'play none none reverse',
+          },
+        }
+      );
 
-      const cards = cardsRef.current?.querySelectorAll("article");
+      const cards = cardsRef.current?.querySelectorAll('article');
       if (cards) {
-        gsap.fromTo(cards, { x: -100, opacity: 0 }, {
-          x: 0, opacity: 1, duration: 0.8, stagger: 0.2, ease: "power3.out",
-          scrollTrigger: { trigger: cardsRef.current, start: "top 90%", toggleActions: "play none none reverse" },
-        });
+        gsap.fromTo(
+          cards,
+          { x: -100, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.8,
+            stagger: 0.2,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: cardsRef.current,
+              start: 'top 90%',
+              toggleActions: 'play none none reverse',
+            },
+          }
+        );
       }
     }, sectionRef);
 
@@ -75,25 +155,28 @@ export function SignalsSection() {
       <div
         ref={cursorRef}
         className={cn(
-          "pointer-events-none absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 z-50",
-          "w-12 h-12 rounded-full border-2 border-accent bg-accent",
-          "transition-opacity duration-300",
-          isHovering ? "opacity-100" : "opacity-0"
+          'pointer-events-none absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 z-50',
+          'w-12 h-12 rounded-full border-2 border-accent bg-accent',
+          'transition-opacity duration-300',
+          isHovering ? 'opacity-100' : 'opacity-0'
         )}
       />
 
       <div ref={headerRef} className="mb-8 pr-6 md:pr-12">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">01 / Integrations</span>
-        <h2 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">67+ CONNECTIONS</h2>
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+          01 / Integrations
+        </span>
+        <h2 className="mt-4 font-bebas text-5xl md:text-7xl tracking-tight">87+ CONNECTIONS</h2>
         <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
-          Powered by Composio (SOC 2 certified). Automate workflows across 67+ apps — from Slack to Salesforce, GitHub to Google Suite.
+          Powered by Composio (SOC 2 certified). Post to Instagram, TikTok, Facebook. Design in
+          Canva. Manage invoices in PayPal. Sell on Shopify. Run HR in BambooHR. All from one chat.
         </p>
       </div>
 
       <div
         ref={cardsRef}
         className="flex gap-8 overflow-x-auto pb-8 pr-12 scrollbar-hide"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {signals.map((signal, index) => (
           <SignalCard key={index} signal={signal} index={index} />
@@ -103,14 +186,26 @@ export function SignalsSection() {
   );
 }
 
-function SignalCard({ signal, index }: { signal: { date: string; title: string; note: string }; index: number }) {
+function SignalCard({
+  signal,
+  index,
+}: {
+  signal: { date: string; title: string; note: string };
+  index: number;
+}) {
   return (
-    <article className={cn("group relative flex-shrink-0 w-80", "transition-transform duration-500 ease-out", "hover:-translate-y-2")}>
+    <article
+      className={cn(
+        'group relative flex-shrink-0 w-80',
+        'transition-transform duration-500 ease-out',
+        'hover:-translate-y-2'
+      )}
+    >
       <div className="relative bg-card border border-border/50 md:border-t md:border-l md:border-r-0 md:border-b-0 p-8">
         <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
         <div className="flex items-baseline justify-between mb-8">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-            No. {String(index + 1).padStart(2, "0")}
+            No. {String(index + 1).padStart(2, '0')}
           </span>
           <time className="font-mono text-[10px] text-muted-foreground/60">{signal.date}</time>
         </div>

@@ -138,7 +138,7 @@ export function ColophonSection() {
             Key Integrations
           </h4>
           <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Composio (67+ apps)</li>
+            <li className="font-mono text-xs text-foreground/80">Composio (87+ apps)</li>
             <li className="font-mono text-xs text-foreground/80">E2B Sandbox</li>
             <li className="font-mono text-xs text-foreground/80">FLUX.2</li>
           </ul>
