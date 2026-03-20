@@ -66,70 +66,73 @@ export const MessageBubble = memo(
     const [thinkingManuallyToggled, setThinkingManuallyToggled] = useState(false);
 
     const { thinkingContent, displayContent, isStillThinking } = useMemo(() => {
-      if (isUser || !message.content) {
-        return { thinkingContent: '', displayContent: message.content, isStillThinking: false };
-      }
-
-      // Match completed thinking blocks
-      const thinkingRegex = /\n?<thinking>\n?([\s\S]*?)\n?<\/thinking>\n?/g;
-      const thinkingParts: string[] = [];
-      let match;
-      while ((match = thinkingRegex.exec(message.content)) !== null) {
-        thinkingParts.push(match[1]);
-      }
-
-      // Check for in-progress thinking (open tag, no close tag yet — still streaming)
-      const openThinkingMatch = message.content.match(/<thinking>\n?([\s\S]*)$/);
-      const stillThinking = !!openThinkingMatch && !message.content.endsWith('</thinking>');
-      if (stillThinking && openThinkingMatch) {
-        thinkingParts.push(openThinkingMatch[1]);
-      }
-
-      let cleaned =
-        thinkingParts.length > 0
-          ? message.content
-              .replace(thinkingRegex, '')
-              .replace(/<thinking>[\s\S]*$/, '') // Remove in-progress thinking tag
-              .trim()
-          : message.content;
-      // Strip hidden image reference links (e.g. [ref:https://...supabase.co/...])
-      cleaned = cleaned.replace(/\n*\[ref:https?:\/\/[^\]]+\]/g, '').trim();
-
-      // Deduplicate: extended thinking often includes the full answer at the end
-      // of the thinking block, then the same answer is in the text response.
-      // Strategy: trim the thinking display to just reasoning; NEVER strip the response.
-      let thinkingDisplay = thinkingParts.join('\n\n');
-      if (thinkingDisplay && cleaned) {
-        // Try to find where the response text appears in the thinking block
-        // and trim thinking to just the reasoning portion before it.
-        const responseStart = cleaned.slice(0, 200).trim();
-        if (responseStart.length > 20) {
-          const overlapIdx = thinkingDisplay.indexOf(responseStart);
-          if (overlapIdx > 0) {
-            thinkingDisplay = thinkingDisplay.slice(0, overlapIdx).trim();
-          }
+      try {
+        if (isUser || !message.content) {
+          return { thinkingContent: '', displayContent: message.content, isStillThinking: false };
         }
 
-        // Fallback: check line-by-line overlap from thinking end matching response start
-        if (thinkingDisplay === thinkingParts.join('\n\n')) {
-          for (const part of thinkingParts) {
-            const lines = part.trim().split('\n');
-            for (let i = 1; i < lines.length; i++) {
-              const suffix = lines.slice(i).join('\n').trim();
-              if (suffix.length > 40 && cleaned.startsWith(suffix)) {
-                thinkingDisplay = lines.slice(0, i).join('\n').trim();
-                break;
+        // Match completed thinking blocks
+        const thinkingRegex = /\n?<thinking>\n?([\s\S]*?)\n?<\/thinking>\n?/g;
+        const thinkingParts: string[] = [];
+        let match;
+        while ((match = thinkingRegex.exec(message.content)) !== null) {
+          thinkingParts.push(match[1]);
+        }
+
+        // Check for in-progress thinking (open tag, no close tag yet — still streaming)
+        const openThinkingMatch = message.content.match(/<thinking>\n?([\s\S]*)$/);
+        const stillThinking = !!openThinkingMatch && !message.content.endsWith('</thinking>');
+        if (stillThinking && openThinkingMatch) {
+          thinkingParts.push(openThinkingMatch[1]);
+        }
+
+        let cleaned =
+          thinkingParts.length > 0
+            ? message.content
+                .replace(thinkingRegex, '')
+                .replace(/<thinking>[\s\S]*$/, '') // Remove in-progress thinking tag
+                .trim()
+            : message.content;
+        // Strip hidden image reference links (e.g. [ref:https://...supabase.co/...])
+        cleaned = cleaned.replace(/\n*\[ref:https?:\/\/[^\]]+\]/g, '').trim();
+
+        // Deduplicate thinking vs response overlap (skip if content is very large
+        // to avoid O(n^2) line-by-line comparison on mobile)
+        let thinkingDisplay = thinkingParts.join('\n\n');
+        if (thinkingDisplay && cleaned && thinkingDisplay.length < 10000) {
+          const responseStart = cleaned.slice(0, 200).trim();
+          if (responseStart.length > 20) {
+            const overlapIdx = thinkingDisplay.indexOf(responseStart);
+            if (overlapIdx > 0) {
+              thinkingDisplay = thinkingDisplay.slice(0, overlapIdx).trim();
+            }
+          }
+
+          if (thinkingDisplay === thinkingParts.join('\n\n')) {
+            for (const part of thinkingParts) {
+              const lines = part.trim().split('\n');
+              // Cap line iteration to prevent O(n^2) on large thinking blocks
+              const maxLines = Math.min(lines.length, 200);
+              for (let i = 1; i < maxLines; i++) {
+                const suffix = lines.slice(i).join('\n').trim();
+                if (suffix.length > 40 && cleaned.startsWith(suffix)) {
+                  thinkingDisplay = lines.slice(0, i).join('\n').trim();
+                  break;
+                }
               }
             }
           }
         }
-      }
 
-      return {
-        thinkingContent: thinkingDisplay,
-        displayContent: cleaned,
-        isStillThinking: stillThinking,
-      };
+        return {
+          thinkingContent: thinkingDisplay,
+          displayContent: cleaned,
+          isStillThinking: stillThinking,
+        };
+      } catch {
+        // Prevent rendering crash — show content as-is
+        return { thinkingContent: '', displayContent: message.content, isStillThinking: false };
+      }
     }, [message.content, isUser]);
 
     // Auto-expand thinking while streaming, auto-collapse when done
