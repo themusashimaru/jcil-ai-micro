@@ -34,16 +34,7 @@ import {
 describe('SalesforceToolkit type exports', () => {
   it('should export SalesforceActionCategory type', () => {
     const cat: SalesforceActionCategory = 'leads';
-    expect([
-      'leads',
-      'contacts',
-      'accounts',
-      'opportunities',
-      'cases',
-      'tasks',
-      'reports',
-      'records',
-    ]).toContain(cat);
+    expect(['leads', 'opportunities', 'accounts', 'contacts', 'cases', 'reports']).toContain(cat);
   });
 
   it('should export SalesforceAction interface', () => {
@@ -88,16 +79,7 @@ describe('ALL_SALESFORCE_ACTIONS', () => {
   });
 
   it('should have actions with valid categories', () => {
-    const validCategories = [
-      'leads',
-      'contacts',
-      'accounts',
-      'opportunities',
-      'cases',
-      'tasks',
-      'reports',
-      'records',
-    ];
+    const validCategories = ['leads', 'opportunities', 'accounts', 'contacts', 'cases', 'reports'];
     for (const action of ALL_SALESFORCE_ACTIONS) {
       expect(validCategories).toContain(action.category);
     }

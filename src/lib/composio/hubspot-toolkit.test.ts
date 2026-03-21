@@ -34,16 +34,7 @@ import {
 describe('HubSpotToolkit type exports', () => {
   it('should export HubSpotActionCategory type', () => {
     const cat: HubSpotActionCategory = 'contacts';
-    expect([
-      'contacts',
-      'companies',
-      'deals',
-      'tickets',
-      'lists',
-      'emails',
-      'notes',
-      'tasks',
-    ]).toContain(cat);
+    expect(['contacts', 'deals', 'companies', 'tickets', 'emails', 'lists']).toContain(cat);
   });
 
   it('should export HubSpotAction interface', () => {
@@ -88,16 +79,7 @@ describe('ALL_HUBSPOT_ACTIONS', () => {
   });
 
   it('should have actions with valid categories', () => {
-    const validCategories = [
-      'contacts',
-      'companies',
-      'deals',
-      'tickets',
-      'lists',
-      'emails',
-      'notes',
-      'tasks',
-    ];
+    const validCategories = ['contacts', 'deals', 'companies', 'tickets', 'emails', 'lists'];
     for (const action of ALL_HUBSPOT_ACTIONS) {
       expect(validCategories).toContain(action.category);
     }
@@ -256,13 +238,13 @@ describe('isDestructiveHubSpotAction', () => {
 describe('sortByHubSpotPriority', () => {
   it('should sort tools by priority ascending', () => {
     const tools = [
-      { name: 'HUBSPOT_DELETE_NOTE' }, // priority 4
+      { name: 'HUBSPOT_DELETE_CONTACT' }, // priority 4
       { name: 'HUBSPOT_CREATE_CONTACT' }, // priority 1
       { name: 'HUBSPOT_CREATE_TICKET' }, // priority 2
     ];
     const sorted = sortByHubSpotPriority(tools);
     expect(sorted[0].name).toBe('HUBSPOT_CREATE_CONTACT');
-    expect(sorted[2].name).toBe('HUBSPOT_DELETE_NOTE');
+    expect(sorted[2].name).toBe('HUBSPOT_DELETE_CONTACT');
   });
 
   it('should place unknown actions last', () => {
@@ -273,7 +255,7 @@ describe('sortByHubSpotPriority', () => {
   });
 
   it('should not mutate original array', () => {
-    const tools = [{ name: 'HUBSPOT_DELETE_NOTE' }, { name: 'HUBSPOT_CREATE_CONTACT' }];
+    const tools = [{ name: 'HUBSPOT_DELETE_CONTACT' }, { name: 'HUBSPOT_CREATE_CONTACT' }];
     const original = [...tools];
     sortByHubSpotPriority(tools);
     expect(tools).toEqual(original);

@@ -58,6 +58,8 @@ const config: Config = {
       },
       animation: {
         marquee: 'marquee 40s linear infinite',
+        'marquee-left': 'marquee-left 60s linear infinite',
+        'marquee-right': 'marquee-right 60s linear infinite',
         fadeIn: 'fadeIn 0.8s ease-out forwards',
         fadeInUp: 'fadeInUp 0.8s ease-out forwards',
         fadeInDown: 'fadeInDown 0.6s ease-out forwards',
@@ -71,6 +73,14 @@ const config: Config = {
         marquee: {
           '0%': { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
+        },
+        'marquee-left': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'marquee-right': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0)' },
         },
         fadeIn: {
           '0%': { opacity: '0' },

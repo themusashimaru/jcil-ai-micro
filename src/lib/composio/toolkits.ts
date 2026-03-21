@@ -74,6 +74,27 @@ import { getEvernoteActionNamesByPriority } from './evernote-toolkit';
 import { getWebflowActionNamesByPriority } from './webflow-toolkit';
 import { getPagerDutyActionNamesByPriority } from './pagerduty-toolkit';
 import { getLoomActionNamesByPriority } from './loom-toolkit';
+import { getTikTokActionNamesByPriority } from './tiktok-toolkit';
+import { getFacebookActionNamesByPriority } from './facebook-toolkit';
+import { getCanvaActionNamesByPriority } from './canva-toolkit';
+import { getWordPressActionNamesByPriority } from './wordpress-toolkit';
+import { getPayPalActionNamesByPriority } from './paypal-toolkit';
+import { getOneDriveActionNamesByPriority } from './onedrive-toolkit';
+import { getXeroActionNamesByPriority } from './xero-toolkit';
+import { getEventbriteActionNamesByPriority } from './eventbrite-toolkit';
+import { getKlaviyoActionNamesByPriority } from './klaviyo-toolkit';
+import { getActiveCampaignActionNamesByPriority } from './activecampaign-toolkit';
+import { getBambooHRActionNamesByPriority } from './bamboohr-toolkit';
+import { getHelpScoutActionNamesByPriority } from './helpscout-toolkit';
+import { getSquareActionNamesByPriority } from './square-toolkit';
+import { getFreshBooksActionNamesByPriority } from './freshbooks-toolkit';
+import { getPandaDocActionNamesByPriority } from './pandadoc-toolkit';
+import { getSpotifyActionNamesByPriority } from './spotify-toolkit';
+import { getMixpanelActionNamesByPriority } from './mixpanel-toolkit';
+import { getMiroActionNamesByPriority } from './miro-toolkit';
+import { getWixActionNamesByPriority } from './wix-toolkit';
+import { getGumroadActionNamesByPriority } from './gumroad-toolkit';
+import { getSegmentActionNamesByPriority } from './segment-toolkit';
 
 // ============================================================================
 // POPULAR TOOLKITS (shown prominently in UI)
@@ -209,6 +230,247 @@ export const POPULAR_TOOLKITS: ToolkitConfig[] = [
     popular: true,
     featuredActions: getYouTubeActionNamesByPriority(2),
     toolLimit: 24,
+  },
+  {
+    id: 'TIKTOK',
+    displayName: 'TikTok',
+    description: 'TikTok integration: upload videos, post photos, publish content, analytics',
+    icon: '🎵',
+    category: 'social' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getTikTokActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+  {
+    id: 'FACEBOOK',
+    displayName: 'Facebook',
+    description:
+      'Facebook Pages integration: posts with photos/videos, albums, comments, events, insights',
+    icon: '📘',
+    category: 'social' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getFacebookActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+
+  // Design & Creative
+  {
+    id: 'CANVA',
+    displayName: 'Canva',
+    description: 'Design integration: create designs, manage brand kits, export assets, templates',
+    icon: '🎨',
+    category: 'media' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getCanvaActionNamesByPriority(2),
+    toolLimit: 48,
+  },
+
+  // CMS & Content
+  {
+    id: 'WORDPRESS',
+    displayName: 'WordPress',
+    description: 'Full CMS: publish posts, manage pages, upload media, moderate comments',
+    icon: '📝',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getWordPressActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+  {
+    id: 'WIX',
+    displayName: 'Wix',
+    description: 'Website builder: blog posts, pages, contacts, e-commerce',
+    icon: '🌐',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getWixActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Payments & Finance
+  {
+    id: 'PAYPAL',
+    displayName: 'PayPal',
+    description: 'Payments: invoices, orders, payouts, subscriptions, donations',
+    icon: '💳',
+    category: 'finance' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getPayPalActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+  {
+    id: 'SQUARE',
+    displayName: 'Square',
+    description: 'POS & payments: orders, invoices, customers, catalog',
+    icon: '⬜',
+    category: 'finance' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getSquareActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+  {
+    id: 'XERO',
+    displayName: 'Xero',
+    description: 'Accounting: invoices, contacts, payments, profit & loss reports',
+    icon: '📊',
+    category: 'finance' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getXeroActionNamesByPriority(2),
+    toolLimit: 20,
+  },
+  {
+    id: 'FRESHBOOKS',
+    displayName: 'FreshBooks',
+    description: 'Invoicing & accounting: clients, expenses, payments, reports',
+    icon: '📒',
+    category: 'finance' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getFreshBooksActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Storage
+  {
+    id: 'ONEDRIVE',
+    displayName: 'OneDrive',
+    description: 'Microsoft cloud storage: files, folders, sharing, search',
+    icon: '☁️',
+    category: 'storage' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getOneDriveActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Events
+  {
+    id: 'EVENTBRITE',
+    displayName: 'Eventbrite',
+    description: 'Events & ticketing: create events, sell tickets, manage attendees',
+    icon: '🎟️',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    popular: true,
+    featuredActions: getEventbriteActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Marketing
+  {
+    id: 'KLAVIYO',
+    displayName: 'Klaviyo',
+    description: 'Email/SMS marketing: campaigns, lists, profiles, flows, metrics',
+    icon: '📨',
+    category: 'communication' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getKlaviyoActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+  {
+    id: 'ACTIVECAMPAIGN',
+    displayName: 'ActiveCampaign',
+    description: 'Marketing automation: contacts, campaigns, automations, deals',
+    icon: '⚡',
+    category: 'communication' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getActiveCampaignActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // HR
+  {
+    id: 'BAMBOOHR',
+    displayName: 'BambooHR',
+    description: 'HR platform: employees, time off, directory, onboarding, reports',
+    icon: '🧑‍💼',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getBambooHRActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Support
+  {
+    id: 'HELPSCOUT',
+    displayName: 'Help Scout',
+    description: 'Customer support: conversations, customers, mailboxes, tags',
+    icon: '🆘',
+    category: 'communication' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getHelpScoutActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Documents
+  {
+    id: 'PANDADOC',
+    displayName: 'PandaDoc',
+    description: 'Document automation: proposals, contracts, e-signatures, templates',
+    icon: '🐼',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getPandaDocActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // Media & Entertainment
+  {
+    id: 'SPOTIFY',
+    displayName: 'Spotify',
+    description: 'Music & podcasts: playlists, search, podcast episodes, playback',
+    icon: '🎧',
+    category: 'media' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getSpotifyActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+  {
+    id: 'MIRO',
+    displayName: 'Miro',
+    description: 'Visual collaboration: boards, sticky notes, shapes, connectors',
+    icon: '🟡',
+    category: 'productivity' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getMiroActionNamesByPriority(2),
+    toolLimit: 15,
+  },
+
+  // E-commerce
+  {
+    id: 'GUMROAD',
+    displayName: 'Gumroad',
+    description: 'Digital products: create products, manage sales, subscribers, offers',
+    icon: '🛍️',
+    category: 'finance' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getGumroadActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+
+  // Analytics & Data
+  {
+    id: 'MIXPANEL',
+    displayName: 'Mixpanel',
+    description: 'Product analytics: events, funnels, retention, user profiles',
+    icon: '📈',
+    category: 'analytics' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getMixpanelActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+  {
+    id: 'SEGMENT',
+    displayName: 'Segment',
+    description: 'Customer data platform: event tracking, sources, destinations',
+    icon: '🔀',
+    category: 'analytics' as ToolkitCategory,
+    authType: 'oauth2',
+    featuredActions: getSegmentActionNamesByPriority(2),
+    toolLimit: 10,
   },
 
   // Development - Core
@@ -453,6 +715,27 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     popular: true,
     featuredActions: getYouTubeActionNamesByPriority(2),
     toolLimit: 24,
+  },
+  {
+    id: 'TIKTOK',
+    displayName: 'TikTok',
+    description: 'TikTok integration: upload videos, post photos, publish content, analytics',
+    icon: '🎵',
+    category: 'social',
+    authType: 'oauth2',
+    featuredActions: getTikTokActionNamesByPriority(2),
+    toolLimit: 10,
+  },
+  {
+    id: 'FACEBOOK',
+    displayName: 'Facebook',
+    description:
+      'Facebook Pages integration: posts with photos/videos, albums, comments, events, insights',
+    icon: '📘',
+    category: 'social',
+    authType: 'oauth2',
+    featuredActions: getFacebookActionNamesByPriority(2),
+    toolLimit: 20,
   },
   {
     id: 'REDDIT',
@@ -1083,9 +1366,10 @@ export const ALL_TOOLKITS: ToolkitConfig[] = [
     featuredActions: getLoomActionNamesByPriority(2),
     toolLimit: 15,
   },
-].filter((toolkit, index, self) =>
-  // Deduplicate by ID — keep first occurrence only
-  self.findIndex((t) => t.id === toolkit.id) === index
+].filter(
+  (toolkit, index, self) =>
+    // Deduplicate by ID — keep first occurrence only
+    self.findIndex((t) => t.id === toolkit.id) === index
 ) as ToolkitConfig[];
 
 // ============================================================================
