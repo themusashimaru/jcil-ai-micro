@@ -491,11 +491,36 @@ export async function POST(request: NextRequest) {
     slotAcquired = false;
     return response;
   } catch (error) {
-    log.error('Unhandled chat error', error instanceof Error ? error : undefined);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    log.error('Unhandled chat error', {
+      message: errMsg,
+      stack: errStack?.split('\n').slice(0, 5).join('\n'),
+      name: error instanceof Error ? error.name : typeof error,
+    });
+
+    // Surface a more specific message for known Anthropic API errors
+    const lowerErr = errMsg.toLowerCase();
+    let userMessage = 'Something went wrong. Please try again.';
+    if (
+      lowerErr.includes('tool') &&
+      (lowerErr.includes('invalid') || lowerErr.includes('schema'))
+    ) {
+      userMessage = 'A tool configuration error occurred. The team has been notified.';
+    } else if (
+      lowerErr.includes('context') ||
+      lowerErr.includes('too many tokens') ||
+      lowerErr.includes('maximum')
+    ) {
+      userMessage = 'The conversation is too long. Please start a new chat.';
+    } else if (lowerErr.includes('overloaded') || lowerErr.includes('529')) {
+      userMessage = 'The AI service is temporarily at capacity. Please try again in a moment.';
+    }
+
     return chatErrorResponse(HTTP_STATUS.INTERNAL_ERROR, {
       error: 'Internal server error',
       code: ERROR_CODES.INTERNAL_ERROR,
-      message: 'Something went wrong. Please try again.',
+      message: userMessage,
       action: 'retry',
     });
   } finally {

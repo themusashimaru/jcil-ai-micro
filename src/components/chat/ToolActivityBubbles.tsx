@@ -52,17 +52,23 @@ interface ToolActivityBubblesProps {
 }
 
 export function ToolActivityBubbles({ toolCalls }: ToolActivityBubblesProps) {
-  if (!toolCalls || toolCalls.length === 0) return null;
+  if (!toolCalls || !Array.isArray(toolCalls) || toolCalls.length === 0) return null;
 
   // Deduplicate by tool name — only show unique tools
-  const seen = new Set<string>();
-  const unique = toolCalls.filter((t) => {
-    if (seen.has(t.name)) return false;
-    seen.add(t.name);
-    return true;
-  });
-
-  const hasRunning = toolCalls.some((t) => t.status === 'running');
+  // Wrapped in try-catch to prevent rendering crashes from malformed data
+  let unique: ToolCall[];
+  let hasRunning: boolean;
+  try {
+    const seen = new Set<string>();
+    unique = toolCalls.filter((t) => {
+      if (!t || !t.name || seen.has(t.name)) return false;
+      seen.add(t.name);
+      return true;
+    });
+    hasRunning = toolCalls.some((t) => t?.status === 'running');
+  } catch {
+    return null; // Silently fail on malformed data
+  }
 
   return (
     <div className="flex items-center gap-1.5 py-1.5" role="status" aria-label="Working">

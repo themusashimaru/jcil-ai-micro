@@ -329,13 +329,22 @@ export async function loadAllTools(
 
       if (composioToolContext.tools.length > 0) {
         for (const composioTool of composioToolContext.tools) {
+          // Guard against Composio tools with missing/malformed schemas
+          const schema = composioTool.input_schema;
+          if (!composioTool.name || !schema || typeof schema !== 'object') {
+            log.warn('Skipping Composio tool with missing schema', {
+              name: composioTool.name || '<unnamed>',
+              hasSchema: !!schema,
+            });
+            continue;
+          }
           tools.push({
             name: composioTool.name,
-            description: composioTool.description,
+            description: composioTool.description || composioTool.name,
             parameters: {
               type: 'object' as const,
-              properties: composioTool.input_schema.properties || {},
-              required: composioTool.input_schema.required || [],
+              properties: schema.properties || {},
+              required: schema.required || [],
             },
           } as UnifiedTool);
         }
@@ -359,12 +368,34 @@ export async function loadAllTools(
   const seenNames = new Set<string>();
   const uniqueTools: UnifiedTool[] = [];
   for (const tool of tools) {
+    // Skip tools with missing or malformed schemas — they'll crash the API call
+    if (!tool.name || !tool.parameters || typeof tool.parameters !== 'object') {
+      log.warn('Skipping tool with missing name or parameters', {
+        name: tool.name || '<undefined>',
+        hasParams: !!tool.parameters,
+      });
+      continue;
+    }
     if (!seenNames.has(tool.name)) {
       seenNames.add(tool.name);
       uniqueTools.push(tool);
     } else {
       log.warn('Skipped duplicate tool name', { tool: tool.name });
     }
+  }
+
+  // Cap total tools to prevent Anthropic API context overflow.
+  // Each tool schema consumes ~200-500 tokens. At 128 tools that's 25K-64K tokens
+  // which can push the request over context limits when combined with system prompt
+  // and conversation history.
+  const MAX_TOOLS = 128;
+  if (uniqueTools.length > MAX_TOOLS) {
+    log.warn('Too many tools loaded — capping to prevent API overflow', {
+      total: uniqueTools.length,
+      cap: MAX_TOOLS,
+      dropped: uniqueTools.length - MAX_TOOLS,
+    });
+    uniqueTools.length = MAX_TOOLS;
   }
 
   log.debug('Available chat tools', {

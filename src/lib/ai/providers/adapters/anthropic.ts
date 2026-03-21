@@ -472,14 +472,20 @@ export class AnthropicAdapter extends BaseAIAdapter {
         continue;
       }
 
+      // Guard: skip tools with missing or invalid schemas to prevent API rejection
+      if (!tool.parameters || typeof tool.parameters !== 'object') {
+        console.warn('[AnthropicAdapter] Skipping tool with missing parameters:', tool.name);
+        continue;
+      }
+
       // Standard custom tool
       formatted.push({
         name: tool.name,
-        description: tool.description,
+        description: tool.description || tool.name,
         input_schema: {
           type: 'object' as const,
-          properties: tool.parameters.properties,
-          required: tool.parameters.required,
+          properties: tool.parameters.properties || {},
+          required: tool.parameters.required || [],
         },
       });
     }
