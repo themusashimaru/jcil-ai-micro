@@ -384,11 +384,12 @@ export async function loadAllTools(
     }
   }
 
-  // Cap total tools to prevent Anthropic API context overflow.
-  // Each tool schema consumes ~200-500 tokens. At 128 tools that's 25K-64K tokens
-  // which can push the request over context limits when combined with system prompt
-  // and conversation history.
-  const MAX_TOOLS = 128;
+  // Safety cap: prevent runaway tool loading from crashing the API call.
+  // Normal load is ~96 built-in + 25 MCP + Composio (~30-50) ≈ 150-170 tools.
+  // Opus 4.6 handles 200+ tools within its 200K context window.
+  // This cap only guards against extreme edge cases (e.g., rogue MCP server
+  // registering thousands of tools).
+  const MAX_TOOLS = 250;
   if (uniqueTools.length > MAX_TOOLS) {
     log.warn('Too many tools loaded — capping to prevent API overflow', {
       total: uniqueTools.length,
@@ -398,7 +399,7 @@ export async function loadAllTools(
     uniqueTools.length = MAX_TOOLS;
   }
 
-  log.debug('Available chat tools', {
+  log.info('Chat tools loaded', {
     toolCount: uniqueTools.length,
     deduped: tools.length - uniqueTools.length,
   });
