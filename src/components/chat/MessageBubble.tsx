@@ -160,9 +160,9 @@ export const MessageBubble = memo(
 
         <div className="space-y-0 overflow-x-hidden flex-1 max-w-full">
           {/* Tool Activity Bubbles — real-time tool execution indicators */}
-          {message.toolCalls && message.toolCalls.length > 0 && (
-            <ToolActivityBubbles toolCalls={message.toolCalls} />
-          )}
+          {message.toolCalls &&
+            Array.isArray(message.toolCalls) &&
+            message.toolCalls.length > 0 && <ToolActivityBubbles toolCalls={message.toolCalls} />}
 
           {/* Attachments */}
           {message.attachments && message.attachments.length > 0 && (

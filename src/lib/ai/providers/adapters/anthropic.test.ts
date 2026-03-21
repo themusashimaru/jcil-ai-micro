@@ -487,7 +487,7 @@ describe('AnthropicAdapter', () => {
       expect(result[1].input_schema).toEqual({
         type: 'object',
         properties: { to: { type: 'string' } },
-        required: undefined,
+        required: [],
       });
     });
   });
