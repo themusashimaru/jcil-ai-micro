@@ -512,10 +512,13 @@ export async function handleClaudeProvider(
     ensureSlotReleased();
   });
 
-  const SLOT_TIMEOUT_MS = 30 * 1000;
+  // Slot timeout must be longer than tool execution (tools can chain up to 10 iterations
+  // at 45s each = 450s worst case). Set to 4 minutes to cover most tool chains while
+  // still preventing leaked slots. The Vercel function timeout (300s) is the hard ceiling.
+  const SLOT_TIMEOUT_MS = 240 * 1000; // 4 minutes
   slotTimeoutId = setTimeout(() => {
     if (!slotReleased) {
-      log.warn('Queue slot timeout — force releasing after 30s', { requestId });
+      log.warn('Queue slot timeout — force releasing after 4min', { requestId });
       ensureSlotReleased();
     }
   }, SLOT_TIMEOUT_MS);

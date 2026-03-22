@@ -588,11 +588,24 @@ export async function routeChatWithTools(
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const MAX_TOOL_ITERATIONS = 10; // Support complex orchestration chains
+      const TOOL_LOOP_TIMEOUT_MS = 240_000; // 4-minute aggregate timeout for entire tool loop
+      const toolLoopStartTime = Date.now();
       let iteration = 0;
 
       try {
         while (iteration < MAX_TOOL_ITERATIONS) {
           iteration++;
+
+          // Aggregate timeout: abort tool loop if total time exceeds limit
+          const elapsed = Date.now() - toolLoopStartTime;
+          if (elapsed > TOOL_LOOP_TIMEOUT_MS) {
+            log.warn('Tool loop aggregate timeout', { iteration, elapsedMs: elapsed });
+            controller.enqueue(
+              encoder.encode('\n\n*Tool execution took too long. Showing results so far.*\n')
+            );
+            break;
+          }
+
           log.debug('Tool loop iteration', { iteration, messageCount: currentMessages.length });
 
           // Accumulate tool calls from this iteration

@@ -807,8 +807,8 @@ describe('streaming', () => {
       // Not yet released
       expect(mockReleaseSlot).not.toHaveBeenCalled();
 
-      // Advance past 30s timeout
-      await vi.advanceTimersByTimeAsync(31_000);
+      // Advance past 4-minute slot timeout
+      await vi.advanceTimersByTimeAsync(241_000);
       expect(mockReleaseSlot).toHaveBeenCalledWith('req-claude-1');
     });
 
@@ -824,7 +824,7 @@ describe('streaming', () => {
 
       // Abort after stream is already done
       controller.abort();
-      await vi.advanceTimersByTimeAsync(31_000);
+      await vi.advanceTimersByTimeAsync(241_000);
 
       // Should be called exactly once despite flush + abort + timeout
       expect(mockReleaseSlot).toHaveBeenCalledTimes(1);
