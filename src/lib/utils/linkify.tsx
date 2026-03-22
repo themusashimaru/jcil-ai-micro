@@ -146,6 +146,7 @@ export function linkify(text: string): string {
  * Use this for React components that can't use dangerouslySetInnerHTML
  */
 export function linkifyToReact(text: string): (string | JSX.Element)[] {
+  if (!text) return [text ?? ''];
   const urlRegex = /(https?:\/\/[^\s<>)"']+|www\.[^\s<>)"']+)/gi;
   const parts: (string | JSX.Element)[] = [];
   let lastIndex = 0;

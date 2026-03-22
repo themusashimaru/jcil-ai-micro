@@ -59,7 +59,7 @@ export const fetchMessages = async (chatId: string): Promise<Message[] | null> =
           return {
             id: msg.id,
             role: msg.role,
-            content: msg.content,
+            content: msg.content ?? '',
             imageUrl,
             documentDownload: docDl || undefined,
             timestamp: new Date(msg.created_at),
