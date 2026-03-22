@@ -676,3 +676,4 @@ async function tryDataAnalytics(
 }
 
 export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 minutes — must be set here for App Router (vercel.json alone is insufficient)

@@ -219,6 +219,11 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
     }
 
     let streamFinalContent = '';
+    // Declare assistantMessageId early so timeout closures can reference it safely
+    const assistantMessageId = crypto.randomUUID();
+    // Track timeout IDs for cleanup in catch/finally
+    let slowWarningId: ReturnType<typeof setTimeout> | null = null;
+    let chatTimeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
       // Format messages for API (handle images, documents, etc.)
       const allMessages = [...messages, userMessage];
@@ -245,7 +250,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
       abortControllerRef.current = new AbortController();
 
       // Timeout: show a warning at 30s, abort at 3 minutes
-      const slowWarningId = setTimeout(() => {
+      slowWarningId = setTimeout(() => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId && msg.isStreaming && !msg.content
@@ -256,7 +261,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
         log.info('Response taking longer than expected', { chatId: newChatId });
       }, SLOW_RESPONSE_WARNING_MS);
 
-      const chatTimeoutId = setTimeout(() => {
+      chatTimeoutId = setTimeout(() => {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
           // Show explicit timeout message to user
@@ -290,8 +295,10 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
         signal: abortControllerRef.current.signal,
       });
 
-      clearTimeout(chatTimeoutId);
-      clearTimeout(slowWarningId);
+      if (chatTimeoutId) clearTimeout(chatTimeoutId);
+      if (slowWarningId) clearTimeout(slowWarningId);
+      chatTimeoutId = null;
+      slowWarningId = null;
       if (!response.ok) {
         const errorData = await safeJsonParse(response);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -307,7 +314,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
       const isJsonResponse = contentType.includes('application/json');
       const modelUsed = response.headers.get('X-Model-Used') || undefined;
       const searchProvider = response.headers.get('X-Web-Search') || undefined;
-      const assistantMessageId = crypto.randomUUID();
+      // assistantMessageId declared above (before timeouts) so closures can reference it
       let isImageResponse = false;
 
       if (isJsonResponse) {
@@ -446,11 +453,53 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
           // Throttle UI updates to ~30fps to avoid overwhelming mobile devices
           let lastUIUpdate = 0;
           const UI_THROTTLE_MS = 33;
+          // Inactivity timeout: if no chunks arrive for 90s, assume server died
+          const STREAM_INACTIVITY_TIMEOUT_MS = 90_000;
+          let lastChunkTime = Date.now();
           try {
             let buffer = '';
             while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
+              // Race read against inactivity timeout
+              const readPromise = reader.read();
+              const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
+                const checkInterval = setInterval(() => {
+                  if (Date.now() - lastChunkTime > STREAM_INACTIVITY_TIMEOUT_MS) {
+                    clearInterval(checkInterval);
+                    resolve({ done: true, value: undefined });
+                  }
+                }, 5000);
+                // Clean up interval when read resolves
+                readPromise
+                  .then(() => clearInterval(checkInterval))
+                  .catch(() => clearInterval(checkInterval));
+              });
+              const { done, value } = await Promise.race([readPromise, timeoutPromise]);
+              if (done) {
+                // Check if this was an inactivity timeout (no value)
+                if (
+                  !value &&
+                  accumulatedContent.length > 0 &&
+                  Date.now() - lastChunkTime > STREAM_INACTIVITY_TIMEOUT_MS
+                ) {
+                  log.warn('Stream inactivity timeout — showing partial content', {
+                    chatId: newChatId,
+                  });
+                  streamFinalContent = accumulatedContent
+                    .replace(/\n?\[DONE]\n?|\n?<!--TOOL_(?:START|RESULT):[^>]+-->/g, '')
+                    .trimEnd();
+                  streamFinalContent +=
+                    '\n\n---\n*Response was interrupted due to timeout. You can ask me to continue.*';
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? { ...msg, content: streamFinalContent, isStreaming: false }
+                        : msg
+                    )
+                  );
+                }
+                break;
+              }
+              lastChunkTime = Date.now();
               const chunk = decoder.decode(value, { stream: true });
 
               if (isSSE) {
@@ -614,11 +663,26 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
 
       // Post-processing: document markers, follow-ups, citations, title
       if (streamFinalContent) {
-        const { content: processedContent, documentDownloadMeta } = await processDocumentMarkers(
-          streamFinalContent,
-          assistantMessageId,
-          setMessages
-        );
+        // Wrap processDocumentMarkers with a 10s timeout to prevent hangs
+        let processedContent = streamFinalContent;
+        let documentDownloadMeta: Awaited<
+          ReturnType<typeof processDocumentMarkers>
+        >['documentDownloadMeta'] = null;
+        try {
+          const markerResult = await Promise.race([
+            processDocumentMarkers(streamFinalContent, assistantMessageId, setMessages),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Document marker processing timeout')), 10_000)
+            ),
+          ]);
+          processedContent = markerResult.content;
+          documentDownloadMeta = markerResult.documentDownloadMeta;
+        } catch (markerErr) {
+          log.warn('Document marker processing failed/timed out', {
+            error: markerErr instanceof Error ? markerErr.message : String(markerErr),
+          });
+          // Continue with unprocessed content — better than crashing
+        }
         streamFinalContent = processedContent;
 
         // Set the full content (including thinking blocks) on the message
@@ -861,6 +925,9 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
       abortControllerRef.current = null;
       await saveMessageToDatabase(newChatId, 'assistant', errorContent, 'error');
     } finally {
+      // Always clean up timeouts to prevent stale timers firing on dead state
+      if (slowWarningId) clearTimeout(slowWarningId);
+      if (chatTimeoutId) clearTimeout(chatTimeoutId);
       abortControllerRef.current = null;
       if (isMountedRef.current) {
         setIsStreaming(false);
