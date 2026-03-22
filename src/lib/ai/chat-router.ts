@@ -249,6 +249,17 @@ export function createStreamFromChunks(
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
+      // Keepalive: Opus 4.6 with thinking can take 10-15s before the first token.
+      // Send a space byte every 10s to prevent connection timeouts.
+      const KEEPALIVE_MS = 10_000;
+      const keepalive = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(' '));
+        } catch {
+          clearInterval(keepalive);
+        }
+      }, KEEPALIVE_MS);
+
       try {
         let result: ProviderChatResult | undefined;
         let totalInputTokens = 0;
@@ -321,8 +332,10 @@ export function createStreamFromChunks(
           }
         }
 
+        clearInterval(keepalive);
         controller.close();
       } catch (error) {
+        clearInterval(keepalive);
         log.error('Stream processing error', { error });
         controller.error(error);
       }
@@ -591,6 +604,22 @@ export async function routeChatWithTools(
       const TOOL_LOOP_TIMEOUT_MS = 240_000; // 4-minute aggregate timeout for entire tool loop
       const toolLoopStartTime = Date.now();
       let iteration = 0;
+
+      // Stream-level keepalive: runs from the very start of the connection.
+      // Prevents Vercel/Cloudflare/load balancer timeouts during the initial
+      // wait for Anthropic (can be 10-15s with thinking + 250 tools), AND
+      // during gaps between tool execution and Claude's next response.
+      // Sends a single space byte every 10s — invisible to the user but
+      // keeps the TCP connection alive.
+      const STREAM_KEEPALIVE_MS = 10_000;
+      const streamKeepalive = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(' '));
+        } catch {
+          // Stream closed — clear ourselves
+          clearInterval(streamKeepalive);
+        }
+      }, STREAM_KEEPALIVE_MS);
 
       try {
         while (iteration < MAX_TOOL_ITERATIONS) {
@@ -998,8 +1027,10 @@ export async function routeChatWithTools(
           }
         }
 
+        clearInterval(streamKeepalive);
         controller.close();
       } catch (error) {
+        clearInterval(streamKeepalive);
         log.error('Error in tool loop', { error });
         controller.error(error);
       }
