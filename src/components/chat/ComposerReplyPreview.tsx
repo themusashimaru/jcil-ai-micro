@@ -26,9 +26,9 @@ export function ComposerReplyPreview({ replyingTo, onClearReply }: ComposerReply
       <div className="flex-1 min-w-0">
         <span className="text-xs font-semibold text-primary">Replying to:</span>
         <p className="text-sm mt-1 line-clamp-2 text-text-primary">
-          {replyingTo.content.length > 150
-            ? replyingTo.content.slice(0, 150) + '...'
-            : replyingTo.content}
+          {(replyingTo.content ?? '').length > 150
+            ? (replyingTo.content ?? '').slice(0, 150) + '...'
+            : (replyingTo.content ?? '')}
         </p>
       </div>
       <button

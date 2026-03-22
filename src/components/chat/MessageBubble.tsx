@@ -276,7 +276,7 @@ export const MessageBubble = memo(
           >
             <div className="break-words select-text">
               {isUser ? (
-                <div className="whitespace-pre-wrap">{linkifyToReact(message.content)}</div>
+                <div className="whitespace-pre-wrap">{linkifyToReact(message.content ?? '')}</div>
               ) : (
                 <>
                   {thinkingContent && (

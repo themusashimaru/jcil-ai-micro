@@ -112,7 +112,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
               onSend={async () => {
                 if (onActionSend) {
                   setActionSending(true);
-                  try { await onActionSend(previewData); } finally { setActionSending(false); }
+                  try {
+                    await onActionSend(previewData);
+                  } finally {
+                    setActionSending(false);
+                  }
                 }
               }}
               onEdit={(instruction) => onActionEdit?.(previewData, instruction)}
@@ -132,7 +136,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
               onConfirm={async () => {
                 if (onDestructiveConfirm) {
                   setDestructiveConfirming(true);
-                  try { await onDestructiveConfirm(confirmData); } finally { setDestructiveConfirming(false); }
+                  try {
+                    await onDestructiveConfirm(confirmData);
+                  } finally {
+                    setDestructiveConfirming(false);
+                  }
                 }
               }}
               onCancel={() => onDestructiveCancel?.(confirmData)}
@@ -159,8 +167,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       if (language === 'screenshot-gallery') {
         try {
           const images = JSON.parse(codeContent);
-          if (Array.isArray(images) && images.length > 0) return <ScreenshotGallery images={images} />;
-        } catch { /* Not valid JSON, fall through */ }
+          if (Array.isArray(images) && images.length > 0)
+            return <ScreenshotGallery images={images} />;
+        } catch {
+          /* Not valid JSON, fall through */
+        }
       }
 
       if (language === 'scheduled-action') {
@@ -173,7 +184,11 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
               onConfirm={async (data) => {
                 if (onScheduledConfirm) {
                   setScheduledConfirming(true);
-                  try { await onScheduledConfirm(data); } finally { setScheduledConfirming(false); }
+                  try {
+                    await onScheduledConfirm(data);
+                  } finally {
+                    setScheduledConfirming(false);
+                  }
                 }
               }}
               onModifyTime={(data, newTime) => onScheduledModifyTime?.(data, newTime)}
@@ -183,7 +198,15 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         }
       }
 
-      const isTerminalOutput = ['bash', 'sh', 'shell', 'console', 'terminal', 'output', 'log'].includes(language.toLowerCase());
+      const isTerminalOutput = [
+        'bash',
+        'sh',
+        'shell',
+        'console',
+        'terminal',
+        'output',
+        'log',
+      ].includes(language.toLowerCase());
       if (isTerminalOutput) {
         const hasError =
           codeContent.toLowerCase().includes('error') ||
@@ -224,16 +247,23 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 
               try {
                 const result = await codeExecution.testCode(code, lang);
-                const output = result.outputs.map((o) => o.stdout || o.stderr).join('\n') || result.error || '';
+                const output = Array.isArray(result.outputs)
+                  ? result.outputs.map((o) => o.stdout || o.stderr).join('\n')
+                  : '';
+                const displayOutput = output || result.error || '';
 
                 setTestResults((prev) => {
                   const next = new Map(prev);
-                  next.set(codeHash, { success: result.success, output, testing: false });
+                  next.set(codeHash, {
+                    success: result.success,
+                    output: displayOutput,
+                    testing: false,
+                  });
                   return next;
                 });
 
-                if (onTestResult) onTestResult({ success: result.success, output });
-                return { success: result.success, output };
+                if (onTestResult) onTestResult({ success: result.success, output: displayOutput });
+                return { success: result.success, output: displayOutput };
               } catch (error) {
                 const errorMsg = error instanceof Error ? error.message : 'Test failed';
                 setTestResults((prev) => {
