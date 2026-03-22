@@ -35,12 +35,24 @@ const nextConfig = {
     '@e2b/desktop',
   ],
 
+  // Ensure pdfkit .afm font files are included in Vercel serverless output.
+  // Without this, pdfkit's fs.readFileSync calls fail with ENOENT.
+  // Ensure pdfkit .afm font files are included in Vercel serverless output.
+  // PDFKit loads font metrics via fs.readFileSync at runtime — without this,
+  // all PDF generation (resumes, invoices, general docs, mail merge) fails
+  // with ENOENT: '/var/task/.next/server/chunks/data/Helvetica.afm'
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./node_modules/pdfkit/js/data/*.afm'],
+  },
+
   // App Router optimizations
   experimental: {
     // Server-side native packages — must be under experimental in Next.js 14.x
     // ONLY truly native packages that use .node bindings belong here
-    // E2B packages are pure JS (HTTP API clients) — bundled via transpilePackages
-    serverComponentsExternalPackages: ['@napi-rs/canvas', 'puppeteer-core'],
+    // pdfkit loads .afm font files via fs.readFileSync at runtime —
+    // bundling it breaks because webpack doesn't include .afm data files.
+    // Marking it external lets Node.js resolve fonts from node_modules.
+    serverComponentsExternalPackages: ['@napi-rs/canvas', 'puppeteer-core', 'pdfkit'],
     serverActions: {
       bodySizeLimit: '10mb',
     },
