@@ -907,6 +907,63 @@ export async function routeChatWithTools(
                     )
                   );
 
+                  // Emit DOCUMENT_DOWNLOAD marker for document tools so the
+                  // client renders the download button.  The tool result
+                  // contains a markdown link like [Download file](url) after
+                  // uploadInlineFiles() replaces base64 with hosted URLs.
+                  if (
+                    !result.isError &&
+                    toolCall.name === 'create_document' &&
+                    typeof result.content === 'string'
+                  ) {
+                    const docLinkMatch = result.content.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
+                    if (docLinkMatch) {
+                      const [, linkText, downloadUrl] = docLinkMatch;
+                      const ext = linkText.split('.').pop()?.toLowerCase() || 'pdf';
+                      const mimeMap: Record<string, string> = {
+                        pdf: 'application/pdf',
+                        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        txt: 'text/plain',
+                        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                      };
+                      const marker = JSON.stringify({
+                        filename: linkText.replace(/^Download\s+/i, ''),
+                        mimeType: mimeMap[ext] || 'application/octet-stream',
+                        downloadUrl,
+                        canPreview: ext === 'pdf',
+                        type: ext,
+                      });
+                      controller.enqueue(encoder.encode(`\n[DOCUMENT_DOWNLOAD:${marker}]`));
+                      log.info('Emitted DOCUMENT_DOWNLOAD marker for tool result', {
+                        tool: toolCall.name,
+                        filename: linkText,
+                      });
+                    } else {
+                      // Fallback: check for data URL (Supabase upload may have failed)
+                      const dataUrlMatch = result.content.match(/\[([^\]]+)\]\((data:[^)]+)\)/);
+                      if (dataUrlMatch) {
+                        const [, linkText, dataUrl] = dataUrlMatch;
+                        const ext = linkText.split('.').pop()?.toLowerCase() || 'pdf';
+                        const mimeMap: Record<string, string> = {
+                          pdf: 'application/pdf',
+                          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                          txt: 'text/plain',
+                        };
+                        const marker = JSON.stringify({
+                          filename: linkText.replace(/^Download\s+/i, ''),
+                          mimeType: mimeMap[ext] || 'application/octet-stream',
+                          dataUrl,
+                          canPreview: ext === 'pdf',
+                          type: ext,
+                        });
+                        controller.enqueue(encoder.encode(`\n[DOCUMENT_DOWNLOAD:${marker}]`));
+                        log.info('Emitted DOCUMENT_DOWNLOAD marker (data URL fallback)', {
+                          tool: toolCall.name,
+                        });
+                      }
+                    }
+                  }
+
                   log.debug('Tool execution complete', {
                     name: toolCall.name,
                     resultLength: result.content.length,
