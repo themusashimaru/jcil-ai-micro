@@ -53,6 +53,7 @@ import {
   handleAutoDetectedDocument,
 } from './document-routes';
 import { loadAllTools, createToolExecutor } from './chat-tools';
+import { setSpawnContext, clearSpawnContext } from '@/lib/ai/tools/spawn-agent-tool';
 import {
   resolveProvider,
   createStreamPendingRequest,
@@ -440,6 +441,14 @@ export async function POST(request: NextRequest) {
     const sessionId = conversationId || `chat_${userId}_${Date.now()}`;
     const toolExecutor = createToolExecutor(userId, sessionId);
 
+    // Set spawn context so spawn_agents tool can create sub-agents
+    setSpawnContext({
+      userId,
+      conversationId: sessionId,
+      apiKey: userApiKey,
+      model: selectedModel,
+    });
+
     // Pending request for stream recovery
     const pendingRequestId = await createStreamPendingRequest({
       userId,
@@ -524,6 +533,7 @@ export async function POST(request: NextRequest) {
       action: 'retry',
     });
   } finally {
+    clearSpawnContext();
     if (slotAcquired && !isStreamingResponse) {
       releaseSlot(requestId).catch((err) => log.error('Error releasing slot', err));
     }
