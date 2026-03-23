@@ -7,8 +7,7 @@ function makeCall(args: Record<string, unknown>) {
 }
 
 async function getResult(args: Record<string, unknown>) {
-  const res = await executeQRCode(makeCall(args));
-  return JSON.parse(res.content);
+  return await executeQRCode(makeCall(args));
 }
 
 // -------------------------------------------------------------------
@@ -36,25 +35,24 @@ describe('isQRCodeAvailable', () => {
 describe('executeQRCode - basic', () => {
   it('should generate QR code for URL', async () => {
     const result = await getResult({ content: 'https://example.com' });
-    expect(result.success).toBe(true);
-    expect(result.imageData).toBeDefined();
-    expect(result.dataUrl).toContain('data:image/png;base64,');
-    expect(result.mimeType).toBe('image/png');
-    expect(result.dataLength).toBe('https://example.com'.length);
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('data:image/png;base64,');
+    expect(result.content).toContain('QR code generated successfully');
+    expect(result.content).toContain('https://example.com');
   });
 
   it('should generate QR code for plain text', async () => {
     const result = await getResult({ content: 'Hello World' });
-    expect(result.success).toBe(true);
-    expect(result.imageData).toBeDefined();
-    expect(result.message).toContain('Hello World');
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('Hello World');
+    expect(result.content).toContain('QR code generated successfully');
   });
 
   it('should generate QR code for long content', async () => {
     const content = 'A'.repeat(100);
     const result = await getResult({ content });
-    expect(result.success).toBe(true);
-    expect(result.message).toContain('...');
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('...');
   });
 });
 
@@ -64,25 +62,25 @@ describe('executeQRCode - basic', () => {
 describe('executeQRCode - size', () => {
   it('should accept custom size', async () => {
     const result = await getResult({ content: 'test', size: 500 });
-    expect(result.success).toBe(true);
-    expect(result.size).toBe('500x500');
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('**Size:** 500x500');
   });
 
   it('should clamp size to minimum 100', async () => {
     const result = await getResult({ content: 'test', size: 10 });
-    expect(result.success).toBe(true);
-    expect(result.size).toBe('100x100');
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('**Size:** 100x100');
   });
 
   it('should clamp size to maximum 1000', async () => {
     const result = await getResult({ content: 'test', size: 5000 });
-    expect(result.success).toBe(true);
-    expect(result.size).toBe('1000x1000');
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('**Size:** 1000x1000');
   });
 
   it('should default size to 300', async () => {
     const result = await getResult({ content: 'test' });
-    expect(result.size).toBe('300x300');
+    expect(result.content).toContain('**Size:** 300x300');
   });
 });
 
@@ -92,17 +90,17 @@ describe('executeQRCode - size', () => {
 describe('executeQRCode - error correction', () => {
   it('should accept error correction level L', async () => {
     const result = await getResult({ content: 'test', error_correction: 'L' });
-    expect(result.errorCorrection).toBe('L');
+    expect(result.content).toContain('**Error correction:** L');
   });
 
   it('should accept error correction level H', async () => {
     const result = await getResult({ content: 'test', error_correction: 'H' });
-    expect(result.errorCorrection).toBe('H');
+    expect(result.content).toContain('**Error correction:** H');
   });
 
   it('should default to M', async () => {
     const result = await getResult({ content: 'test' });
-    expect(result.errorCorrection).toBe('M');
+    expect(result.content).toContain('**Error correction:** M');
   });
 });
 
@@ -115,7 +113,8 @@ describe('executeQRCode - colors', () => {
       content: 'test',
       dark_color: '#FF0000',
     });
-    expect(result.success).toBe(true);
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('data:image/png;base64,');
   });
 
   it('should accept custom light color', async () => {
@@ -123,7 +122,8 @@ describe('executeQRCode - colors', () => {
       content: 'test',
       light_color: '#CCCCCC',
     });
-    expect(result.success).toBe(true);
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toContain('data:image/png;base64,');
   });
 
   it('should error on invalid dark color', async () => {

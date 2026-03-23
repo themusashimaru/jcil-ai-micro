@@ -907,60 +907,69 @@ export async function routeChatWithTools(
                     )
                   );
 
-                  // Emit DOCUMENT_DOWNLOAD marker for document tools so the
-                  // client renders the download button.  The tool result
-                  // contains a markdown link like [Download file](url) after
+                  // Emit DOCUMENT_DOWNLOAD marker for file-producing tools so the
+                  // client renders the download button. Tool results contain
+                  // markdown links like [Download file](url) after
                   // uploadInlineFiles() replaces base64 with hosted URLs.
+                  const FILE_PRODUCING_TOOLS = new Set([
+                    'create_document',
+                    'create_presentation',
+                    'excel_advanced',
+                    'pdf_operations',
+                    'zip_files',
+                    'create_spreadsheet',
+                    'generate_qr_code',
+                    'transform_image',
+                    'mail_merge',
+                  ]);
+
+                  const MIME_MAP: Record<string, string> = {
+                    pdf: 'application/pdf',
+                    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    txt: 'text/plain',
+                    zip: 'application/zip',
+                    png: 'image/png',
+                    jpg: 'image/jpeg',
+                    jpeg: 'image/jpeg',
+                    webp: 'image/webp',
+                    gif: 'image/gif',
+                    svg: 'image/svg+xml',
+                  };
+
                   if (
                     !result.isError &&
-                    toolCall.name === 'create_document' &&
+                    FILE_PRODUCING_TOOLS.has(toolCall.name) &&
                     typeof result.content === 'string'
                   ) {
-                    const docLinkMatch = result.content.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
-                    if (docLinkMatch) {
-                      const [, linkText, downloadUrl] = docLinkMatch;
+                    // Try hosted URL first (Supabase upload succeeded)
+                    const hostedMatch = result.content.match(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/);
+                    // Fallback to data URL (Supabase upload failed or skipped)
+                    const dataMatch =
+                      !hostedMatch && result.content.match(/\[([^\]]+)\]\((data:[^)]+)\)/);
+
+                    const linkMatch = hostedMatch || dataMatch;
+                    if (linkMatch) {
+                      const [, linkText, url] = linkMatch;
                       const ext = linkText.split('.').pop()?.toLowerCase() || 'pdf';
-                      const mimeMap: Record<string, string> = {
-                        pdf: 'application/pdf',
-                        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        txt: 'text/plain',
-                        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                      };
+                      const filename = linkText.replace(/^Download\s+/i, '');
+                      const isHosted = !!hostedMatch;
+
                       const marker = JSON.stringify({
-                        filename: linkText.replace(/^Download\s+/i, ''),
-                        mimeType: mimeMap[ext] || 'application/octet-stream',
-                        downloadUrl,
-                        canPreview: ext === 'pdf',
+                        filename,
+                        mimeType: MIME_MAP[ext] || 'application/octet-stream',
+                        ...(isHosted ? { downloadUrl: url } : { dataUrl: url }),
+                        canPreview:
+                          ext === 'pdf' || ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext),
                         type: ext,
                       });
                       controller.enqueue(encoder.encode(`\n[DOCUMENT_DOWNLOAD:${marker}]`));
-                      log.info('Emitted DOCUMENT_DOWNLOAD marker for tool result', {
+                      log.info('Emitted DOCUMENT_DOWNLOAD marker', {
                         tool: toolCall.name,
-                        filename: linkText,
+                        filename,
+                        storage: isHosted ? 'supabase' : 'dataurl',
                       });
-                    } else {
-                      // Fallback: check for data URL (Supabase upload may have failed)
-                      const dataUrlMatch = result.content.match(/\[([^\]]+)\]\((data:[^)]+)\)/);
-                      if (dataUrlMatch) {
-                        const [, linkText, dataUrl] = dataUrlMatch;
-                        const ext = linkText.split('.').pop()?.toLowerCase() || 'pdf';
-                        const mimeMap: Record<string, string> = {
-                          pdf: 'application/pdf',
-                          docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                          txt: 'text/plain',
-                        };
-                        const marker = JSON.stringify({
-                          filename: linkText.replace(/^Download\s+/i, ''),
-                          mimeType: mimeMap[ext] || 'application/octet-stream',
-                          dataUrl,
-                          canPreview: ext === 'pdf',
-                          type: ext,
-                        });
-                        controller.enqueue(encoder.encode(`\n[DOCUMENT_DOWNLOAD:${marker}]`));
-                        log.info('Emitted DOCUMENT_DOWNLOAD marker (data URL fallback)', {
-                          tool: toolCall.name,
-                        });
-                      }
                     }
                   }
 

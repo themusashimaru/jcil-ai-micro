@@ -11,6 +11,18 @@ async function getResult(args: Record<string, unknown>) {
   return JSON.parse(res.content);
 }
 
+// For 'create' which now returns markdown instead of JSON
+async function getRawResult(args: Record<string, unknown>) {
+  return executeZip(makeCall(args));
+}
+
+// Extract the base64 zip data from the markdown download link
+function extractBase64FromMarkdown(content: string): string {
+  const match = content.match(/\[Download [^\]]+\]\(data:application\/zip;base64,([^)]+)\)/);
+  if (!match) throw new Error('No base64 zip data found in markdown');
+  return match[1];
+}
+
 // Helper: create a simple ZIP with text files
 async function createTestZip(
   files = [
@@ -18,11 +30,11 @@ async function createTestZip(
     { name: 'data.json', content: '{"key":"value"}' },
   ]
 ): Promise<string> {
-  const result = await getResult({
+  const res = await getRawResult({
     operation: 'create',
     files,
   });
-  return result.zip_base64;
+  return extractBase64FromMarkdown(res.content);
 }
 
 // -------------------------------------------------------------------
@@ -49,42 +61,54 @@ describe('isZipAvailable', () => {
 // -------------------------------------------------------------------
 describe('executeZip - create', () => {
   it('should create ZIP from text files', async () => {
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'create',
       files: [
         { name: 'a.txt', content: 'Alpha' },
         { name: 'b.txt', content: 'Beta' },
       ],
     });
-    expect(result.operation).toBe('create');
-    expect(result.files_count).toBe(2);
-    expect(result.file_names).toEqual(['a.txt', 'b.txt']);
-    expect(result.zip_base64).toBeDefined();
-    expect(result.size_bytes).toBeGreaterThan(0);
+    expect(res.isError).toBe(false);
+    expect(res.content).toContain('ZIP archive created successfully!');
+    expect(res.content).toContain('**Files:** 2 (a.txt, b.txt)');
+    expect(res.content).toContain('**Size:**');
+    expect(res.content).toMatch(/\[Download archive_\d+\.zip\]\(data:application\/zip;base64,/);
+    // Verify base64 data is extractable
+    const base64 = extractBase64FromMarkdown(res.content);
+    expect(base64.length).toBeGreaterThan(0);
   });
 
   it('should create ZIP from base64 content', async () => {
     const b64 = Buffer.from('binary data').toString('base64');
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'create',
       files: [{ name: 'bin.dat', content: b64, is_base64: true }],
     });
-    expect(result.files_count).toBe(1);
-    expect(result.zip_base64).toBeDefined();
+    expect(res.isError).toBe(false);
+    expect(res.content).toContain('**Files:** 1 (bin.dat)');
+    const base64 = extractBase64FromMarkdown(res.content);
+    expect(base64.length).toBeGreaterThan(0);
   });
 
   it('should respect compression level', async () => {
-    const noCompression = await getResult({
+    const noCompressionRes = await getRawResult({
       operation: 'create',
       files: [{ name: 'big.txt', content: 'A'.repeat(1000) }],
       compression_level: 0,
     });
-    const maxCompression = await getResult({
+    const maxCompressionRes = await getRawResult({
       operation: 'create',
       files: [{ name: 'big.txt', content: 'A'.repeat(1000) }],
       compression_level: 9,
     });
-    expect(noCompression.size_bytes).toBeGreaterThan(maxCompression.size_bytes);
+    // Extract size from "**Size:** X.X KB"
+    const sizeMatch = (s: string) => {
+      const m = s.match(/\*\*Size:\*\* ([\d.]+) KB/);
+      return m ? parseFloat(m[1]) : 0;
+    };
+    expect(sizeMatch(noCompressionRes.content)).toBeGreaterThan(
+      sizeMatch(maxCompressionRes.content)
+    );
   });
 
   it('should error without files', async () => {
@@ -244,5 +268,7 @@ describe('executeZip - errors', () => {
       arguments: { operation: 'create', files: [{ name: 't.txt', content: 't' }] },
     });
     expect(res.toolCallId).toBe('my-id');
+    // Create now returns markdown, not JSON
+    expect(res.content).toContain('ZIP archive created successfully!');
   });
 });

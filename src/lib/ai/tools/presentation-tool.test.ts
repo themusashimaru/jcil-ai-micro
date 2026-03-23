@@ -63,11 +63,10 @@ describe('PresentationTool', () => {
       });
 
       expect(result.isError).toBe(false);
-      const parsed = JSON.parse(result.content);
-      expect(parsed.success).toBe(true);
-      expect(parsed.slideCount).toBe(2);
-      expect(parsed.format).toBe('pptx');
-      expect(parsed.data).toBeTruthy();
+      expect(result.content).toContain('Presentation created successfully!');
+      expect(result.content).toContain('**Slides:** 2');
+      expect(result.content).toContain('**Format:** PPTX');
+      expect(result.content).toContain('[Download ');
     });
 
     it('should handle all slide layouts', async () => {
@@ -92,8 +91,7 @@ describe('PresentationTool', () => {
       });
 
       expect(result.isError).toBe(false);
-      const parsed = JSON.parse(result.content);
-      expect(parsed.slideCount).toBe(5);
+      expect(result.content).toContain('**Slides:** 5');
     });
 
     it('should handle theme configuration', async () => {

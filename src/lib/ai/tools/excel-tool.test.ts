@@ -5,9 +5,20 @@ function makeCall(args: Record<string, unknown>) {
   return { id: 'test', name: 'excel_advanced', arguments: args };
 }
 
+async function getRawResult(args: Record<string, unknown>) {
+  return executeExcel(makeCall(args));
+}
+
 async function getResult(args: Record<string, unknown>) {
   const res = await executeExcel(makeCall(args));
   return JSON.parse(res.content);
+}
+
+// Extract base64 from markdown download link: [Download ...](data:...;base64,XXXX)
+function extractBase64FromMarkdown(content: string): string {
+  const match = content.match(/\]\(data:[^;]+;base64,([A-Za-z0-9+/=]+)\)/);
+  if (!match) throw new Error('No base64 data found in markdown content');
+  return match[1];
 }
 
 // Helper: create an xlsx workbook and return its base64
@@ -16,14 +27,16 @@ async function createWorkbook(
   headers?: string[],
   sheetName?: string
 ): Promise<string> {
-  const result = await getResult({
-    operation: 'create',
-    data,
-    headers,
-    sheet_name: sheetName,
-    output_format: 'xlsx',
-  });
-  return result.xlsx_base64;
+  const res = await executeExcel(
+    makeCall({
+      operation: 'create',
+      data,
+      headers,
+      sheet_name: sheetName,
+      output_format: 'xlsx',
+    })
+  );
+  return extractBase64FromMarkdown(res.content);
 }
 
 // -------------------------------------------------------------------
@@ -50,27 +63,28 @@ describe('isExcelAvailable', () => {
 // -------------------------------------------------------------------
 describe('executeExcel - create', () => {
   it('should create workbook with data', async () => {
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'create',
       data: [
         [1, 'Alice', 90],
         [2, 'Bob', 85],
       ],
     });
-    expect(result.operation).toBe('create');
-    expect(result.sheet_name).toBe('Sheet1');
-    expect(result.rows).toBe(2);
-    expect(result.xlsx_base64).toBeDefined();
+    expect(res.isError).toBe(false);
+    expect(res.content).toContain('Spreadsheet created successfully!');
+    expect(res.content).toContain('**Sheet:** Sheet1');
+    expect(res.content).toContain('**Rows:** 2');
+    expect(res.content).toMatch(/\[Download .+\.xlsx\]\(data:/);
   });
 
   it('should create workbook with headers', async () => {
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'create',
       data: [[1, 'Alice']],
       headers: ['ID', 'Name'],
       sheet_name: 'Students',
     });
-    expect(result.sheet_name).toBe('Students');
+    expect(res.content).toContain('**Sheet:** Students');
   });
 
   it('should output as CSV', async () => {
@@ -165,16 +179,17 @@ describe('executeExcel - get_sheets', () => {
 describe('executeExcel - add_sheet', () => {
   it('should add sheet to existing workbook', async () => {
     const wb = await createWorkbook([[1]], undefined, 'Sheet1');
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'add_sheet',
       workbook_data: wb,
       sheet_name: 'Sheet2',
       data: [['A', 'B']],
     });
-    expect(result.operation).toBe('add_sheet');
-    expect(result.new_sheet).toBe('Sheet2');
-    expect(result.all_sheets).toContain('Sheet1');
-    expect(result.all_sheets).toContain('Sheet2');
+    expect(res.isError).toBe(false);
+    expect(res.content).toContain('Sheet "Sheet2" added successfully!');
+    expect(res.content).toContain('Sheet1');
+    expect(res.content).toContain('Sheet2');
+    expect(res.content).toMatch(/\[Download .+\.xlsx\]\(data:/);
   });
 
   it('should error without required fields', async () => {
@@ -224,14 +239,15 @@ describe('executeExcel - apply_formula', () => {
       ],
       ['A', 'B']
     );
-    const result = await getResult({
+    const res = await getRawResult({
       operation: 'apply_formula',
       workbook_data: wb,
       formulas: [{ cell: 'C1', formula: 'SUM(A2:B2)' }],
     });
-    expect(result.operation).toBe('apply_formula');
-    expect(result.formulas_applied).toBe(1);
-    expect(result.xlsx_base64).toBeDefined();
+    expect(res.isError).toBe(false);
+    expect(res.content).toContain('Formulas applied successfully!');
+    expect(res.content).toContain('**Formulas applied:** 1');
+    expect(res.content).toMatch(/\[Download .+\.xlsx\]\(data:/);
   });
 
   it('should error without required fields', async () => {
