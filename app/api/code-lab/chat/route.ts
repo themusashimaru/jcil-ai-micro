@@ -461,13 +461,18 @@ export async function POST(request: NextRequest) {
       const errorMessageId = generateId();
       const errorContent = `**${slashCommandError}**\n\nAvailable commands:\n- \`/fix\` - Fix errors in the codebase\n- \`/test\` - Run tests\n- \`/build\` - Run build\n- \`/commit\` - Commit changes\n- \`/push\` - Push to remote\n- \`/review\` - Code review\n- \`/explain\` - Explain code\n- \`/workspace\` - Enable sandbox mode\n- \`/help\` - Show all commands`;
 
-      await (supabase.from('code_lab_messages') as AnySupabase).insert({
+      const { error: slashInsertError } = await (
+        supabase.from('code_lab_messages') as AnySupabase
+      ).insert({
         id: errorMessageId,
         session_id: sessionId,
         role: 'assistant',
         content: errorContent,
         created_at: new Date().toISOString(),
       });
+      if (slashInsertError) {
+        log.warn('Failed to save slash command error message', { error: slashInsertError.message });
+      }
 
       const encoder = new TextEncoder();
       return new Response(
@@ -696,7 +701,9 @@ Keep it professional and focused on development.`,
 
             controller.enqueue(encoder.encode(fullContent));
 
-            await (supabase.from('code_lab_messages') as AnySupabase).insert({
+            const { error: searchInsertError } = await (
+              supabase.from('code_lab_messages') as AnySupabase
+            ).insert({
               id: generateId(),
               session_id: sessionId,
               role: 'assistant',
@@ -709,6 +716,11 @@ Keep it professional and focused on development.`,
                 model: searchResult.model,
               }),
             });
+            if (searchInsertError) {
+              log.warn('Failed to save search result message', {
+                error: searchInsertError.message,
+              });
+            }
 
             controller.close();
           } catch (error) {
@@ -739,11 +751,23 @@ Be honest about knowledge cutoff limitations when relevant.`,
             } catch (fallbackError) {
               log.error('Fallback error', fallbackError as Error);
               const errorContent = '\n\nI encountered an error. Please try again.';
-              await saveAssistantMessage(supabase, sessionId, errorContent, 'error');
-              controller.enqueue(encoder.encode(errorContent));
+              try {
+                await saveAssistantMessage(supabase, sessionId, errorContent, 'error');
+              } catch (saveErr) {
+                log.warn('Failed to save fallback error message', { error: saveErr });
+              }
+              try {
+                controller.enqueue(encoder.encode(errorContent));
+              } catch {
+                // Controller may already be closed
+              }
             }
 
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              // Controller may already be closed
+            }
           }
         },
       });
@@ -1623,15 +1647,23 @@ async function handleClaudeProvider(
           : '\n\nI encountered an error. Please try again.';
 
         fullContent += userMessage;
-        await saveAssistantMessage(
-          supabase,
-          sessionId,
-          fullContent || userMessage,
-          'error',
-          selectedModel
-        );
-        controller.enqueue(encoder.encode(userMessage));
-        controller.close();
+        try {
+          await saveAssistantMessage(
+            supabase,
+            sessionId,
+            fullContent || userMessage,
+            'error',
+            selectedModel
+          );
+        } catch (saveErr) {
+          log.warn('Failed to save error message to DB', { error: saveErr });
+        }
+        try {
+          controller.enqueue(encoder.encode(userMessage));
+          controller.close();
+        } catch {
+          // Controller may already be closed (client disconnect)
+        }
       } finally {
         clearSpawnContext();
         keepalive.stop();
