@@ -21,8 +21,8 @@ const log = logger('ChatClient');
 const HARD_CONTEXT_LIMIT = 45;
 /** Max chars to show from a quoted reply */
 const REPLY_QUOTE_MAX_CHARS = 200;
-/** Timeout before aborting a chat request (ms) */
-const CHAT_TIMEOUT_MS = 180_000;
+/** Timeout before aborting a chat request (ms) — matches backend maxDuration (300s) */
+const CHAT_TIMEOUT_MS = 300_000;
 /** Delay before showing "slow response" warning (ms) */
 const SLOW_RESPONSE_WARNING_MS = 30_000;
 /** Delay before retrying after continuation (ms) */
@@ -271,7 +271,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
               id: crypto.randomUUID(),
               role: 'assistant',
               content:
-                'The request timed out after 3 minutes. This can happen with complex queries. Please try again, or try breaking your request into smaller parts.',
+                'The request timed out after 5 minutes. This can happen with complex queries. Please try again, or try breaking your request into smaller parts.',
               timestamp: new Date(),
             },
           ]);
@@ -453,8 +453,9 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
           // Throttle UI updates to ~30fps to avoid overwhelming mobile devices
           let lastUIUpdate = 0;
           const UI_THROTTLE_MS = 33;
-          // Inactivity timeout: if no chunks arrive for 90s, assume server died
-          const STREAM_INACTIVITY_TIMEOUT_MS = 90_000;
+          // Inactivity timeout: if no chunks arrive for 150s, assume server died
+          // (must exceed backend keepalive interval + tool execution time)
+          const STREAM_INACTIVITY_TIMEOUT_MS = 150_000;
           let lastChunkTime = Date.now();
           try {
             let buffer = '';
