@@ -27,7 +27,7 @@ function makeCall(args: Record<string, unknown>) {
 
 async function getResult(args: Record<string, unknown>) {
   const res = await executeImageTransform(makeCall(args));
-  return JSON.parse(res.content);
+  return res;
 }
 
 // -------------------------------------------------------------------
@@ -59,9 +59,10 @@ describe('executeImageTransform - resize', () => {
       image_base64: base64,
       operations: [{ type: 'resize', width: 10, height: 10 }],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toContain('resize');
-    expect(result.imageData).toBeDefined();
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
+    expect(result.content).toContain('1 operation(s)');
+    expect(result.content).toContain('![Transformed image]');
   });
 
   it('should resize width only (preserve aspect)', async () => {
@@ -70,8 +71,8 @@ describe('executeImageTransform - resize', () => {
       image_base64: base64,
       operations: [{ type: 'resize', width: 10 }],
     });
-    expect(result.success).toBe(true);
-    expect(result.dimensions).toContain('10');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('10');
   });
 });
 
@@ -85,8 +86,8 @@ describe('executeImageTransform - grayscale', () => {
       image_base64: base64,
       operations: [{ type: 'grayscale' }],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toContain('grayscale');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
   });
 });
 
@@ -100,8 +101,8 @@ describe('executeImageTransform - blur', () => {
       image_base64: base64,
       operations: [{ type: 'blur', sigma: 2 }],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toContain('blur');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('1 operation(s)');
   });
 });
 
@@ -115,8 +116,8 @@ describe('executeImageTransform - sharpen', () => {
       image_base64: base64,
       operations: [{ type: 'sharpen' }],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toContain('sharpen');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('1 operation(s)');
   });
 });
 
@@ -130,7 +131,8 @@ describe('executeImageTransform - effects', () => {
       image_base64: base64,
       operations: [{ type: 'negate' }],
     });
-    expect(result.success).toBe(true);
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
   });
 
   it('should flip image vertically', async () => {
@@ -139,7 +141,8 @@ describe('executeImageTransform - effects', () => {
       image_base64: base64,
       operations: [{ type: 'flip' }],
     });
-    expect(result.success).toBe(true);
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
   });
 
   it('should flop image horizontally', async () => {
@@ -148,7 +151,8 @@ describe('executeImageTransform - effects', () => {
       image_base64: base64,
       operations: [{ type: 'flop' }],
     });
-    expect(result.success).toBe(true);
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
   });
 });
 
@@ -162,8 +166,8 @@ describe('executeImageTransform - rotate', () => {
       image_base64: base64,
       operations: [{ type: 'rotate', angle: 90 }],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toContain('rotate');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('Image transformed successfully');
   });
 });
 
@@ -181,9 +185,8 @@ describe('executeImageTransform - multiple ops', () => {
         { type: 'blur', sigma: 1 },
       ],
     });
-    expect(result.success).toBe(true);
-    expect(result.operations).toEqual(['resize', 'grayscale', 'blur']);
-    expect(result.message).toContain('3 operation(s)');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('3 operation(s)');
   });
 });
 
@@ -199,9 +202,9 @@ describe('executeImageTransform - format', () => {
       output_format: 'jpeg',
       quality: 90,
     });
-    expect(result.success).toBe(true);
-    expect(result.format).toBe('jpeg');
-    expect(result.mimeType).toBe('image/jpeg');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('**Format:** JPEG');
+    expect(result.content).toContain('data:image/jpeg;base64,');
   });
 
   it('should output as WebP', async () => {
@@ -211,9 +214,9 @@ describe('executeImageTransform - format', () => {
       operations: [{ type: 'grayscale' }],
       output_format: 'webp',
     });
-    expect(result.success).toBe(true);
-    expect(result.format).toBe('webp');
-    expect(result.mimeType).toBe('image/webp');
+    expect(result.isError).toBeFalsy();
+    expect(result.content).toContain('**Format:** WEBP');
+    expect(result.content).toContain('data:image/webp;base64,');
   });
 });
 

@@ -165,29 +165,20 @@ export async function executeQRCode(toolCall: UnifiedToolCall): Promise<UnifiedT
       margin,
     });
 
-    // Extract base64 data from data URL
-    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
-
     // Generate a filename
     const contentPreview =
       args.content.length > 20 ? args.content.substring(0, 20) + '...' : args.content;
     const timestamp = Date.now();
     const filename = `qr_code_${timestamp}.png`;
 
+    // Return markdown image + download link so uploadInlineFiles() can process
     return {
       toolCallId: toolCall.id,
-      content: JSON.stringify({
-        success: true,
-        message: `QR code generated successfully for: "${contentPreview}"`,
-        filename,
-        mimeType: 'image/png',
-        size: `${size}x${size}`,
-        errorCorrection: errorCorrectionLevel,
-        dataLength: args.content.length,
-        // Base64 data for the image
-        imageData: base64Data,
-        dataUrl: dataUrl,
-      }),
+      content:
+        `QR code generated successfully for: "${contentPreview}"\n\n` +
+        `**Size:** ${size}x${size} | **Error correction:** ${errorCorrectionLevel}\n\n` +
+        `![QR Code](${dataUrl})\n\n` +
+        `[Download ${filename}](${dataUrl})`,
     };
   } catch (error) {
     return {

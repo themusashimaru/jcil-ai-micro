@@ -56,7 +56,9 @@ Use this when:
 - User needs a cover letter for a job application
 - User wants to restructure their professional experience
 
-Returns formatted document in Markdown, HTML, or plain text — ready to copy, print, or convert to PDF.`,
+Returns formatted document in Markdown, HTML, or plain text.
+
+IMPORTANT: After calling build_resume, ALWAYS call create_document with format "pdf" to generate a downloadable PDF file for the user. Pass the resume content as the document content.`,
   parameters: {
     type: 'object',
     properties: {
@@ -68,24 +70,40 @@ Returns formatted document in Markdown, HTML, or plain text — ready to copy, p
       linkedin_url: { type: 'string', description: 'LinkedIn profile URL' },
       summary: { type: 'string', description: 'Professional summary (2-3 sentences)' },
       experience: {
-        type: 'array', description: 'Work experience entries',
-        items: { type: 'object', properties: {
-          company: { type: 'string' }, title: { type: 'string' },
-          start_date: { type: 'string' }, end_date: { type: 'string' },
-          highlights: { type: 'array', items: { type: 'string' } },
-        }},
+        type: 'array',
+        description: 'Work experience entries',
+        items: {
+          type: 'object',
+          properties: {
+            company: { type: 'string' },
+            title: { type: 'string' },
+            start_date: { type: 'string' },
+            end_date: { type: 'string' },
+            highlights: { type: 'array', items: { type: 'string' } },
+          },
+        },
       },
       education: {
-        type: 'array', description: 'Education entries',
-        items: { type: 'object', properties: {
-          institution: { type: 'string' }, degree: { type: 'string' },
-          field: { type: 'string' }, graduation_date: { type: 'string' },
-          gpa: { type: 'string' },
-        }},
+        type: 'array',
+        description: 'Education entries',
+        items: {
+          type: 'object',
+          properties: {
+            institution: { type: 'string' },
+            degree: { type: 'string' },
+            field: { type: 'string' },
+            graduation_date: { type: 'string' },
+            gpa: { type: 'string' },
+          },
+        },
       },
       skills: { type: 'array', description: 'Skill keywords', items: { type: 'string' } },
       certifications: { type: 'array', description: 'Certifications', items: { type: 'string' } },
-      format: { type: 'string', enum: ['markdown', 'html', 'plain_text'], description: 'Output format. Default: markdown' },
+      format: {
+        type: 'string',
+        enum: ['markdown', 'html', 'plain_text'],
+        description: 'Output format. Default: markdown',
+      },
       target_role: { type: 'string', description: 'For cover letters — the target role' },
       target_company: { type: 'string', description: 'For cover letters — the company' },
       cover_letter_body: { type: 'string', description: 'For cover letters — body content' },
@@ -102,14 +120,20 @@ export function isResumeAvailable(): boolean {
 // HELPERS
 // ============================================================================
 
-const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const esc = (t: string) =>
+  t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function contactParts(a: ResumeArgs, html = false): string[] {
   const p: string[] = [];
   if (a.contact_email) p.push(html ? esc(a.contact_email) : a.contact_email);
   if (a.contact_phone) p.push(html ? esc(a.contact_phone) : a.contact_phone);
   if (a.location) p.push(html ? esc(a.location) : a.location);
-  if (a.linkedin_url) p.push(html ? `<a href="${esc(a.linkedin_url)}" style="color:#2563eb;">LinkedIn</a>` : `[LinkedIn](${a.linkedin_url})`);
+  if (a.linkedin_url)
+    p.push(
+      html
+        ? `<a href="${esc(a.linkedin_url)}" style="color:#2563eb;">LinkedIn</a>`
+        : `[LinkedIn](${a.linkedin_url})`
+    );
   return p;
 }
 
@@ -122,7 +146,9 @@ function resumeMarkdown(a: ResumeArgs): string {
   const c = contactParts(a);
   if (c.length) l.push(c.join(' | '));
   l.push('');
-  if (a.summary) { l.push('## Professional Summary', a.summary, ''); }
+  if (a.summary) {
+    l.push('## Professional Summary', a.summary, '');
+  }
   if (a.experience?.length) {
     l.push('## Experience');
     for (const e of a.experience as ExperienceEntry[]) {
@@ -139,7 +165,11 @@ function resumeMarkdown(a: ResumeArgs): string {
     }
   }
   if (a.skills?.length) l.push('## Skills', a.skills.join(' · '), '');
-  if (a.certifications?.length) { l.push('## Certifications'); for (const c of a.certifications) l.push(`- ${c}`); l.push(''); }
+  if (a.certifications?.length) {
+    l.push('## Certifications');
+    for (const c of a.certifications) l.push(`- ${c}`);
+    l.push('');
+  }
   return l.join('\n');
 }
 
@@ -165,37 +195,67 @@ function resumePlainText(a: ResumeArgs): string {
     }
   }
   if (a.skills?.length) l.push('SKILLS', '-'.repeat(40), a.skills.join(', '), '');
-  if (a.certifications?.length) { l.push('CERTIFICATIONS', '-'.repeat(40)); for (const c of a.certifications) l.push(`  * ${c}`); l.push(''); }
+  if (a.certifications?.length) {
+    l.push('CERTIFICATIONS', '-'.repeat(40));
+    for (const c of a.certifications) l.push(`  * ${c}`);
+    l.push('');
+  }
   return l.join('\n');
 }
 
 function resumeHtml(a: ResumeArgs): string {
   const s: string[] = [];
-  const h2 = (t: string) => `<h2 style="font-size:16px;color:#1a1a1a;margin:16px 0 8px 0;text-transform:uppercase;letter-spacing:1px;">${t}</h2>`;
+  const h2 = (t: string) =>
+    `<h2 style="font-size:16px;color:#1a1a1a;margin:16px 0 8px 0;text-transform:uppercase;letter-spacing:1px;">${t}</h2>`;
   s.push(`<h1 style="margin:0 0 4px 0;font-size:24px;color:#1a1a1a;">${esc(a.full_name)}</h1>`);
   const c = contactParts(a, true);
-  if (c.length) s.push(`<p style="margin:0 0 16px 0;color:#555;font-size:14px;">${c.join(' &middot; ')}</p>`);
+  if (c.length)
+    s.push(`<p style="margin:0 0 16px 0;color:#555;font-size:14px;">${c.join(' &middot; ')}</p>`);
   s.push('<hr style="border:none;border-top:2px solid #1a1a1a;margin:8px 0 16px 0;">');
-  if (a.summary) { s.push(h2('Professional Summary'), `<p style="margin:0 0 16px 0;line-height:1.5;">${esc(a.summary)}</p>`); }
+  if (a.summary) {
+    s.push(
+      h2('Professional Summary'),
+      `<p style="margin:0 0 16px 0;line-height:1.5;">${esc(a.summary)}</p>`
+    );
+  }
   if (a.experience?.length) {
     s.push(h2('Experience'));
     for (const e of a.experience as ExperienceEntry[]) {
       s.push('<div style="margin-bottom:12px;">');
       s.push(`<p style="margin:0;font-weight:600;">${esc(e.title)} — ${esc(e.company)}</p>`);
-      s.push(`<p style="margin:0 0 4px 0;color:#666;font-size:13px;">${esc(e.start_date)} – ${esc(e.end_date)}</p>`);
-      if (e.highlights?.length) { s.push('<ul style="margin:4px 0 0 0;padding-left:20px;">'); for (const h of e.highlights) s.push(`<li style="margin-bottom:2px;">${esc(h)}</li>`); s.push('</ul>'); }
+      s.push(
+        `<p style="margin:0 0 4px 0;color:#666;font-size:13px;">${esc(e.start_date)} – ${esc(e.end_date)}</p>`
+      );
+      if (e.highlights?.length) {
+        s.push('<ul style="margin:4px 0 0 0;padding-left:20px;">');
+        for (const h of e.highlights) s.push(`<li style="margin-bottom:2px;">${esc(h)}</li>`);
+        s.push('</ul>');
+      }
       s.push('</div>');
     }
   }
   if (a.education?.length) {
     s.push(h2('Education'));
     for (const e of a.education as EducationEntry[]) {
-      s.push(`<p style="margin:0;font-weight:600;">${esc(e.degree)} in ${esc(e.field)} — ${esc(e.institution)}</p>`);
-      s.push(`<p style="margin:0 0 8px 0;color:#666;font-size:13px;">${esc(e.graduation_date)}${e.gpa ? ` | GPA: ${esc(e.gpa)}` : ''}</p>`);
+      s.push(
+        `<p style="margin:0;font-weight:600;">${esc(e.degree)} in ${esc(e.field)} — ${esc(e.institution)}</p>`
+      );
+      s.push(
+        `<p style="margin:0 0 8px 0;color:#666;font-size:13px;">${esc(e.graduation_date)}${e.gpa ? ` | GPA: ${esc(e.gpa)}` : ''}</p>`
+      );
     }
   }
-  if (a.skills?.length) { s.push(h2('Skills'), `<p style="margin:0 0 16px 0;">${a.skills.map(sk => esc(sk)).join(' &middot; ')}</p>`); }
-  if (a.certifications?.length) { s.push(h2('Certifications'), '<ul style="margin:0;padding-left:20px;">'); for (const ct of a.certifications) s.push(`<li>${esc(ct)}</li>`); s.push('</ul>'); }
+  if (a.skills?.length) {
+    s.push(
+      h2('Skills'),
+      `<p style="margin:0 0 16px 0;">${a.skills.map((sk) => esc(sk)).join(' &middot; ')}</p>`
+    );
+  }
+  if (a.certifications?.length) {
+    s.push(h2('Certifications'), '<ul style="margin:0;padding-left:20px;">');
+    for (const ct of a.certifications) s.push(`<li>${esc(ct)}</li>`);
+    s.push('</ul>');
+  }
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;color:#1a1a1a;max-width:700px;padding:24px;">\n${s.join('\n')}\n</div>`;
 }
 
@@ -204,19 +264,25 @@ function resumeHtml(a: ResumeArgs): string {
 // ============================================================================
 
 function coverLetterText(a: ResumeArgs, html: boolean): string {
-  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const paras = (a.cover_letter_body || '').split(/\n\n+/).filter(p => p.trim());
+  const today = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const paras = (a.cover_letter_body || '').split(/\n\n+/).filter((p) => p.trim());
 
   if (html) {
     const s: string[] = [];
     s.push(`<p style="margin:0 0 16px 0;">${esc(today)}</p>`);
-    if (a.target_company) s.push(`<p style="margin:0 0 16px 0;font-weight:600;">${esc(a.target_company)}</p>`);
+    if (a.target_company)
+      s.push(`<p style="margin:0 0 16px 0;font-weight:600;">${esc(a.target_company)}</p>`);
     s.push('<p style="margin:0 0 16px 0;">Dear Hiring Manager,</p>');
     for (const p of paras) s.push(`<p style="margin:0 0 16px 0;line-height:1.6;">${esc(p)}</p>`);
     s.push(`<p style="margin:16px 0 4px 0;">Sincerely,</p>`);
     s.push(`<p style="margin:0;font-weight:600;">${esc(a.full_name)}</p>`);
     const cp = contactParts(a, true).slice(0, 2);
-    if (cp.length) s.push(`<p style="margin:4px 0 0 0;color:#555;font-size:13px;">${cp.join(' &middot; ')}</p>`);
+    if (cp.length)
+      s.push(`<p style="margin:4px 0 0 0;color:#555;font-size:13px;">${cp.join(' &middot; ')}</p>`);
     return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;color:#1a1a1a;max-width:700px;padding:24px;">\n${s.join('\n')}\n</div>`;
   }
 
@@ -236,7 +302,11 @@ export async function executeResume(toolCall: UnifiedToolCall): Promise<UnifiedT
   const args = toolCall.arguments as ResumeArgs;
 
   if (!args.type || !args.full_name) {
-    return { toolCallId: toolCall.id, content: 'Error: Both type and full_name are required', isError: true };
+    return {
+      toolCallId: toolCall.id,
+      content: 'Error: Both type and full_name are required',
+      isError: true,
+    };
   }
 
   try {
@@ -244,7 +314,12 @@ export async function executeResume(toolCall: UnifiedToolCall): Promise<UnifiedT
     let document: string;
 
     if (args.type === 'resume') {
-      document = format === 'html' ? resumeHtml(args) : format === 'plain_text' ? resumePlainText(args) : resumeMarkdown(args);
+      document =
+        format === 'html'
+          ? resumeHtml(args)
+          : format === 'plain_text'
+            ? resumePlainText(args)
+            : resumeMarkdown(args);
     } else {
       document = coverLetterText(args, format === 'html');
     }
@@ -267,6 +342,10 @@ export async function executeResume(toolCall: UnifiedToolCall): Promise<UnifiedT
       }),
     };
   } catch (error) {
-    return { toolCallId: toolCall.id, content: `Error building ${args.type}: ${(error as Error).message}`, isError: true };
+    return {
+      toolCallId: toolCall.id,
+      content: `Error building ${args.type}: ${(error as Error).message}`,
+      isError: true,
+    };
   }
 }

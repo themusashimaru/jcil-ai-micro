@@ -726,14 +726,17 @@ export async function executePresentation(toolCall: UnifiedToolCall): Promise<Un
       };
     }
 
-    const content = JSON.stringify({
-      success: true,
-      filename: result.filename,
-      slideCount: result.slideCount,
-      format: 'pptx',
-      data: result.data,
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    });
+    const filename = result.filename || `${args.title.replace(/[^a-zA-Z0-9]/g, '_')}.pptx`;
+    const mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const dataUrl = `data:${mimeType};base64,${result.data}`;
+
+    const content =
+      `Presentation created successfully!\n\n` +
+      `**Title:** ${args.title}\n` +
+      `**Slides:** ${result.slideCount}\n` +
+      `**Format:** PPTX\n` +
+      `**Filename:** ${filename}\n\n` +
+      `[Download ${filename}](${dataUrl})`;
 
     return { toolCallId: id, content, isError: false };
   } catch (error) {

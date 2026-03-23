@@ -1284,6 +1284,49 @@ export async function executePDF(toolCall: UnifiedToolCall): Promise<UnifiedTool
         };
     }
 
+    // If result contains pdf_base64, convert to markdown download link so
+    // uploadInlineFiles() can upload to Supabase and the DOCUMENT_DOWNLOAD
+    // marker can be emitted into the stream.
+    if (typeof result.pdf_base64 === 'string') {
+      const pdfFilename =
+        (typeof result.title === 'string'
+          ? result.title.replace(/[^a-zA-Z0-9]/g, '_')
+          : 'document') + `_${Date.now()}.pdf`;
+      const pdfDataUrl = `data:application/pdf;base64,${result.pdf_base64}`;
+
+      // Build metadata summary (exclude the raw base64)
+      const meta = { ...result };
+      delete meta.pdf_base64;
+
+      return {
+        toolCallId: toolCall.id,
+        content:
+          `PDF ${String(result.operation || 'operation')} completed successfully!\n\n` +
+          `**Operation:** ${String(result.operation)}\n` +
+          (result.pages ? `**Pages:** ${result.pages}\n` : '') +
+          (result.size_bytes
+            ? `**Size:** ${(Number(result.size_bytes) / 1024).toFixed(1)} KB\n`
+            : '') +
+          `\n[Download ${pdfFilename}](${pdfDataUrl})`,
+        isError: false,
+      };
+    }
+
+    // If result contains image_data (render_to_image), convert to markdown image
+    if (Array.isArray(result.pages) && result.pages.length > 0 && result.pages[0]?.image_data) {
+      const imagePages = result.pages as { page: number; image_data: string; mime_type: string }[];
+      let content = `PDF rendered to ${imagePages.length} image(s):\n\n`;
+      for (const p of imagePages) {
+        const imgDataUrl = `data:${p.mime_type || 'image/png'};base64,${p.image_data}`;
+        content += `![Page ${p.page}](${imgDataUrl})\n\n`;
+      }
+      return {
+        toolCallId: toolCall.id,
+        content,
+        isError: false,
+      };
+    }
+
     return {
       toolCallId: toolCall.id,
       content: JSON.stringify(result),

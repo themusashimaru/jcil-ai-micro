@@ -384,21 +384,19 @@ export async function executeImageTransform(toolCall: UnifiedToolCall): Promise<
       gif: 'image/gif',
     };
 
+    const imgMime = mimeTypes[outputFormat] || 'image/png';
+    const imgDataUrl = `data:${imgMime};base64,${base64Data}`;
+
+    // Return markdown image + download link so uploadInlineFiles() can process
     return {
       toolCallId: toolCall.id,
-      content: JSON.stringify({
-        success: true,
-        message: `Image transformed successfully with ${args.operations.length} operation(s)`,
-        filename,
-        format: outputFormat,
-        dimensions: `${outputMetadata.width}x${outputMetadata.height}`,
-        fileSize: `${(outputBuffer.length / 1024).toFixed(1)} KB`,
-        operations: args.operations.map((op) => op.type),
-        mimeType: mimeTypes[outputFormat] || 'image/png',
-        // Base64 data for the image
-        imageData: base64Data,
-        dataUrl: `data:${mimeTypes[outputFormat] || 'image/png'};base64,${base64Data}`,
-      }),
+      content:
+        `Image transformed successfully with ${args.operations.length} operation(s)\n\n` +
+        `**Format:** ${outputFormat.toUpperCase()} | ` +
+        `**Dimensions:** ${outputMetadata.width}x${outputMetadata.height} | ` +
+        `**Size:** ${(outputBuffer.length / 1024).toFixed(1)} KB\n\n` +
+        `![Transformed image](${imgDataUrl})\n\n` +
+        `[Download ${filename}](${imgDataUrl})`,
     };
   } catch (error) {
     return {

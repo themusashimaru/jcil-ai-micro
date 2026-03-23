@@ -696,6 +696,15 @@ export const TOOL_CHAINS: ToolChain[] = [
     category: 'code',
   },
 
+  // ── RESUME / CV ────────────────────────────────────────────────────
+  {
+    name: 'Resume to PDF',
+    description: 'Build a resume, then generate downloadable PDF',
+    tools: ['build_resume', 'create_document'],
+    trigger: 'when user asks for a resume, CV, or cover letter as PDF or downloadable',
+    category: 'documents',
+  },
+
   // ── COMMUNICATION & SHARING ──────────────────────────────────────────
   {
     name: 'Document and Email',

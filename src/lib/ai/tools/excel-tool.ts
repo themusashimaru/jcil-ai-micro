@@ -201,14 +201,18 @@ export async function executeExcel(toolCall: UnifiedToolCall): Promise<UnifiedTo
           const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
           const base64 = Buffer.from(buffer).toString('base64');
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          result = {
-            operation: 'create',
-            sheet_name: sheetName,
-            format: 'xlsx',
-            rows: args.data.length,
-            mime_type: mimeType,
-            xlsx_base64: base64,
-            size_bytes: buffer.length,
+          const xlsxFilename = `${sheetName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.xlsx`;
+          const dataUrl = `data:${mimeType};base64,${base64}`;
+          // Return markdown link so uploadInlineFiles() can upload to Supabase
+          return {
+            toolCallId: toolCall.id,
+            content:
+              `Spreadsheet created successfully!\n\n` +
+              `**Sheet:** ${sheetName}\n` +
+              `**Rows:** ${args.data.length}\n` +
+              `**Size:** ${(buffer.length / 1024).toFixed(1)} KB\n\n` +
+              `[Download ${xlsxFilename}](${dataUrl})`,
+            isError: false,
           };
         }
         break;
@@ -268,13 +272,19 @@ export async function executeExcel(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
         const newBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         const base64 = Buffer.from(newBuffer).toString('base64');
+        const addSheetMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        const addSheetFilename = `workbook_${Date.now()}.xlsx`;
+        const addSheetDataUrl = `data:${addSheetMime};base64,${base64}`;
 
-        result = {
-          operation: 'add_sheet',
-          new_sheet: args.sheet_name,
-          all_sheets: wb.SheetNames,
-          xlsx_base64: base64,
-          size_bytes: newBuffer.length,
+        // Return markdown link so uploadInlineFiles() can upload to Supabase
+        return {
+          toolCallId: toolCall.id,
+          content:
+            `Sheet "${args.sheet_name}" added successfully!\n\n` +
+            `**All sheets:** ${wb.SheetNames.join(', ')}\n` +
+            `**Size:** ${(newBuffer.length / 1024).toFixed(1)} KB\n\n` +
+            `[Download ${addSheetFilename}](${addSheetDataUrl})`,
+          isError: false,
         };
         break;
       }
@@ -356,15 +366,20 @@ export async function executeExcel(toolCall: UnifiedToolCall): Promise<UnifiedTo
 
         const newBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         const base64 = Buffer.from(newBuffer).toString('base64');
+        const formulaMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        const formulaFilename = `workbook_formulas_${Date.now()}.xlsx`;
+        const formulaDataUrl = `data:${formulaMime};base64,${base64}`;
 
-        result = {
-          operation: 'apply_formula',
-          sheet_name: sheetName,
-          formulas_applied: args.formulas.length,
-          xlsx_base64: base64,
-          size_bytes: newBuffer.length,
+        return {
+          toolCallId: toolCall.id,
+          content:
+            `Formulas applied successfully!\n\n` +
+            `**Sheet:** ${sheetName}\n` +
+            `**Formulas applied:** ${args.formulas.length}\n` +
+            `**Size:** ${(newBuffer.length / 1024).toFixed(1)} KB\n\n` +
+            `[Download ${formulaFilename}](${formulaDataUrl})`,
+          isError: false,
         };
-        break;
       }
 
       default:

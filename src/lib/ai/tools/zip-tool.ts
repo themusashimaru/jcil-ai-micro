@@ -150,15 +150,19 @@ export async function executeZip(toolCall: UnifiedToolCall): Promise<UnifiedTool
         });
 
         const base64 = zipBuffer.toString('base64');
+        const zipFilename = `archive_${Date.now()}.zip`;
+        const zipDataUrl = `data:application/zip;base64,${base64}`;
 
-        result = {
-          operation: 'create',
-          files_count: args.files.length,
-          file_names: args.files.map((f) => f.name),
-          zip_base64: base64,
-          size_bytes: zipBuffer.length,
+        // Return markdown link so uploadInlineFiles() can upload to Supabase
+        return {
+          toolCallId: toolCall.id,
+          content:
+            `ZIP archive created successfully!\n\n` +
+            `**Files:** ${args.files.length} (${args.files.map((f) => f.name).join(', ')})\n` +
+            `**Size:** ${(zipBuffer.length / 1024).toFixed(1)} KB\n\n` +
+            `[Download ${zipFilename}](${zipDataUrl})`,
+          isError: false,
         };
-        break;
       }
 
       case 'extract': {
