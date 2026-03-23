@@ -25,7 +25,7 @@ const log = logger('SpawnAgent');
 // Safety limits
 const MAX_CONCURRENT_AGENTS = 5;
 const MAX_AGENT_TOOL_LOOPS = 5;
-const AGENT_TIMEOUT_MS = 120_000; // 2 minutes per agent
+const AGENT_TIMEOUT_MS = 135_000; // 2.25 minutes per agent (fits within 150s router timeout)
 const MAX_AGENT_OUTPUT_LENGTH = 50_000; // 50K chars max output
 
 // ============================================================================
@@ -160,9 +160,7 @@ Instructions:
 - Return structured, actionable results
 - Do not ask questions — make reasonable assumptions and proceed`;
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: 'user', content: agentTask.task },
-  ];
+  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: agentTask.task }];
 
   try {
     const currentMessages = [...messages];
@@ -279,7 +277,9 @@ Instructions:
       outputTokens,
       source: 'sub-agent',
       conversationId: context.conversationId,
-    }).catch((err) => log.warn('Sub-agent usage tracking failed', { error: (err as Error).message }));
+    }).catch((err) =>
+      log.warn('Sub-agent usage tracking failed', { error: (err as Error).message })
+    );
 
     return {
       task: agentTask.task,
@@ -307,9 +307,8 @@ Instructions:
 // ============================================================================
 
 export async function executeSpawnAgent(toolCall: UnifiedToolCall): Promise<UnifiedToolResult> {
-  const args = typeof toolCall.arguments === 'string'
-    ? JSON.parse(toolCall.arguments)
-    : toolCall.arguments;
+  const args =
+    typeof toolCall.arguments === 'string' ? JSON.parse(toolCall.arguments) : toolCall.arguments;
 
   const agents: AgentTask[] = args.agents;
 
@@ -332,7 +331,8 @@ export async function executeSpawnAgent(toolCall: UnifiedToolCall): Promise<Unif
   if (!_spawnContext) {
     return {
       toolCallId: toolCall.id,
-      content: 'Error: Spawn context not initialized. This tool must be called from a chat session.',
+      content:
+        'Error: Spawn context not initialized. This tool must be called from a chat session.',
       isError: true,
     };
   }
@@ -341,9 +341,7 @@ export async function executeSpawnAgent(toolCall: UnifiedToolCall): Promise<Unif
   const model = context.model || 'claude-opus-4-6';
 
   // Get Anthropic client — use BYOK key if available, otherwise default env key
-  const client = new Anthropic(
-    context.apiKey ? { apiKey: context.apiKey } : undefined
-  );
+  const client = new Anthropic(context.apiKey ? { apiKey: context.apiKey } : undefined);
 
   // Load available tools for sub-agents
   const { getAvailableChatTools } = await import('./index');
@@ -353,7 +351,10 @@ export async function executeSpawnAgent(toolCall: UnifiedToolCall): Promise<Unif
     .map((t) => ({
       name: t.name,
       description: t.description || '',
-      input_schema: (t.parameters || { type: 'object', properties: {} }) as Anthropic.Tool.InputSchema,
+      input_schema: (t.parameters || {
+        type: 'object',
+        properties: {},
+      }) as Anthropic.Tool.InputSchema,
     }));
 
   log.info('Spawning sub-agents', {

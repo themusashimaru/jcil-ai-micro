@@ -781,11 +781,13 @@ export async function routeChatWithTools(
 
           // Per-tool timeouts - some tools need more time than others
           const TOOL_TIMEOUTS: Record<string, number> = {
+            spawn_agents: 150000, // Sub-agents run parallel Opus calls with tools
             web_search: 45000, // Web search can be slow
             browser_visit: 45000, // Browser automation needs time
             run_code: 45000, // Code execution can take time
-            // parallel_research removed — agent pattern replaced by skills
             create_and_run_tool: 45000, // Dynamic tool creation
+            create_document: 45000, // Document/PDF generation
+            desktop_sandbox: 60000, // Desktop sandbox interactions
             fetch_url: 30000, // URL fetching
             analyze_image: 30000, // Vision analysis
             extract_pdf_url: 30000, // PDF extraction
