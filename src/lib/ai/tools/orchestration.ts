@@ -520,6 +520,13 @@ export const TOOL_CHAINS: ToolChain[] = [
     category: 'research',
   },
   {
+    name: 'Browse to Document',
+    description: 'Browse a website, extract content/products, generate a PDF or DOCX',
+    tools: ['fetch_url', 'create_document'],
+    trigger: 'when user asks to look at a website and create a document from it',
+    category: 'research',
+  },
+  {
     name: 'Research to Spreadsheet',
     description: 'Research data, organize findings into a structured spreadsheet',
     tools: ['web_search', 'run_code', 'excel_advanced'],
