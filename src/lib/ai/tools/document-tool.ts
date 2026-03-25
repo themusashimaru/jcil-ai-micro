@@ -1413,7 +1413,22 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
     return { toolCallId: id, content: `Unknown tool: ${name}`, isError: true };
   }
 
-  const args = typeof rawArgs === 'string' ? JSON.parse(rawArgs) : rawArgs;
+  let args: Record<string, unknown>;
+  if (typeof rawArgs === 'string') {
+    try {
+      args = JSON.parse(rawArgs) as Record<string, unknown>;
+    } catch {
+      return {
+        toolCallId: id,
+        content:
+          'Failed to parse document arguments — the request may have been truncated. ' +
+          'Try simplifying the document (fewer sections or shorter content) and try again.',
+        isError: true,
+      };
+    }
+  } else {
+    args = rawArgs as Record<string, unknown>;
+  }
   const format = args.format as string;
   const title = args.title as string;
   const content = args.content as string;
