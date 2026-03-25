@@ -610,7 +610,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
                   // Strip non-display markers in a single pass for efficiency.
                   const displayContent = accumulatedContent
                     .replace(
-                      /\n?\[DONE]\n?|<suggested-followups>[\s\S]*?<\/suggested-followups>|<suggested-followups>[\s\S]*$|\n?<!--TOOL_(?:START|RESULT):[^>]+-->/g,
+                      /\n?\[DONE]\n?|<suggested-followups>[\s\S]*?<\/suggested-followups>|<suggested-followups>[\s\S]*$|\n?<!--TOOL_(?:START|RESULT):[^>]+-->|\n?\[DOCUMENT_DOWNLOAD:[^\]]*\]/g,
                       ''
                     )
                     .trimEnd();

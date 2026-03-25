@@ -786,7 +786,7 @@ export async function routeChatWithTools(
             browser_visit: 45000, // Browser automation needs time
             run_code: 45000, // Code execution can take time
             create_and_run_tool: 45000, // Dynamic tool creation
-            create_document: 45000, // Document/PDF generation
+            create_document: 90000, // Document/PDF generation (includes image fetching)
             desktop_sandbox: 60000, // Desktop sandbox interactions
             fetch_url: 30000, // URL fetching
             analyze_image: 30000, // Vision analysis
