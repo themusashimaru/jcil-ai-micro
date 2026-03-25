@@ -77,12 +77,27 @@ async function generateDocument(
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const downloadUrl = data.downloadUrl || data.dataUrl;
+      let data: Record<string, unknown>;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        log.error(`${label} response JSON parse failed (likely truncated):`, parseError as Error);
+        const truncatedContent = textBefore
+          ? `${textBefore}\n\n⚠️ The ${label.toLowerCase()} generation timed out. Please try again — you can also use the document buttons in the Tools menu for more reliable generation.`
+          : `⚠️ The ${label.toLowerCase()} generation timed out. Please try again — you can also use the document buttons in the Tools menu for more reliable generation.`;
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? { ...msg, content: truncatedContent } : msg))
+        );
+        return truncatedContent;
+      }
+      const downloadUrl = (data.downloadUrl || data.dataUrl) as string | undefined;
       const isSupabaseUrl = !!data.downloadUrl;
 
       if (downloadUrl) {
-        log.debug(`${label} generated successfully, storage:`, data.storage);
+        log.debug(
+          `${label} generated successfully, storage:`,
+          data.storage as Record<string, unknown>
+        );
 
         if (isSupabaseUrl) {
           let messageContent = textBefore ? `${textBefore}\n\n` : '';
@@ -98,7 +113,7 @@ async function generateDocument(
           // Data URL fallback: trigger auto-download
           const link = document.createElement('a');
           link.href = downloadUrl;
-          link.download = data.filename || `${title}.${ext}`;
+          link.download = (data.filename as string) || `${title}.${ext}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -115,7 +130,8 @@ async function generateDocument(
       }
     }
 
-    log.error(`${label} generation failed:`, new Error(await response.text()));
+    const errorBody = await response.text().catch(() => 'unknown error');
+    log.error(`${label} generation failed:`, new Error(errorBody));
     const errorContent = textBefore
       ? `${textBefore}\n\n⚠️ Sorry, I couldn't generate the ${label.toLowerCase()}. Please try again.`
       : `⚠️ Sorry, I couldn't generate the ${label.toLowerCase()}. Please try again.`;

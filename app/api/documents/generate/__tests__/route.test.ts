@@ -192,9 +192,9 @@ describe('Document Generation API - POST /api/documents/generate', () => {
       expect(routeModule.runtime).toBe('nodejs');
     });
 
-    it('should export maxDuration as 30', async () => {
+    it('should export maxDuration as 90', async () => {
       const routeModule = await import('../route');
-      expect(routeModule.maxDuration).toBe(30);
+      expect(routeModule.maxDuration).toBe(90);
     });
   });
 
