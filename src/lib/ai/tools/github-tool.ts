@@ -416,7 +416,7 @@ async function getRepo(owner: string, repo: string, token?: string): Promise<str
 
 async function listUserRepos(token: string): Promise<string> {
   try {
-    const { Octokit } = await import('@octokit/rest');
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: token });
 
     const { data: repos } = await octokit.repos.listForAuthenticatedUser({
@@ -449,7 +449,7 @@ async function getStructure(
   branch?: string
 ): Promise<string> {
   try {
-    const { Octokit } = await import('@octokit/rest');
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: token });
 
     const { data: repoData } = await octokit.repos.get({ owner, repo });
@@ -484,7 +484,7 @@ async function getContext(
   branch?: string
 ): Promise<string> {
   try {
-    const { Octokit } = await import('@octokit/rest');
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: token });
 
     const context: {
@@ -518,9 +518,7 @@ async function getContext(
         path: 'package.json',
       });
       if ('content' in pkgData) {
-        context.packageJson = JSON.parse(
-          Buffer.from(pkgData.content, 'base64').toString('utf8')
-        );
+        context.packageJson = JSON.parse(Buffer.from(pkgData.content, 'base64').toString('utf8'));
       }
     } catch {
       // No package.json
@@ -753,7 +751,7 @@ export async function getRepoSummaryForPrompt(
   repo: string
 ): Promise<string> {
   try {
-    const { Octokit } = await import('@octokit/rest');
+    const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: accessToken });
 
     const { data: repoData } = await octokit.repos.get({ owner, repo });

@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GitHubSyncBridge, getSyncStatusDisplay } from './github-sync';
 
 // Mock Octokit
-vi.mock('@octokit/rest', () => ({
+vi.mock('octokit', () => ({
   Octokit: vi.fn().mockImplementation(() => ({
     repos: {
       get: vi.fn().mockResolvedValue({
