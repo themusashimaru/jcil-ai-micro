@@ -601,7 +601,7 @@ export async function routeChatWithTools(
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const MAX_TOOL_ITERATIONS = 10; // Support complex orchestration chains
-      const TOOL_LOOP_TIMEOUT_MS = 240_000; // 4-minute aggregate timeout for entire tool loop
+      const TOOL_LOOP_TIMEOUT_MS = 280_000; // 4 min 40s aggregate timeout (within 5-min backend limit)
       const toolLoopStartTime = Date.now();
       let iteration = 0;
 
@@ -786,7 +786,7 @@ export async function routeChatWithTools(
             browser_visit: 45000, // Browser automation needs time
             run_code: 45000, // Code execution can take time
             create_and_run_tool: 45000, // Dynamic tool creation
-            create_document: 45000, // Document/PDF generation
+            create_document: 90000, // Document/PDF generation (includes image fetching)
             desktop_sandbox: 60000, // Desktop sandbox interactions
             fetch_url: 30000, // URL fetching
             analyze_image: 30000, // Vision analysis

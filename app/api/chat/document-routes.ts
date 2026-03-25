@@ -533,6 +533,32 @@ function hasChainedTasks(message: string): boolean {
   return chainedPatterns.some((pattern) => pattern.test(lower));
 }
 
+/**
+ * Detect if a document request requires web research or browsing first.
+ * These requests must go through the main chat flow so the AI can use
+ * tools (web_search, fetch_url, browser_visit) before generating the document.
+ */
+function requiresResearchFirst(message: string): boolean {
+  const lower = message.toLowerCase();
+  const researchPatterns = [
+    // Browsing / visiting websites
+    /\b(look at|visit|browse|go to|check|pull from|scrape|grab from|get from)\b.{0,30}\b(website|site|page|url|link)\b/i,
+    /\b(look at|visit|browse|go to|check out)\b.{0,30}\b(\.com|\.org|\.net|\.io|\.edu|www\.)/i,
+    /\bhttps?:\/\//i,
+    // Research / searching
+    /\b(research|search for|find|look up|investigate)\b.{0,40}\b(and|then)\b.{0,40}\b(create|make|generate|build|pdf|document|report)/i,
+    /\b(search|research|find)\b.{0,30}\b(the top|the best|the latest|current|recent|real|actual)\b/i,
+    // "from the website" / "from their site"
+    /\b(from|off|on)\b.{0,10}\b(the|their|that|this)?\s*(website|site|page|blog|store|shop)\b/i,
+    // Explicit multi-step: "first X then Y"
+    /\b(first|start by|begin by)\b.{0,30}\b(search|research|browse|visit|look|find|check)\b/i,
+    // "pick / choose / select from"
+    /\b(pick|choose|select|find)\b.{0,20}\b(your|the|my)?\s*(top|best|favorite|favourite)\b/i,
+  ];
+
+  return researchPatterns.some((pattern) => pattern.test(lower));
+}
+
 export async function handleAutoDetectedDocument(ctx: DocRouteContext): Promise<Response | null> {
   const conversationForDetection = ctx.messages.map((m) => ({
     role: String(m.role),
@@ -547,6 +573,17 @@ export async function handleAutoDetectedDocument(ctx: DocRouteContext): Promise<
   // Composio tools (email, calendar, etc.)
   if (hasChainedTasks(ctx.lastUserContent)) {
     log.info('Multi-task request detected alongside document — falling through to tool loop', {
+      documentType: detectedDocType,
+      message: ctx.lastUserContent.substring(0, 80),
+    });
+    return null;
+  }
+
+  // If the request requires web research or browsing first, fall through to
+  // the main chat flow so the AI can use tools (web_search, fetch_url,
+  // browser_visit) before generating the document via create_document.
+  if (requiresResearchFirst(ctx.lastUserContent)) {
+    log.info('Research-first document request — falling through to tool loop', {
       documentType: detectedDocType,
       message: ctx.lastUserContent.substring(0, 80),
     });
@@ -667,6 +704,19 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
       trackDocTokens(result, ctx.userId, ctx.userPlanKey, 'chat-document', ctx.conversationId);
 
       jsonText = stripCodeFences(result.text);
+
+      // Try to extract JSON if the AI wrapped it in prose
+      if (jsonText && !jsonText.trimStart().startsWith('{')) {
+        const jsonStart = jsonText.indexOf('{');
+        const jsonEnd = jsonText.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          log.info('Extracting embedded JSON from prose response', {
+            attempt: attempt + 1,
+            prosePrefix: jsonText.substring(0, Math.min(40, jsonStart)),
+          });
+          jsonText = jsonText.substring(jsonStart, jsonEnd + 1);
+        }
+      }
 
       try {
         JSON.parse(jsonText);
