@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
     const parseResult = documentFromContentSchema.safeParse(rawBody);
     if (!parseResult.success) {
       const firstError = parseResult.error.issues[0];
+      // Return 413 for content size limit exceeded
+      if (firstError?.message === 'Content exceeds 1MB limit') {
+        return errors.payloadTooLarge(`${(1024 * 1024) / 1024}KB`);
+      }
       return errors.badRequest(firstError?.message ?? 'Invalid request body');
     }
 

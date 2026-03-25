@@ -690,13 +690,10 @@ export const documentGenerateSchema = z.object({
 /** Document generation from markdown content — for /api/documents/generate */
 export const documentFromContentSchema = z.object({
   content: z
-    .string()
+    .string({ required_error: 'Content is required', invalid_type_error: 'Content is required' })
     .min(1, 'Content is required')
     .max(1024 * 1024, 'Content exceeds 1MB limit'),
-  title: z
-    .string()
-    .max(500, 'Title too long')
-    .default('Document'),
+  title: z.string().max(500, 'Title too long').default('Document'),
   format: z.enum(['pdf', 'word', 'both', 'xlsx']).default('pdf'),
 });
 
