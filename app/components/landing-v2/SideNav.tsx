@@ -8,6 +8,7 @@ const navItems = [
   { id: 'signals', label: 'Integrations' },
   { id: 'capabilities', label: 'Capabilities' },
   { id: 'automation', label: 'Automation' },
+  { id: 'isolate', label: 'Isolate' },
   { id: 'principles', label: 'Foundation' },
   { id: 'colophon', label: 'Connect' },
 ];
