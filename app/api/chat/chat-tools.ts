@@ -530,7 +530,9 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
         ? 120_000 // 2 min for long-running tools
         : toolName === 'browser_visit' || toolName === 'desktop_sandbox'
           ? 90_000 // 90s for browser/desktop (sandbox startup + page load)
-          : 30_000; // 30s for everything else
+          : toolName === 'create_document'
+            ? 90_000 // 90s for document/PDF generation (includes image fetching)
+            : 30_000; // 30s for everything else
 
     try {
       const toolPromise = (async () => {

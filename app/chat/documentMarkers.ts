@@ -231,14 +231,15 @@ export async function processDocumentMarkers(
     }
   }
 
-  // Process [DOCUMENT_DOWNLOAD:] marker
-  const docDownloadMatch = content.match(/\[DOCUMENT_DOWNLOAD:(.+?)\]/s);
+  // Process [DOCUMENT_DOWNLOAD:] marker — match the JSON object explicitly to avoid
+  // the non-greedy (.+?) stopping at a `]` inside a URL or other field value.
+  const docDownloadMatch = content.match(/\[DOCUMENT_DOWNLOAD:(\{[\s\S]*?\})\]/);
   if (docDownloadMatch) {
     try {
       const docData = JSON.parse(docDownloadMatch[1]);
       log.debug('Detected DOCUMENT_DOWNLOAD marker:', docData.filename);
 
-      const cleanedContent = content.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/gs, '').trim();
+      const cleanedContent = content.replace(/\[DOCUMENT_DOWNLOAD:\{[\s\S]*?\}\]/g, '').trim();
       const docUrl = docData.downloadUrl || docData.dataUrl;
 
       if (docUrl) {
@@ -261,14 +262,12 @@ export async function processDocumentMarkers(
     } catch (docError) {
       log.error('Error parsing DOCUMENT_DOWNLOAD marker:', docError as Error);
       // Strip the malformed marker so the user doesn't see raw JSON
-      const cleanedContent = content.replace(/\[DOCUMENT_DOWNLOAD:.+?\]/gs, '').trim();
+      const cleanedContent = content.replace(/\[DOCUMENT_DOWNLOAD:[^\]]*\]/g, '').trim();
       const fallbackContent = cleanedContent
         ? `${cleanedContent}\n\nYour document was generated but the download link could not be processed. Please try again.`
         : 'Your document was generated but the download link could not be processed. Please try again.';
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId ? { ...msg, content: fallbackContent } : msg
-        )
+        prev.map((msg) => (msg.id === messageId ? { ...msg, content: fallbackContent } : msg))
       );
       content = fallbackContent;
     }
