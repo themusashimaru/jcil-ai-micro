@@ -58,12 +58,17 @@ export function detectDocumentIntent(
     /\b(create|make|generate)\b.{0,20}\b(certificate|diploma|award|recognition)\b/i,
     /\b(certificate|diploma|award)\b.{0,20}\b(of|for)\b.{0,20}\b(completion|achievement|appreciation|excellence|participation|attendance|training)\b/i,
     // General PDF requests
-    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program|pamphlet|leaflet)\b/i,
+    /\b(create|make|generate|build|give me|i need|can you (create|make))\b.{0,30}\b(pdf|flyer|brochure|poster|handout|sign|badge|card|ticket|coupon|menu|program|pamphlet|leaflet|catalog|catalogue)\b/i,
     /\b(create|make|generate|write|draft)\b.{0,15}\b(a\s+)?pdf\b/i,
     /\bpdf\b.{0,20}\b(memo|letter|notice|document|report|form|version)\b/i,
     /\b(memo|letter|notice|report)\b.{0,20}\b(as\s+)?(a\s+)?pdf\b/i,
     /\b(convert|export|save|download)\b.{0,20}\b(as|to|into)\b.{0,15}\bpdf\b/i,
     /\b(printable|print-ready|print)\b.{0,20}\b(document|version|copy|memo|letter|form)\b/i,
+    // "format as pdf", "polished pdf", "as a pdf" anywhere in message
+    /\b(format|formatted|polished|styled)\b.{0,20}\bpdf\b/i,
+    /\bas\s+(a\s+)?(polished\s+)?pdf\b/i,
+    // Product catalog / lookbook patterns (typically PDF)
+    /\b(product|jewelry|luxury|fashion)\b.{0,20}\b(catalog|catalogue|lookbook)\b/i,
   ];
 
   // PowerPoint patterns - creation
