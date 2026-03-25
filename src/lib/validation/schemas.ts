@@ -679,12 +679,22 @@ export const updateFolderSchema = z.object({
 // DOCUMENT GENERATION SCHEMAS
 // ========================================
 
-/** Document generate request */
+/** Document generate request (legacy — for /api/tools/document endpoint) */
 export const documentGenerateSchema = z.object({
   type: z.enum(['invoice', 'resume', 'letter', 'report', 'spreadsheet', 'presentation']),
   format: z.enum(['pdf', 'docx', 'xlsx', 'pptx']).default('pdf'),
   data: z.record(z.unknown()),
   template: z.string().max(100).optional(),
+});
+
+/** Document generation from markdown content — for /api/documents/generate */
+export const documentFromContentSchema = z.object({
+  content: z
+    .string({ required_error: 'Content is required', invalid_type_error: 'Content is required' })
+    .min(1, 'Content is required')
+    .max(1024 * 1024, 'Content exceeds 1MB limit'),
+  title: z.string().max(500, 'Title too long').default('Document'),
+  format: z.enum(['pdf', 'word', 'both', 'xlsx']).default('pdf'),
 });
 
 // ========================================

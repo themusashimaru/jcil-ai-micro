@@ -40,7 +40,6 @@ const TOOL_DISPLAY: Record<string, { label: string }> = {
   analyze_image: { label: 'Analyzing image' },
   extract_pdf: { label: 'Extracting PDF' },
   extract_table: { label: 'Extracting table data' },
-  analyze_text_nlp: { label: 'Analyzing text' },
   audio_transcribe: { label: 'Transcribing audio' },
   ocr_extract_text: { label: 'Reading text from image' },
   generate_qr_code: { label: 'Generating QR code' },

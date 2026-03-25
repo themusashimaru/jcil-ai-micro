@@ -32,32 +32,30 @@ import {
   cleanMarkdown,
   parseMarkdownToSpreadsheet,
 } from './pdfHelpers';
+import { createDownloadToken } from '@/lib/security/download-token';
+import { documentFromContentSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
 
 const log = logger('DocumentsGenerate');
 
-interface DocumentRequest {
-  content: string;
-  title?: string;
-  format?: 'pdf' | 'word' | 'both' | 'xlsx';
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const body: DocumentRequest = await request.json();
-    const { content, title = 'Document' } = body;
+    const rawBody = await request.json();
 
-    if (!content || typeof content !== 'string') {
-      return errors.badRequest('Content is required');
+    // Validate request body with Zod
+    const parseResult = documentFromContentSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      const firstError = parseResult.error.issues[0];
+      // Return 413 for content size limit exceeded
+      if (firstError?.message === 'Content exceeds 1MB limit') {
+        return errors.payloadTooLarge(`${(1024 * 1024) / 1024}KB`);
+      }
+      return errors.badRequest(firstError?.message ?? 'Invalid request body');
     }
 
-    // Limit content size to prevent memory exhaustion attacks (max 1MB)
-    const MAX_CONTENT_SIZE = 1024 * 1024; // 1MB
-    if (content.length > MAX_CONTENT_SIZE) {
-      return errors.payloadTooLarge(`${MAX_CONTENT_SIZE / 1024}KB`);
-    }
+    const { content, title, format: _format } = parseResult.data;
 
     // Get authenticated user ID from session (secure - not from request body)
     const userId = await getAuthenticatedUserId();
@@ -66,7 +64,7 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     // === XLSX: Excel spreadsheet generation ===
-    if (body.format === 'xlsx') {
+    if (parseResult.data.format === 'xlsx') {
       log.info('Generating Excel spreadsheet', { title });
 
       try {
@@ -299,9 +297,7 @@ export async function POST(request: NextRequest) {
         const baseUrl =
           process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-        const pdfToken = Buffer.from(
-          JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })
-        ).toString('base64url');
+        const pdfToken = createDownloadToken(userId, pdfFilename, 'pdf');
         const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
         return successResponse({
@@ -406,9 +402,7 @@ export async function POST(request: NextRequest) {
         const baseUrl =
           process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-        const pdfToken = Buffer.from(
-          JSON.stringify({ u: userId, f: pdfFilename, t: 'pdf' })
-        ).toString('base64url');
+        const pdfToken = createDownloadToken(userId, pdfFilename, 'pdf');
         const pdfProxyUrl = `${baseUrl}/api/documents/download?token=${pdfToken}`;
 
         return successResponse({

@@ -343,37 +343,8 @@ export function extractArtifacts(
       break;
     }
 
-    case 'fix_error':
-    case 'refactor_code':
     case 'format_code': {
       artifacts.push({ type: 'code', content: resultContent, label: `Code from ${toolName}` });
-      break;
-    }
-
-    case 'analyze_text_nlp': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'NLP analysis results',
-      });
-      break;
-    }
-
-    case 'analyze_sequence': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'DNA/protein analysis',
-      });
-      break;
-    }
-
-    case 'medical_calc': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'Clinical calculation results',
-      });
       break;
     }
 
@@ -683,8 +654,8 @@ export const TOOL_CHAINS: ToolChain[] = [
   // ── CODE & DEVOPS ────────────────────────────────────────────────────
   {
     name: 'Code Review Pipeline',
-    description: 'Analyze code, check accessibility, fix errors, refactor',
-    tools: ['check_accessibility', 'fix_error', 'refactor_code'],
+    description: 'Analyze code and check accessibility',
+    tools: ['check_accessibility', 'run_code'],
     trigger: 'when user asks for comprehensive code review',
     category: 'code',
   },
@@ -1162,27 +1133,6 @@ When a user asks to schedule an action for a specific time, show a scheduled-act
 \`\`\`
 Wait for user confirmation before scheduling.
 </tool_orchestration>`);
-
-  sections.push(`<agent_orchestration>
-You have the ability to spawn parallel sub-agents via the spawn_agents tool. Each sub-agent is a full Opus instance with access to all tools.
-
-When to use spawn_agents:
-- Multiple independent research tasks (e.g., "compare X, Y, and Z" — spawn 3 agents)
-- Complex requests with separable sub-tasks (research + document creation)
-- Gathering information from multiple sources simultaneously
-- Any time parallel execution saves meaningful time over sequential
-
-When NOT to use spawn_agents:
-- Simple sequential tool chains (just call tools directly)
-- Tasks with strong dependencies between steps (results from step 1 feed step 2)
-- Single, focused requests that don't benefit from parallelism
-
-You have full autonomy to decide when parallelism helps. Trust your judgment. Each sub-agent costs tokens, so use it when the value is clear. Max 5 concurrent agents.
-
-Sub-agents can use ANY tool (web_search, run_code, create_chart, create_document, etc.) and chain tools within their own execution. They cannot spawn further sub-agents (no recursion).
-
-Give each agent a clear, specific task with all context it needs — sub-agents have no conversation history.
-</agent_orchestration>`);
 
   // Add artifact context if there are any from the current session
   if (artifactStore?.hasArtifacts()) {

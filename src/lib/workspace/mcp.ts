@@ -22,7 +22,7 @@ import {
 } from '@/lib/mcp/mcp-client';
 import Anthropic from '@anthropic-ai/sdk';
 import { ContainerManager, getContainerManager } from './container';
-import { Octokit } from '@octokit/rest';
+import { Octokit } from 'octokit';
 
 const log = logger('MCP');
 
@@ -647,7 +647,7 @@ class MCPManager {
 
     switch (toolName) {
       case 'get_repo': {
-        const { data } = await octokit.repos.get({
+        const { data } = await octokit.rest.repos.get({
           owner: input.owner as string,
           repo: input.repo as string,
         });
@@ -655,7 +655,7 @@ class MCPManager {
       }
 
       case 'list_issues': {
-        const { data } = await octokit.issues.listForRepo({
+        const { data } = await octokit.rest.issues.listForRepo({
           owner: input.owner as string,
           repo: input.repo as string,
           state: (input.state as 'open' | 'closed' | 'all') || 'open',
@@ -664,7 +664,7 @@ class MCPManager {
       }
 
       case 'create_issue': {
-        const { data } = await octokit.issues.create({
+        const { data } = await octokit.rest.issues.create({
           owner: input.owner as string,
           repo: input.repo as string,
           title: input.title as string,

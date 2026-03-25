@@ -9,33 +9,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GitHubSyncBridge, getSyncStatusDisplay } from './github-sync';
 
 // Mock Octokit
-vi.mock('@octokit/rest', () => ({
+vi.mock('octokit', () => ({
   Octokit: vi.fn().mockImplementation(() => ({
-    repos: {
-      get: vi.fn().mockResolvedValue({
-        data: {
-          owner: { login: 'testuser' },
-          name: 'testrepo',
-          full_name: 'testuser/testrepo',
-          default_branch: 'main',
-          private: false,
-          clone_url: 'https://github.com/testuser/testrepo.git',
-          ssh_url: 'git@github.com:testuser/testrepo.git',
-        },
-      }),
-      getContent: vi.fn().mockResolvedValue({
-        data: {
-          content: Buffer.from('file content').toString('base64'),
-        },
-      }),
-    },
-    pulls: {
-      create: vi.fn().mockResolvedValue({
-        data: {
-          html_url: 'https://github.com/testuser/testrepo/pull/1',
-          number: 1,
-        },
-      }),
+    rest: {
+      repos: {
+        get: vi.fn().mockResolvedValue({
+          data: {
+            owner: { login: 'testuser' },
+            name: 'testrepo',
+            full_name: 'testuser/testrepo',
+            default_branch: 'main',
+            private: false,
+            clone_url: 'https://github.com/testuser/testrepo.git',
+            ssh_url: 'git@github.com:testuser/testrepo.git',
+          },
+        }),
+        getContent: vi.fn().mockResolvedValue({
+          data: {
+            content: Buffer.from('file content').toString('base64'),
+          },
+        }),
+      },
+      pulls: {
+        create: vi.fn().mockResolvedValue({
+          data: {
+            html_url: 'https://github.com/testuser/testrepo/pull/1',
+            number: 1,
+          },
+        }),
+      },
     },
   })),
 }));

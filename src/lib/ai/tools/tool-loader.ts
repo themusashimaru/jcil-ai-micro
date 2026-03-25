@@ -91,8 +91,7 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   sandbox_template: () => import('./sandbox-template-tool'),
 
   // Code tools
-  fix_error: () => import('./error-fixer-tool'),
-  refactor_code: () => import('./refactor-tool'),
+  // fix_error, refactor_code removed 2026-03-25 — Claude does this natively
   format_code: () => import('./prettier-tool'),
   diff_compare: () => import('./diff-tool'),
   query_data_sql: () => import('./sql-tool'),
@@ -115,7 +114,7 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   e2b_visualize: () => import('./e2b-chart-tool'),
   graphics_3d: () => import('./graphics-3d-tool'),
   hough_vision: () => import('./hough-vision-tool'),
-  ray_tracing: () => import('./ray-tracing-tool'),
+  // ray_tracing removed 2026-03-25
 
   // Data tools
   generate_fake_data: () => import('./faker-tool'),
@@ -125,14 +124,12 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   generate_barcode: () => import('./barcode-tool'),
   zip_files: () => import('./zip-tool'),
   search_index: () => import('./search-index-tool'),
-  analyze_text_nlp: () => import('./nlp-tool'),
+  // analyze_text_nlp removed 2026-03-25
 
   // Scientific tools
   geo_calculate: () => import('./geospatial-tool'),
-  analyze_sequence: () => import('./dna-bio-tool'),
+  // analyze_sequence, sequence_analyze, medical_calc removed 2026-03-25
   signal_process: () => import('./signal-tool'),
-  sequence_analyze: () => import('./sequence-analyze-tool'),
-  medical_calc: () => import('./medical-calc-tool'),
   solve_constraints: () => import('./constraint-tool'),
   parse_grammar: () => import('./parser-tool'),
 
@@ -141,72 +138,11 @@ const TOOL_IMPORTERS: Record<string, () => Promise<any>> = {
   phone_validate: () => import('./phone-tool'),
   check_accessibility: () => import('./accessibility-tool'),
 
-  // Document template tools
+  // Document tools
   create_presentation: () => import('./presentation-tool'),
-  create_email_template: () => import('./email-template-tool'),
-  document_template: () => import('./document-templates-tool'),
-  mail_merge: () => import('./mail-merge-tool'),
-
-  // Everyday & lifestyle tools
+  // email_template, document_template, mail_merge removed 2026-03-25
   calendar_event: () => import('./calendar-event-tool'),
-  budget_calculator: () => import('./budget-calc-tool'),
-  draft_email: () => import('./email-draft-tool'),
-  build_resume: () => import('./resume-tool'),
-  generate_invoice: () => import('./invoice-tool'),
-  meal_planner: () => import('./meal-planner-tool'),
-  create_flashcards: () => import('./flashcard-tool'),
-  plan_trip: () => import('./trip-planner-tool'),
-
-  // Productivity & planning tools
-  project_timeline: () => import('./project-timeline-tool'),
-  decision_matrix: () => import('./decision-matrix-tool'),
-  plan_event: () => import('./event-planner-tool'),
-  content_calendar: () => import('./content-calendar-tool'),
-  create_sop: () => import('./sop-tool'),
-
-  // Business & strategy tools
-  create_swot_analysis: () => import('./swot-analysis-tool'),
-  create_business_canvas: () => import('./business-canvas-tool'),
-  create_okr_plan: () => import('./okr-planner-tool'),
-  create_meeting_minutes: () => import('./meeting-minutes-tool'),
-  create_raci_matrix: () => import('./raci-matrix-tool'),
-  create_risk_assessment: () => import('./risk-assessment-tool'),
-  create_proposal: () => import('./proposal-tool'),
-
-  // Education tools
-  create_lesson_plan: () => import('./lesson-plan-tool'),
-  create_rubric: () => import('./rubric-tool'),
-  create_quiz: () => import('./quiz-tool'),
-  create_training_manual: () => import('./training-manual-tool'),
-
-  // Legal & compliance tools
-  create_contract: () => import('./contract-tool'),
-  create_policy_document: () => import('./policy-document-tool'),
-
-  // HR & management tools
-  create_performance_review: () => import('./performance-review-tool'),
-  create_job_description: () => import('./job-description-tool'),
-
-  // Marketing & communications tools
-  create_press_release: () => import('./press-release-tool'),
-  create_case_study: () => import('./case-study-tool'),
-
-  // Nonprofit & grants tools
-  create_grant_proposal: () => import('./grant-proposal-tool'),
-
-  // Real estate tools
-  create_property_listing: () => import('./property-listing-tool'),
-
-  // Healthcare tools
-  create_care_plan: () => import('./care-plan-tool'),
-
-  // Scripture & ministry tools
-  create_church_budget: () => import('./church-budget-tool'),
-  scripture_reference: () => import('./scripture-tool'),
-  sermon_outline: () => import('./sermon-tool'),
-  prayer_journal: () => import('./prayer-journal-tool'),
-  daily_devotional: () => import('./devotional-tool'),
-  small_group_guide: () => import('./small-group-tool'),
+  // 48 document formatter / text analysis / Claude-calling-Claude tools removed 2026-03-25
 
   // Orchestration tools
   spawn_agents: () => import('./spawn-agent-tool'),
@@ -315,18 +251,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
   },
 
   // Code tools
-  fix_error: {
-    importPath: './error-fixer-tool',
-    toolExport: 'errorFixerTool',
-    executorExport: 'executeErrorFixer',
-    availabilityExport: 'isErrorFixerAvailable',
-  },
-  refactor_code: {
-    importPath: './refactor-tool',
-    toolExport: 'refactorTool',
-    executorExport: 'executeRefactor',
-    availabilityExport: 'isRefactorAvailable',
-  },
+  // fix_error, refactor_code removed 2026-03-25 — Claude does this natively
   format_code: {
     importPath: './prettier-tool',
     toolExport: 'prettierTool',
@@ -434,12 +359,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeHoughVision',
     availabilityExport: 'isHoughVisionAvailable',
   },
-  ray_tracing: {
-    importPath: './ray-tracing-tool',
-    toolExport: 'rayTracingTool',
-    executorExport: 'executeRayTracing',
-    availabilityExport: 'isRayTracingAvailable',
-  },
+  // ray_tracing removed 2026-03-25
 
   // Data tools
   generate_fake_data: {
@@ -484,12 +404,7 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeSearchIndex',
     availabilityExport: 'isSearchIndexAvailable',
   },
-  analyze_text_nlp: {
-    importPath: './nlp-tool',
-    toolExport: 'nlpTool',
-    executorExport: 'executeNLP',
-    availabilityExport: 'isNLPAvailable',
-  },
+  // analyze_text_nlp removed 2026-03-25
 
   // Scientific tools
   geo_calculate: {
@@ -498,30 +413,14 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executeGeospatial',
     availabilityExport: 'isGeospatialAvailable',
   },
-  analyze_sequence: {
-    importPath: './dna-bio-tool',
-    toolExport: 'dnaBioTool',
-    executorExport: 'executeDnaBio',
-    availabilityExport: 'isDnaBioAvailable',
-  },
+  // analyze_sequence removed 2026-03-25
   signal_process: {
     importPath: './signal-tool',
     toolExport: 'signalTool',
     executorExport: 'executeSignal',
     availabilityExport: 'isSignalAvailable',
   },
-  sequence_analyze: {
-    importPath: './sequence-analyze-tool',
-    toolExport: 'sequenceAnalyzeTool',
-    executorExport: 'executeSequenceAnalyze',
-    availabilityExport: 'isSequenceAnalyzeAvailable',
-  },
-  medical_calc: {
-    importPath: './medical-calc-tool',
-    toolExport: 'medicalCalcTool',
-    executorExport: 'executeMedicalCalc',
-    availabilityExport: 'isMedicalCalcAvailable',
-  },
+  // sequence_analyze, medical_calc removed 2026-03-25
   solve_constraints: {
     importPath: './constraint-tool',
     toolExport: 'constraintTool',
@@ -562,85 +461,9 @@ const TOOL_LOADER_MAP: Record<string, ToolLoaderEntry> = {
     executorExport: 'executePresentation',
     availabilityExport: 'isPresentationAvailable',
   },
-  create_email_template: {
-    importPath: './email-template-tool',
-    toolExport: 'emailTemplateTool',
-    executorExport: 'executeEmailTemplate',
-    availabilityExport: 'isEmailTemplateAvailable',
-  },
-  document_template: {
-    importPath: './document-templates-tool',
-    toolExport: 'documentTemplatesTool',
-    executorExport: 'executeDocumentTemplate',
-    availabilityExport: 'isDocumentTemplateAvailable',
-  },
-  mail_merge: {
-    importPath: './mail-merge-tool',
-    toolExport: 'mailMergeTool',
-    executorExport: 'executeMailMerge',
-    availabilityExport: 'isMailMergeAvailable',
-  },
-
-  // Everyday & lifestyle tools
+  // email_template, document_template, mail_merge removed 2026-03-25
   calendar_event: { importPath: './calendar-event-tool', toolExport: 'calendarEventTool', executorExport: 'executeCalendarEvent', availabilityExport: 'isCalendarEventAvailable' },
-  budget_calculator: { importPath: './budget-calc-tool', toolExport: 'budgetCalcTool', executorExport: 'executeBudgetCalc', availabilityExport: 'isBudgetCalcAvailable' },
-  draft_email: { importPath: './email-draft-tool', toolExport: 'emailDraftTool', executorExport: 'executeEmailDraft', availabilityExport: 'isEmailDraftAvailable' },
-  build_resume: { importPath: './resume-tool', toolExport: 'resumeTool', executorExport: 'executeResume', availabilityExport: 'isResumeAvailable' },
-  generate_invoice: { importPath: './invoice-tool', toolExport: 'invoiceTool', executorExport: 'executeInvoice', availabilityExport: 'isInvoiceAvailable' },
-  meal_planner: { importPath: './meal-planner-tool', toolExport: 'mealPlannerTool', executorExport: 'executeMealPlanner', availabilityExport: 'isMealPlannerAvailable' },
-  create_flashcards: { importPath: './flashcard-tool', toolExport: 'flashcardTool', executorExport: 'executeFlashcard', availabilityExport: 'isFlashcardAvailable' },
-  plan_trip: { importPath: './trip-planner-tool', toolExport: 'tripPlannerTool', executorExport: 'executeTripPlanner', availabilityExport: 'isTripPlannerAvailable' },
-
-  // Productivity & planning tools
-  project_timeline: { importPath: './project-timeline-tool', toolExport: 'projectTimelineTool', executorExport: 'executeProjectTimeline', availabilityExport: 'isProjectTimelineAvailable' },
-  decision_matrix: { importPath: './decision-matrix-tool', toolExport: 'decisionMatrixTool', executorExport: 'executeDecisionMatrix', availabilityExport: 'isDecisionMatrixAvailable' },
-  plan_event: { importPath: './event-planner-tool', toolExport: 'eventPlannerTool', executorExport: 'executeEventPlanner', availabilityExport: 'isEventPlannerAvailable' },
-  content_calendar: { importPath: './content-calendar-tool', toolExport: 'contentCalendarTool', executorExport: 'executeContentCalendar', availabilityExport: 'isContentCalendarAvailable' },
-  create_sop: { importPath: './sop-tool', toolExport: 'sopTool', executorExport: 'executeSop', availabilityExport: 'isSopAvailable' },
-
-  // Business & strategy tools
-  create_swot_analysis: { importPath: './swot-analysis-tool', toolExport: 'swotAnalysisTool', executorExport: 'executeSwotAnalysis', availabilityExport: 'isSwotAnalysisAvailable' },
-  create_business_canvas: { importPath: './business-canvas-tool', toolExport: 'businessCanvasTool', executorExport: 'executeBusinessCanvas', availabilityExport: 'isBusinessCanvasAvailable' },
-  create_okr_plan: { importPath: './okr-planner-tool', toolExport: 'okrPlannerTool', executorExport: 'executeOkrPlanner', availabilityExport: 'isOkrPlannerAvailable' },
-  create_meeting_minutes: { importPath: './meeting-minutes-tool', toolExport: 'meetingMinutesTool', executorExport: 'executeMeetingMinutes', availabilityExport: 'isMeetingMinutesAvailable' },
-  create_raci_matrix: { importPath: './raci-matrix-tool', toolExport: 'raciMatrixTool', executorExport: 'executeRaciMatrix', availabilityExport: 'isRaciMatrixAvailable' },
-  create_risk_assessment: { importPath: './risk-assessment-tool', toolExport: 'riskAssessmentTool', executorExport: 'executeRiskAssessment', availabilityExport: 'isRiskAssessmentAvailable' },
-  create_proposal: { importPath: './proposal-tool', toolExport: 'proposalTool', executorExport: 'executeProposal', availabilityExport: 'isProposalAvailable' },
-
-  // Education tools
-  create_lesson_plan: { importPath: './lesson-plan-tool', toolExport: 'lessonPlanTool', executorExport: 'executeLessonPlan', availabilityExport: 'isLessonPlanAvailable' },
-  create_rubric: { importPath: './rubric-tool', toolExport: 'rubricTool', executorExport: 'executeRubric', availabilityExport: 'isRubricAvailable' },
-  create_quiz: { importPath: './quiz-tool', toolExport: 'quizTool', executorExport: 'executeQuiz', availabilityExport: 'isQuizAvailable' },
-  create_training_manual: { importPath: './training-manual-tool', toolExport: 'trainingManualTool', executorExport: 'executeTrainingManual', availabilityExport: 'isTrainingManualAvailable' },
-
-  // Legal & compliance tools
-  create_contract: { importPath: './contract-tool', toolExport: 'contractTool', executorExport: 'executeContract', availabilityExport: 'isContractAvailable' },
-  create_policy_document: { importPath: './policy-document-tool', toolExport: 'policyDocumentTool', executorExport: 'executePolicyDocument', availabilityExport: 'isPolicyDocumentAvailable' },
-
-  // HR & management tools
-  create_performance_review: { importPath: './performance-review-tool', toolExport: 'performanceReviewTool', executorExport: 'executePerformanceReview', availabilityExport: 'isPerformanceReviewAvailable' },
-  create_job_description: { importPath: './job-description-tool', toolExport: 'jobDescriptionTool', executorExport: 'executeJobDescription', availabilityExport: 'isJobDescriptionAvailable' },
-
-  // Marketing & communications tools
-  create_press_release: { importPath: './press-release-tool', toolExport: 'pressReleaseTool', executorExport: 'executePressRelease', availabilityExport: 'isPressReleaseAvailable' },
-  create_case_study: { importPath: './case-study-tool', toolExport: 'caseStudyTool', executorExport: 'executeCaseStudy', availabilityExport: 'isCaseStudyAvailable' },
-
-  // Nonprofit & grants tools
-  create_grant_proposal: { importPath: './grant-proposal-tool', toolExport: 'grantProposalTool', executorExport: 'executeGrantProposal', availabilityExport: 'isGrantProposalAvailable' },
-
-  // Real estate tools
-  create_property_listing: { importPath: './property-listing-tool', toolExport: 'propertyListingTool', executorExport: 'executePropertyListing', availabilityExport: 'isPropertyListingAvailable' },
-
-  // Healthcare tools
-  create_care_plan: { importPath: './care-plan-tool', toolExport: 'carePlanTool', executorExport: 'executeCarePlan', availabilityExport: 'isCarePlanAvailable' },
-
-  // Scripture & ministry tools
-  create_church_budget: { importPath: './church-budget-tool', toolExport: 'churchBudgetTool', executorExport: 'executeChurchBudget', availabilityExport: 'isChurchBudgetAvailable' },
-  scripture_reference: { importPath: './scripture-tool', toolExport: 'scriptureTool', executorExport: 'executeScripture', availabilityExport: 'isScriptureAvailable' },
-  sermon_outline: { importPath: './sermon-tool', toolExport: 'sermonTool', executorExport: 'executeSermon', availabilityExport: 'isSermonAvailable' },
-  prayer_journal: { importPath: './prayer-journal-tool', toolExport: 'prayerJournalTool', executorExport: 'executePrayerJournal', availabilityExport: 'isPrayerJournalAvailable' },
-  daily_devotional: { importPath: './devotional-tool', toolExport: 'devotionalTool', executorExport: 'executeDevotional', availabilityExport: 'isDevotionalAvailable' },
-  small_group_guide: { importPath: './small-group-tool', toolExport: 'smallGroupTool', executorExport: 'executeSmallGroup', availabilityExport: 'isSmallGroupAvailable' },
+  // 48 document formatter / text analysis / Claude-calling-Claude tools removed 2026-03-25
 
   // Orchestration tools
   spawn_agents: { importPath: './spawn-agent-tool', toolExport: 'spawnAgentTool', executorExport: 'executeSpawnAgent', availabilityExport: 'isSpawnAgentAvailable' },
