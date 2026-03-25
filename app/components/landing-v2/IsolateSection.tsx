@@ -11,6 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-arm64.pkg';
 const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-x64.pkg';
 const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest';
+const ANDROID_URL = 'https://github.com/themusashimaru/jcil-isolate-android/releases/latest/download/JCIL-Isolate-1.0.0-android.apk';
 
 const features = [
   {
@@ -194,6 +195,14 @@ export function IsolateSection() {
             className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-foreground/40 transition-all duration-200"
           >
             <ScrambleTextOnHover text="Windows" as="span" duration={0.6} />
+            <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
+          </a>
+
+          <a
+            href={ANDROID_URL}
+            className="group inline-flex items-center gap-3 border border-green-500/30 bg-green-500/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-green-400 hover:bg-green-500/20 hover:border-green-500/50 transition-all duration-200"
+          >
+            <ScrambleTextOnHover text="Android" as="span" duration={0.6} />
             <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
           </a>
         </div>
