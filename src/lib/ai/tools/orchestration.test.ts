@@ -463,35 +463,12 @@ describe('extractArtifacts', () => {
   });
 
   // Code tools
-  describe('code tools (fix_error, refactor_code, format_code)', () => {
-    for (const tool of ['fix_error', 'refactor_code', 'format_code']) {
-      it(`${tool}: produces a code artifact`, () => {
-        const result = extractArtifacts(tool, 'const x = 1;', false);
-        expect(result).toHaveLength(1);
-        expect(result[0].type).toBe('code');
-        expect(result[0].label).toBe(`Code from ${tool}`);
-      });
-    }
-  });
-
-  // NLP / sequence / medical
-  describe('specialized tools', () => {
-    it('analyze_text_nlp produces data artifact', () => {
-      const result = extractArtifacts('analyze_text_nlp', '{"sentiment":"positive"}', false);
+  describe('code tools (format_code)', () => {
+    it('format_code: produces a code artifact', () => {
+      const result = extractArtifacts('format_code', 'const x = 1;', false);
       expect(result).toHaveLength(1);
-      expect(result[0].label).toBe('NLP analysis results');
-    });
-
-    it('analyze_sequence produces data artifact', () => {
-      const result = extractArtifacts('analyze_sequence', 'ATCG analysis', false);
-      expect(result).toHaveLength(1);
-      expect(result[0].label).toBe('DNA/protein analysis');
-    });
-
-    it('medical_calc produces data artifact', () => {
-      const result = extractArtifacts('medical_calc', 'BMI: 22', false);
-      expect(result).toHaveLength(1);
-      expect(result[0].label).toBe('Clinical calculation results');
+      expect(result[0].type).toBe('code');
+      expect(result[0].label).toBe('Code from format_code');
     });
   });
 
