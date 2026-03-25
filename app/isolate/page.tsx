@@ -5,6 +5,7 @@
  */
 
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'JCIL Isolate — Private Offline AI',
@@ -142,9 +143,9 @@ export default function IsolatePage() {
         </div>
 
         {/* Back link */}
-        <a href="/" className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/" className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
           &larr; Back to JCIL.AI
-        </a>
+        </Link>
       </div>
     </div>
   );
