@@ -136,6 +136,16 @@ export async function handleExplicitDocumentGeneration(
       throw new Error('Failed to parse document generation response as JSON');
     }
 
+    // Coerce type if AI returned a mismatched type (e.g. "document" when PDF was requested)
+    if (
+      explicitDocType === 'pdf' &&
+      (documentData as unknown as Record<string, unknown>).type === 'document' &&
+      Array.isArray((documentData as unknown as Record<string, unknown>).sections)
+    ) {
+      log.warn('Coercing document type from "document" to "general_pdf" (PDF was requested)');
+      (documentData as unknown as Record<string, unknown>).type = 'general_pdf';
+    }
+
     const validation = validateDocumentJSON(documentData);
     if (!validation.valid) {
       throw new Error(`Invalid document structure: ${validation.error}`);
@@ -738,6 +748,16 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
     }
 
     const documentData = JSON.parse(jsonText) as DocumentData;
+
+    // Coerce type if AI returned a mismatched type (e.g. "document" when PDF was requested)
+    if (
+      detectedDocType === 'pdf' &&
+      (documentData as unknown as Record<string, unknown>).type === 'document' &&
+      Array.isArray((documentData as unknown as Record<string, unknown>).sections)
+    ) {
+      log.warn('Coercing document type from "document" to "general_pdf" (PDF was requested)');
+      (documentData as unknown as Record<string, unknown>).type = 'general_pdf';
+    }
 
     const validation = validateDocumentJSON(documentData);
     if (!validation.valid) {

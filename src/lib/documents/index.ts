@@ -314,6 +314,9 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
       if (!obj.sections || !Array.isArray(obj.sections)) {
         return { valid: false, error: 'Document missing "sections" array' };
       }
+      if (obj.sections.length === 0) {
+        return { valid: false, error: 'Document must have at least one section' };
+      }
       // Validate each section has a type
       const validSectionTypes = ['paragraph', 'table', 'pageBreak', 'horizontalRule', 'image'];
       for (let i = 0; i < obj.sections.length; i++) {
@@ -381,6 +384,9 @@ export function validateDocumentJSON(json: unknown): { valid: boolean; error?: s
       }
       if (!obj.sections || !Array.isArray(obj.sections)) {
         return { valid: false, error: 'PDF missing "sections" array' };
+      }
+      if (obj.sections.length === 0) {
+        return { valid: false, error: 'PDF must have at least one section' };
       }
       // Validate each section has a type
       const validPdfSectionTypes = [
