@@ -122,7 +122,7 @@ export async function handleExplicitDocumentGeneration(
     const result = await completeChat(docMessages, {
       systemPrompt: schemaPrompt,
       model: 'claude-opus-4-6',
-      maxTokens: 4096,
+      maxTokens: 16384,
       temperature: 0.3,
     });
 
@@ -697,7 +697,7 @@ ${intelligentContext}${styleMatchInstructions}${multiDocInstructions}`;
       const result = await completeChat(retryMessages, {
         systemPrompt: retryPrompt,
         model: 'claude-opus-4-6',
-        maxTokens: 4096,
+        maxTokens: 16384,
         temperature: attempt > 0 ? 0.1 : 0.3,
       });
 
