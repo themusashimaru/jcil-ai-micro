@@ -419,7 +419,7 @@ async function listUserRepos(token: string): Promise<string> {
     const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: token });
 
-    const { data: repos } = await octokit.repos.listForAuthenticatedUser({
+    const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
       sort: 'updated',
       per_page: 30,
     });
@@ -452,10 +452,10 @@ async function getStructure(
     const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: token });
 
-    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
     const targetBranch = branch || repoData.default_branch;
 
-    const { data: treeData } = await octokit.git.getTree({
+    const { data: treeData } = await octokit.rest.git.getTree({
       owner,
       repo,
       tree_sha: targetBranch,
@@ -499,12 +499,12 @@ async function getContext(
       recentCommits: [],
     };
 
-    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
     const targetBranch = branch || repoData.default_branch;
 
     // Get README
     try {
-      const { data: readmeData } = await octokit.repos.getReadme({ owner, repo });
+      const { data: readmeData } = await octokit.rest.repos.getReadme({ owner, repo });
       context.readme = Buffer.from(readmeData.content, 'base64').toString('utf8');
     } catch {
       // No README
@@ -512,7 +512,7 @@ async function getContext(
 
     // Get package.json for Node.js projects
     try {
-      const { data: pkgData } = await octokit.repos.getContent({
+      const { data: pkgData } = await octokit.rest.repos.getContent({
         owner,
         repo,
         path: 'package.json',
@@ -526,7 +526,7 @@ async function getContext(
 
     // Get languages
     try {
-      const { data: langData } = await octokit.repos.listLanguages({ owner, repo });
+      const { data: langData } = await octokit.rest.repos.listLanguages({ owner, repo });
       context.languages = langData;
     } catch {
       // Language detection failed
@@ -534,7 +534,7 @@ async function getContext(
 
     // Get recent commits
     try {
-      const { data: commits } = await octokit.repos.listCommits({
+      const { data: commits } = await octokit.rest.repos.listCommits({
         owner,
         repo,
         sha: targetBranch,
@@ -552,7 +552,7 @@ async function getContext(
 
     // Get file structure (limited)
     try {
-      const { data: treeData } = await octokit.git.getTree({
+      const { data: treeData } = await octokit.rest.git.getTree({
         owner,
         repo,
         tree_sha: targetBranch,
@@ -754,17 +754,17 @@ export async function getRepoSummaryForPrompt(
     const { Octokit } = await import('octokit');
     const octokit = new Octokit({ auth: accessToken });
 
-    const { data: repoData } = await octokit.repos.get({ owner, repo });
+    const { data: repoData } = await octokit.rest.repos.get({ owner, repo });
 
     // Get languages
-    const { data: languages } = await octokit.repos.listLanguages({ owner, repo });
+    const { data: languages } = await octokit.rest.repos.listLanguages({ owner, repo });
     const topLanguages = Object.entries(languages)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([lang]) => lang);
 
     // Get key files list
-    const { data: rootContents } = await octokit.repos.getContent({ owner, repo, path: '' });
+    const { data: rootContents } = await octokit.rest.repos.getContent({ owner, repo, path: '' });
     const keyFiles = Array.isArray(rootContents)
       ? rootContents
           .filter((f) =>

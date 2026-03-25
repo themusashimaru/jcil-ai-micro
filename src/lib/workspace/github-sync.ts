@@ -102,7 +102,7 @@ export class GitHubSyncBridge {
    */
   async connect(owner: string, repo: string): Promise<GitHubRepo> {
     try {
-      const { data } = await this.octokit.repos.get({ owner, repo });
+      const { data } = await this.octokit.rest.repos.get({ owner, repo });
 
       this.repo = {
         owner: data.owner.login,
@@ -469,7 +469,7 @@ export class GitHubSyncBridge {
     }
 
     try {
-      const { data } = await this.octokit.pulls.create({
+      const { data } = await this.octokit.rest.pulls.create({
         owner: this.repo.owner,
         repo: this.repo.name,
         title,
@@ -495,7 +495,7 @@ export class GitHubSyncBridge {
     if (!this.repo) return null;
 
     try {
-      const { data } = await this.octokit.repos.getContent({
+      const { data } = await this.octokit.rest.repos.getContent({
         owner: this.repo.owner,
         repo: this.repo.name,
         path,
