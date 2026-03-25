@@ -34,7 +34,7 @@ import {
 } from './pdfHelpers';
 
 export const runtime = 'nodejs';
-export const maxDuration = 30;
+export const maxDuration = 90;
 
 const log = logger('DocumentsGenerate');
 
@@ -76,7 +76,9 @@ export async function POST(request: NextRequest) {
 
         if (!xlsxBuffer || xlsxBuffer.length === 0) {
           log.error('Excel generation produced empty buffer', { title });
-          return errors.serverError('Generated Excel file was empty. Please try again with different content.');
+          return errors.serverError(
+            'Generated Excel file was empty. Please try again with different content.'
+          );
         }
 
         // Generate unique filename
@@ -1151,7 +1153,9 @@ export async function POST(request: NextRequest) {
 
     if (!pdfBuffer || pdfBuffer.byteLength === 0) {
       log.error('PDF generation produced empty buffer', { title });
-      return errors.serverError('Generated PDF was empty. Please try again with different content.');
+      return errors.serverError(
+        'Generated PDF was empty. Please try again with different content.'
+      );
     }
 
     // If Supabase is available and userId provided, upload for secure download
