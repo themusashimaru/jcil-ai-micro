@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
+import { verifyDownloadToken } from '@/lib/security/download-token';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -33,26 +34,25 @@ function isValidFilename(filename: string): boolean {
   return validPattern.test(filename);
 }
 
-// Decode token (encoded as base64url JSON with userId, filename, type)
+// Verify and decode HMAC-signed token
 function decodeToken(
   token: string
 ): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
-  try {
-    const data = JSON.parse(Buffer.from(token, 'base64url').toString());
-    if (data.u && data.f && data.t) {
-      // SECURITY FIX: Validate filename to prevent path traversal
-      if (!isValidFilename(data.f)) {
-        log.error('Invalid filename detected - possible path traversal attempt', {
-          filename: data.f,
-        });
-        return null;
-      }
-      return { userId: data.u, filename: data.f, type: data.t };
-    }
-    return null;
-  } catch {
+  const decoded = verifyDownloadToken(token);
+  if (!decoded) {
+    log.error('Invalid or tampered download token');
     return null;
   }
+
+  // SECURITY: Validate filename to prevent path traversal
+  if (!isValidFilename(decoded.filename)) {
+    log.error('Invalid filename detected - possible path traversal attempt', {
+      filename: decoded.filename,
+    });
+    return null;
+  }
+
+  return decoded;
 }
 
 // Get Supabase admin client

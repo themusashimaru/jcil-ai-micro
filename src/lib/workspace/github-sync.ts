@@ -13,7 +13,7 @@
  * - Real-time file watching
  */
 
-import { Octokit } from '@octokit/rest';
+import { Octokit } from 'octokit';
 import { logger } from '@/lib/logger';
 import {
   escapeShellArg,

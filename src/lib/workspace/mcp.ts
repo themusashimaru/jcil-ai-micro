@@ -22,7 +22,7 @@ import {
 } from '@/lib/mcp/mcp-client';
 import Anthropic from '@anthropic-ai/sdk';
 import { ContainerManager, getContainerManager } from './container';
-import { Octokit } from '@octokit/rest';
+import { Octokit } from 'octokit';
 
 const log = logger('MCP');
 
