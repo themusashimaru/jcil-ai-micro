@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
-const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-arm64.zip';
-const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-x64.zip';
+const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-arm64.pkg';
+const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-x64.pkg';
 const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest';
 
 export default function IsolatePage() {
