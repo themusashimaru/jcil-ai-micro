@@ -2,9 +2,10 @@
  * CHAT TOOLS INDEX
  *
  * Unified exports for all chat-level tools.
- * Only tools with real implementations are included — no stubs.
+ * Only tools with real implementations that extend Claude's native capabilities.
  *
- * Last updated: 2026-02-22 (cleaned up: removed 23 stub tools + 148 broken imports)
+ * Last updated: 2026-03-25 (removed 48 redundant tools — document formatters,
+ * text analysis, Claude-calling-Claude tools)
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
@@ -16,7 +17,7 @@ import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../provide
 export type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 
 // ============================================================================
-// TOOL EXPORTS — Only tools with real implementations
+// TOOL EXPORTS — Only tools that extend Claude's native capabilities
 // ============================================================================
 
 // Web Search (native Anthropic server tool)
@@ -57,8 +58,6 @@ export { extractPdfTool, executeExtractPdf, isExtractPdfAvailable } from './extr
 // Table Extraction
 export { extractTableTool, executeExtractTable, isExtractTableAvailable } from './extract-table';
 
-// Mini-Agent Orchestrator — removed (agent pattern replaced by skills)
-
 // Dynamic Tool Creation
 export {
   dynamicToolTool,
@@ -82,8 +81,6 @@ export {
   isGitHubAvailable,
   getRepoSummaryForPrompt,
 } from './github-tool';
-
-// Screenshot Tool — removed (use browser_visit with action=screenshot)
 
 // Chart/Data Visualization
 export { chartTool, executeChart, isChartAvailable } from './chart-tool';
@@ -123,11 +120,8 @@ export { linkShortenTool, executeLinkShorten, isLinkShortenAvailable } from './l
 // Fake Data Generation (Faker.js)
 export { fakerTool, executeFaker, isFakerAvailable } from './faker-tool';
 
-// Text Diff Comparison
+// Text Diff Comparison (diff library)
 export { diffTool, executeDiff, isDiffAvailable } from './diff-tool';
-
-// NLP Analysis (Natural)
-export { nlpTool, executeNLP, isNLPAvailable } from './nlp-tool';
 
 // Barcode Generation (JsBarcode)
 export { barcodeTool, executeBarcode, isBarcodeAvailable } from './barcode-tool';
@@ -144,23 +138,6 @@ export {
   executePresentation,
   isPresentationAvailable,
 } from './presentation-tool';
-
-// Mail Merge / Batch Documents
-export { mailMergeTool, executeMailMerge, isMailMergeAvailable } from './mail-merge-tool';
-
-// Business Document Templates
-export {
-  documentTemplatesTool,
-  executeDocumentTemplate,
-  isDocumentTemplateAvailable,
-} from './document-templates-tool';
-
-// HTML Email Templates
-export {
-  emailTemplateTool,
-  executeEmailTemplate,
-  isEmailTemplateAvailable,
-} from './email-template-tool';
 
 // Task Scheduling
 export {
@@ -214,13 +191,10 @@ export { geospatialTool, executeGeospatial, isGeospatialAvailable } from './geos
 // Phone Validation (libphonenumber-js)
 export { phoneTool, executePhone, isPhoneAvailable } from './phone-tool';
 
-// DNA/Bio Sequences
-export { dnaBioTool, executeDnaBio, isDnaBioAvailable } from './dna-bio-tool';
-
 // Signal Processing (fft-js)
 export { signalTool, executeSignal, isSignalAvailable } from './signal-tool';
 
-// Accessibility Checking (axe-core)
+// Accessibility Checking
 export {
   accessibilityTool,
   executeAccessibility,
@@ -233,30 +207,11 @@ export { parserTool, executeParser, isParserAvailable } from './parser-tool';
 // Constraint Solver (logic-solver)
 export { constraintTool, executeConstraint, isConstraintAvailable } from './constraint-tool';
 
-// Sequence Analysis
-export {
-  sequenceAnalyzeTool,
-  executeSequenceAnalyze,
-  isSequenceAnalyzeAvailable,
-} from './sequence-analyze-tool';
-
-// Medical Calculator
-export { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } from './medical-calc-tool';
-
 // Graphics 3D
 export { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } from './graphics-3d-tool';
 
 // Hough Vision (Computer vision)
 export { houghVisionTool, executeHoughVision, isHoughVisionAvailable } from './hough-vision-tool';
-
-// Ray Tracing
-export { rayTracingTool, executeRayTracing, isRayTracingAvailable } from './ray-tracing-tool';
-
-// Error Fixer (AI-powered)
-export { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } from './error-fixer-tool';
-
-// Refactor Tool (AI-powered)
-export { refactorTool, executeRefactor, isRefactorAvailable } from './refactor-tool';
 
 // ============================================================================
 // PASS-THROUGH MODULES — re-export from safety.ts and QC stubs
@@ -284,7 +239,8 @@ export async function verifyOutput(
 
 /**
  * All chat tools with their executors.
- * Only includes tools with real implementations.
+ * Only includes tools with real implementations that extend Claude's native capabilities.
+ * 48 redundant tools removed 2026-03-25.
  */
 export const CHAT_TOOLS: {
   tool: UnifiedTool;
@@ -332,7 +288,6 @@ async function initializeTools() {
   // Library-based tools
   const { fakerTool, executeFaker, isFakerAvailable } = await import('./faker-tool');
   const { diffTool, executeDiff, isDiffAvailable } = await import('./diff-tool');
-  const { nlpTool, executeNLP, isNLPAvailable } = await import('./nlp-tool');
   const { barcodeTool, executeBarcode, isBarcodeAvailable } = await import('./barcode-tool');
   const { ocrTool, executeOCR, isOCRAvailable } = await import('./ocr-tool');
   const { pdfTool, executePDF, isPDFAvailable } = await import('./pdf-tool');
@@ -349,32 +304,21 @@ async function initializeTools() {
     await import('./search-index-tool');
   const { validatorTool, executeValidator, isValidatorAvailable } =
     await import('./validator-tool');
+
   // Scientific & research tools
   const { geospatialTool, executeGeospatial, isGeospatialAvailable } =
     await import('./geospatial-tool');
   const { phoneTool, executePhone, isPhoneAvailable } = await import('./phone-tool');
-  const { dnaBioTool, executeDnaBio, isDnaBioAvailable } = await import('./dna-bio-tool');
   const { signalTool, executeSignal, isSignalAvailable } = await import('./signal-tool');
   const { accessibilityTool, executeAccessibility, isAccessibilityAvailable } =
     await import('./accessibility-tool');
   const { parserTool, executeParser, isParserAvailable } = await import('./parser-tool');
   const { constraintTool, executeConstraint, isConstraintAvailable } =
     await import('./constraint-tool');
-  const { sequenceAnalyzeTool, executeSequenceAnalyze, isSequenceAnalyzeAvailable } =
-    await import('./sequence-analyze-tool');
-  const { medicalCalcTool, executeMedicalCalc, isMedicalCalcAvailable } =
-    await import('./medical-calc-tool');
   const { graphics3dTool, executeGraphics3D, isGraphics3DAvailable } =
     await import('./graphics-3d-tool');
   const { houghVisionTool, executeHoughVision, isHoughVisionAvailable } =
     await import('./hough-vision-tool');
-  const { rayTracingTool, executeRayTracing, isRayTracingAvailable } =
-    await import('./ray-tracing-tool');
-
-  // AI-powered code tools
-  const { errorFixerTool, executeErrorFixer, isErrorFixerAvailable } =
-    await import('./error-fixer-tool');
-  const { refactorTool, executeRefactor, isRefactorAvailable } = await import('./refactor-tool');
 
   // GitHub
   const { githubTool, executeGitHub, isGitHubAvailable } = await import('./github-tool');
@@ -382,18 +326,6 @@ async function initializeTools() {
   // Presentation / PowerPoint
   const { presentationTool, executePresentation, isPresentationAvailable } =
     await import('./presentation-tool');
-
-  // Mail Merge / Batch Documents
-  const { mailMergeTool, executeMailMerge, isMailMergeAvailable } =
-    await import('./mail-merge-tool');
-
-  // Business Document Templates
-  const { documentTemplatesTool, executeDocumentTemplate, isDocumentTemplateAvailable } =
-    await import('./document-templates-tool');
-
-  // HTML Email Templates
-  const { emailTemplateTool, executeEmailTemplate, isEmailTemplateAvailable } =
-    await import('./email-template-tool');
 
   // Task Scheduling
   const { scheduleTaskTool, executeScheduleTask, isScheduleTaskAvailable } =
@@ -476,7 +408,6 @@ async function initializeTools() {
     // Library-based tools
     { tool: fakerTool, executor: executeFaker, checkAvailability: isFakerAvailable },
     { tool: diffTool, executor: executeDiff, checkAvailability: isDiffAvailable },
-    { tool: nlpTool, executor: executeNLP, checkAvailability: isNLPAvailable },
     { tool: barcodeTool, executor: executeBarcode, checkAvailability: isBarcodeAvailable },
     { tool: ocrTool, executor: executeOCR, checkAvailability: isOCRAvailable },
     { tool: pdfTool, executor: executePDF, checkAvailability: isPDFAvailable },
@@ -494,10 +425,10 @@ async function initializeTools() {
       checkAvailability: isSearchIndexAvailable,
     },
     { tool: validatorTool, executor: executeValidator, checkAvailability: isValidatorAvailable },
+
     // Scientific & research tools
     { tool: geospatialTool, executor: executeGeospatial, checkAvailability: isGeospatialAvailable },
     { tool: phoneTool, executor: executePhone, checkAvailability: isPhoneAvailable },
-    { tool: dnaBioTool, executor: executeDnaBio, checkAvailability: isDnaBioAvailable },
     { tool: signalTool, executor: executeSignal, checkAvailability: isSignalAvailable },
     {
       tool: accessibilityTool,
@@ -511,16 +442,6 @@ async function initializeTools() {
       checkAvailability: isConstraintAvailable,
     },
     {
-      tool: sequenceAnalyzeTool,
-      executor: executeSequenceAnalyze,
-      checkAvailability: isSequenceAnalyzeAvailable,
-    },
-    {
-      tool: medicalCalcTool,
-      executor: executeMedicalCalc,
-      checkAvailability: isMedicalCalcAvailable,
-    },
-    {
       tool: graphics3dTool,
       executor: executeGraphics3D,
       checkAvailability: isGraphics3DAvailable,
@@ -530,11 +451,6 @@ async function initializeTools() {
       executor: executeHoughVision,
       checkAvailability: isHoughVisionAvailable,
     },
-    { tool: rayTracingTool, executor: executeRayTracing, checkAvailability: isRayTracingAvailable },
-
-    // AI-powered code tools
-    { tool: errorFixerTool, executor: executeErrorFixer, checkAvailability: isErrorFixerAvailable },
-    { tool: refactorTool, executor: executeRefactor, checkAvailability: isRefactorAvailable },
 
     // GitHub
     { tool: githubTool, executor: executeGitHub, checkAvailability: isGitHubAvailable },
@@ -544,17 +460,6 @@ async function initializeTools() {
       tool: presentationTool,
       executor: executePresentation,
       checkAvailability: isPresentationAvailable,
-    },
-    { tool: mailMergeTool, executor: executeMailMerge, checkAvailability: isMailMergeAvailable },
-    {
-      tool: documentTemplatesTool,
-      executor: executeDocumentTemplate,
-      checkAvailability: isDocumentTemplateAvailable,
-    },
-    {
-      tool: emailTemplateTool,
-      executor: executeEmailTemplate,
-      checkAvailability: isEmailTemplateAvailable,
     },
 
     // Task scheduling

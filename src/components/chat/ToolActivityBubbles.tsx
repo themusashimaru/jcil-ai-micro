@@ -38,8 +38,6 @@ const TOOL_LABELS: Record<string, string> = {
   extract_table: 'Table',
   sql_query: 'SQL',
   math_compute: 'Math',
-  analyze_text_nlp: 'NLP',
-  analyze_sequence: 'DNA',
   analyze_image: 'Vision',
   transform_image: 'Image',
   generate_qr_code: 'QR',

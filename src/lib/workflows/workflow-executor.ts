@@ -219,12 +219,6 @@ export const DEFAULT_WORKFLOWS: Workflow[] = [
     triggerPhrases: ['fix and commit', 'clean up and save', 'fix it up'],
     steps: [
       {
-        id: 'fix',
-        tool: 'fix_error',
-        arguments: {},
-        description: 'Fixing errors',
-      },
-      {
         id: 'format',
         tool: 'workspace',
         arguments: { operation: 'bash', command: 'npm run format || npx prettier --write .' },

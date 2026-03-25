@@ -343,37 +343,8 @@ export function extractArtifacts(
       break;
     }
 
-    case 'fix_error':
-    case 'refactor_code':
     case 'format_code': {
       artifacts.push({ type: 'code', content: resultContent, label: `Code from ${toolName}` });
-      break;
-    }
-
-    case 'analyze_text_nlp': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'NLP analysis results',
-      });
-      break;
-    }
-
-    case 'analyze_sequence': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'DNA/protein analysis',
-      });
-      break;
-    }
-
-    case 'medical_calc': {
-      artifacts.push({
-        type: 'data',
-        content: resultContent,
-        label: 'Clinical calculation results',
-      });
       break;
     }
 
@@ -683,8 +654,8 @@ export const TOOL_CHAINS: ToolChain[] = [
   // ── CODE & DEVOPS ────────────────────────────────────────────────────
   {
     name: 'Code Review Pipeline',
-    description: 'Analyze code, check accessibility, fix errors, refactor',
-    tools: ['check_accessibility', 'fix_error', 'refactor_code'],
+    description: 'Analyze code and check accessibility',
+    tools: ['check_accessibility', 'run_code'],
     trigger: 'when user asks for comprehensive code review',
     category: 'code',
   },
