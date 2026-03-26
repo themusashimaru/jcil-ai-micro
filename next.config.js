@@ -49,11 +49,7 @@ const nextConfig = {
 
   // App Router optimizations
   experimental: {
-    // Server-side native packages — must be under experimental in Next.js 14.x
-    // ONLY truly native packages that use .node bindings belong here
-    // pdfkit loads .afm font files via fs.readFileSync at runtime —
-    // bundling it breaks because webpack doesn't include .afm data files.
-    // Marking it external lets Node.js resolve fonts from node_modules.
+    // Native packages that must not be bundled by webpack
     serverComponentsExternalPackages: ['@napi-rs/canvas', 'puppeteer-core', 'pdfkit'],
     serverActions: {
       bodySizeLimit: '10mb',
