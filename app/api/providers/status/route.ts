@@ -16,16 +16,31 @@
  * }
  */
 
+import { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { getAvailableProviderIds } from '@/lib/ai/providers/registry';
 import { logger } from '@/lib/logger';
-import { successResponse, errors } from '@/lib/api/utils';
+import {
+  successResponse,
+  errors,
+  checkRequestRateLimit,
+  rateLimits,
+  getClientIP,
+} from '@/lib/api/utils';
 
 const log = logger('ProviderStatusAPI');
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  const ip = getClientIP(request);
+  const rateLimitResult = await checkRequestRateLimit(
+    `providers:status:${ip}`,
+    rateLimits.standard
+  );
+  if (!rateLimitResult.allowed) return rateLimitResult.response;
   try {
     // Get platform-configured providers (from env vars)
     const platformConfigured = getAvailableProviderIds();

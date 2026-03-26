@@ -36,17 +36,17 @@
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Email Tool",
-      "short_name": "Email",
-      "description": "Draft professional emails",
-      "url": "/tools/email",
+      "name": "Scripture Tools",
+      "short_name": "Scripture",
+      "description": "Bible study and scripture tools",
+      "url": "/tools/scripture",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Image Generator",
-      "short_name": "Image",
-      "description": "Generate images with AI",
-      "url": "/tools/image",
+      "name": "Code Lab",
+      "short_name": "Code",
+      "description": "AI-powered code editor",
+      "url": "/code-lab",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],

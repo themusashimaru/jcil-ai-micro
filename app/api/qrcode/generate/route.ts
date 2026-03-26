@@ -8,10 +8,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import QRCode from 'qrcode';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/lib/auth/user-guard';
+import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 
 const log = logger('QRCodeAPI');
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 interface QRCodeRequest {
   data: string;
@@ -22,6 +25,15 @@ interface QRCodeRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireUser(request);
+    if (!auth.authorized) return auth.response;
+
+    const rateLimitResult = await checkRequestRateLimit(
+      `qrcode:${auth.user.id}`,
+      rateLimits.standard
+    );
+    if (!rateLimitResult.allowed) return rateLimitResult.response;
+
     const body: QRCodeRequest = await request.json();
     const { data, size = 300, darkColor = '#000000', lightColor = '#ffffff' } = body;
 

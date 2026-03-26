@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { NextRequest } from 'next/server';
+
 // Mock logger
 vi.mock('@/lib/logger', () => ({
   logger: () => ({
@@ -9,6 +11,20 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   }),
 }));
+
+// Mock API utils (rate limiting)
+vi.mock('@/lib/api/utils', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    checkRequestRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
+    getClientIP: vi.fn().mockReturnValue('127.0.0.1'),
+  };
+});
+
+function makeRequest(): NextRequest {
+  return new NextRequest('http://localhost/api/providers/status');
+}
 
 // Mock providers registry
 const mockGetAvailableProviderIds = vi.fn();
@@ -53,7 +69,7 @@ describe('GET /api/providers/status', () => {
   });
 
   it('returns platform-configured providers', async () => {
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.data.platformConfigured).toEqual(['claude', 'xai']);
@@ -61,7 +77,7 @@ describe('GET /api/providers/status', () => {
   });
 
   it('returns claude as default provider when available', async () => {
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     expect(body.data.default).toBe('claude');
   });
@@ -69,7 +85,7 @@ describe('GET /api/providers/status', () => {
   it('returns first available as default when claude is not configured', async () => {
     mockGetAvailableProviderIds.mockReturnValue(['xai', 'openai']);
 
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     expect(body.data.default).toBe('xai');
   });
@@ -87,7 +103,7 @@ describe('GET /api/providers/status', () => {
       }),
     });
 
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     expect(body.data.userConfigured).toContain('openai');
     expect(body.data.userConfigured).toContain('deepseek');
@@ -108,7 +124,7 @@ describe('GET /api/providers/status', () => {
       }),
     });
 
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     // openai should appear only once in configured
     const openaiCount = body.data.configured.filter((p: string) => p === 'openai').length;
@@ -118,7 +134,7 @@ describe('GET /api/providers/status', () => {
   it('handles user lookup failure gracefully', async () => {
     mockGetUser.mockRejectedValue(new Error('Cookie error'));
 
-    const response = await GET();
+    const response = await GET(makeRequest());
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body.data.userConfigured).toEqual([]);
@@ -130,7 +146,7 @@ describe('GET /api/providers/status', () => {
       throw new Error('Registry error');
     });
 
-    const response = await GET();
+    const response = await GET(makeRequest());
     expect(response.status).toBe(500);
   });
 });
