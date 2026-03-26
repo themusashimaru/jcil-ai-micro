@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Get user details from database
     const { data: userData, error: userError } = await auth.supabase
       .from('users')
-      .select('email')
+      .select('email, stripe_customer_id, subscription_status, subscription_tier')
       .eq('id', auth.user.id)
       .single();
 
@@ -64,8 +64,29 @@ export async function POST(request: NextRequest) {
       return errors.notFound('User');
     }
 
-    // Create checkout session
-    const session = await createCheckoutSession(auth.user.id, priceId, tier, userData.email);
+    // Prevent double-purchase: block if user already has an active subscription
+    if (
+      userData.subscription_status === 'active' &&
+      userData.subscription_tier &&
+      userData.subscription_tier !== 'free'
+    ) {
+      log.warn('[Stripe Checkout] User already has active subscription', {
+        currentTier: userData.subscription_tier,
+        requestedTier: tier,
+      });
+      return errors.badRequest(
+        'You already have an active subscription. Please manage your plan from the billing portal.'
+      );
+    }
+
+    // Create checkout session — reuse existing Stripe customer if available
+    const session = await createCheckoutSession(
+      auth.user.id,
+      priceId,
+      tier,
+      userData.email,
+      userData.stripe_customer_id || undefined
+    );
 
     return successResponse({ sessionId: session.id, url: session.url });
   } catch (error) {

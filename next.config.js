@@ -20,6 +20,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
+  // Standalone output for Docker deployment
+  output: 'standalone',
+
   // Force-bundle ESM-only packages so Node.js doesn't try to require() them
   // Prevents ERR_REQUIRE_ESM at runtime on Vercel serverless functions
   transpilePackages: [
@@ -35,18 +38,15 @@ const nextConfig = {
     '@e2b/desktop',
   ],
 
-  // Ensure pdfkit .afm font files are included in Vercel serverless output.
-  // Without this, pdfkit's fs.readFileSync calls fail with ENOENT.
-  // Ensure pdfkit .afm font files are included in Vercel serverless output.
-  // PDFKit loads font metrics via fs.readFileSync at runtime — without this,
-  // all PDF generation (resumes, invoices, general docs, mail merge) fails
-  // with ENOENT: '/var/task/.next/server/chunks/data/Helvetica.afm'
-  outputFileTracingIncludes: {
-    '/api/**/*': ['./node_modules/pdfkit/js/data/*.afm'],
-  },
-
   // App Router optimizations
   experimental: {
+    // Ensure pdfkit .afm font files are included in Vercel serverless output.
+    // PDFKit loads font metrics via fs.readFileSync at runtime — without this,
+    // all PDF generation (resumes, invoices, general docs, mail merge) fails
+    // with ENOENT: '/var/task/.next/server/chunks/data/Helvetica.afm'
+    outputFileTracingIncludes: {
+      '/api/**/*': ['./node_modules/pdfkit/js/data/*.afm'],
+    },
     // Server-side native packages — must be under experimental in Next.js 14.x
     // ONLY truly native packages that use .node bindings belong here
     // pdfkit loads .afm font files via fs.readFileSync at runtime —

@@ -81,15 +81,29 @@ export async function checkToolRateLimit(
   return { allowed: true };
 }
 
+// Tiered rate limits per hour by plan
+const TIERED_LIMITS: Record<string, number> = {
+  free: 30,
+  plus: 300,
+  pro: 600,
+  executive: 1200,
+};
+
 /**
  * Check chat message rate limit.
  * Uses Redis-backed sliding window.
+ * Supports tier-aware limits when planKey is provided.
  */
 export async function checkChatRateLimit(
   identifier: string,
-  isAuthenticated: boolean
+  isAuthenticated: boolean,
+  planKey?: string
 ): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
-  const limit = isAuthenticated ? RATE_LIMIT_AUTHENTICATED : RATE_LIMIT_ANONYMOUS;
+  const limit = !isAuthenticated
+    ? RATE_LIMIT_ANONYMOUS
+    : planKey && TIERED_LIMITS[planKey]
+      ? TIERED_LIMITS[planKey]
+      : RATE_LIMIT_AUTHENTICATED;
 
   const result: RateLimitResult = await checkRateLimit(`chat:msg:${identifier}`, {
     limit,

@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
     // ── Rate Limiting & Quota ──
     let rateLimitRemaining: number | undefined;
     if (!isAdmin) {
-      const rateLimit = await checkChatRateLimit(userId, true);
+      const rateLimit = await checkChatRateLimit(userId, true, userPlanKey);
       rateLimitRemaining = rateLimit.remaining;
       if (!rateLimit.allowed) {
         return chatErrorResponse(HTTP_STATUS.TOO_MANY_REQUESTS, {

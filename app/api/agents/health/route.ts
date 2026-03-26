@@ -25,6 +25,7 @@ import { isWebSearchAvailable } from '@/lib/ai/tools/web-search';
 
 const log = logger('AgentsHealth');
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 30; // 30 seconds for health checks
 
 interface AgentStatus {

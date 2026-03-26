@@ -12,6 +12,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { requireAdmin } from '@/lib/auth/admin-guard';
 
+export const dynamic = 'force-dynamic';
+
 const TOOLS_DIR = path.join(process.cwd(), 'src/lib/ai/tools');
 
 interface ToolInfo {

@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { logger } from '@/lib/logger';
 import { checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
+import { cacheDelete } from '@/lib/redis/client';
 
 const log = logger('StripeWebhook');
 
@@ -140,6 +141,12 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        await handleChargeRefunded(charge);
+        break;
+      }
+
       default:
         log.debug('Unhandled event type', { type: event.type });
     }
@@ -210,6 +217,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (updateError) {
     log.error('Error updating user after checkout', { error: updateError.message });
+  } else {
+    // Invalidate Redis cache so new tier takes effect immediately
+    await cacheDelete(`chat:admin:${userId}`).catch(() => {});
   }
 }
 
@@ -274,6 +284,9 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     return;
   }
 
+  // Invalidate Redis cache so new tier takes effect immediately
+  await cacheDelete(`chat:admin:${userId}`).catch(() => {});
+
   // Log subscription history
   const priceId = subscription.items.data[0]?.price.id;
   const amount = subscription.items.data[0]?.price.unit_amount
@@ -288,11 +301,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     stripe_price_id: priceId,
     amount: amount,
     currency: subscription.currency?.toUpperCase() || 'USD',
-    billing_cycle_start: new Date(
+    period_start: new Date(
       ((subscription as unknown as Record<string, number>).current_period_start ||
         Date.now() / 1000) * 1000
     ).toISOString(),
-    billing_cycle_end: new Date(
+    period_end: new Date(
       ((subscription as unknown as Record<string, number>).current_period_end ||
         Date.now() / 1000) * 1000
     ).toISOString(),
@@ -349,6 +362,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
   if (updateError) {
     log.error('Error downgrading user', { error: updateError.message });
+  } else {
+    await cacheDelete(`chat:admin:${userId}`).catch(() => {});
   }
 }
 
@@ -399,5 +414,40 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   if (updateError) {
     log.error('Error updating payment failed status', { error: updateError.message });
+  }
+}
+
+/**
+ * Handle charge refund — downgrade user to free tier
+ */
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  const customerId = charge.customer as string;
+
+  if (!customerId) {
+    log.warn('Missing customer ID in refund charge');
+    return;
+  }
+
+  log.info('Charge refunded', { customerId: '[set]' });
+
+  // Only downgrade on full refunds
+  if (!charge.refunded) {
+    log.info('Partial refund — no tier change');
+    return;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      subscription_tier: 'free',
+      subscription_status: 'canceled',
+      stripe_subscription_id: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_customer_id', customerId);
+
+  if (updateError) {
+    log.error('Error downgrading refunded user', { error: updateError.message });
   }
 }

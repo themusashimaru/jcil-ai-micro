@@ -81,7 +81,15 @@ function mockSupabaseChain(result: { data: unknown; error: unknown }) {
 
 function mockAuthSuccess(supabaseResult?: { data: unknown; error: unknown }) {
   const supabase = mockSupabaseChain(
-    supabaseResult ?? { data: { email: 'user@example.com' }, error: null }
+    supabaseResult ?? {
+      data: {
+        email: 'user@example.com',
+        stripe_customer_id: null,
+        subscription_status: null,
+        subscription_tier: 'free',
+      },
+      error: null,
+    }
   );
   mockRequireUser.mockResolvedValue({
     authorized: true,
@@ -299,7 +307,8 @@ describe('POST /api/stripe/checkout', () => {
         'user-123',
         mockStripePriceIds[tier],
         tier,
-        'user@example.com'
+        'user@example.com',
+        undefined
       );
       expect(mockSuccessResponse).toHaveBeenCalledWith({
         sessionId: `cs_${tier}_session_id`,

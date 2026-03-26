@@ -73,7 +73,8 @@ export async function createCheckoutSession(
   userId: string,
   priceId: string,
   tier: SubscriptionTier,
-  customerEmail?: string
+  customerEmail?: string,
+  existingCustomerId?: string
 ) {
   // Single coupon for 50% off first month (applies to all tiers)
   const couponId = process.env.STRIPE_COUPON_FIRST_MONTH;
@@ -89,7 +90,8 @@ export async function createCheckoutSession(
     ],
     success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/chat?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/?canceled=true`,
-    customer_email: customerEmail,
+    // Reuse existing Stripe customer to avoid duplicate customer records
+    ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: customerEmail }),
     client_reference_id: userId,
     metadata: {
       user_id: userId,

@@ -17,6 +17,8 @@ import {
 } from '@/lib/api/utils';
 import { userSettingsSchema } from '@/lib/validation/schemas';
 
+export const dynamic = 'force-dynamic';
+
 const log = logger('UserSettings');
 
 export async function GET() {

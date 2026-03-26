@@ -25,6 +25,7 @@ import { performanceAnalyzer } from '@/agents/code/brain/PerformanceAnalyzer';
 
 const log = logger('CodeAgentTest');
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds for tests
 
 interface TestResult {

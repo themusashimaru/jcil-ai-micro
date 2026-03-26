@@ -13,6 +13,8 @@ import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { requireUser } from '@/lib/auth/user-guard';
 
+export const dynamic = 'force-dynamic';
+
 const log = logger('UserSubscription');
 
 export async function GET() {

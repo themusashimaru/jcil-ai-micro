@@ -10,6 +10,8 @@ import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { successResponse, errors } from '@/lib/api/utils';
 
+export const dynamic = 'force-dynamic';
+
 const log = logger('user-mcp-servers');
 
 export async function GET() {

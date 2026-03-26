@@ -20,6 +20,8 @@ import { logger } from '@/lib/logger';
 import { successResponse, errors, checkRequestRateLimit, rateLimits } from '@/lib/api/utils';
 import { requireUser } from '@/lib/auth/user-guard';
 
+export const dynamic = 'force-dynamic';
+
 // Plan features (not limits - those come from limits.ts)
 const TIER_FEATURES = {
   free: { realtime_voice: false, image_generation: false },

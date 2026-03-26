@@ -186,8 +186,8 @@ export default function PricingSection() {
       price: 0,
       isFree: true,
       features: [
-        'AI chat powered by Claude Haiku',
-        '10,000 token trial allowance',
+        'AI chat powered by Claude Opus 4.6',
+        '50,000 token trial allowance',
         'Basic web search & tools',
         'Perfect for exploring the platform',
       ],
@@ -199,7 +199,7 @@ export default function PricingSection() {
       price: 18,
       firstMonthPrice: 9,
       features: [
-        'Powered by Claude Sonnet 4.6',
+        'Powered by Claude Opus 4.6',
         '1M tokens/month',
         'Real-time web search with citations',
         'Code execution & debugging',
@@ -231,7 +231,7 @@ export default function PricingSection() {
       firstMonthPrice: 49,
       features: [
         'Everything in Pro',
-        'Highest intelligence AI model',
+        'Claude Opus 4.6 — 5M tokens/month',
         '5x more usage capacity',
         'Priority processing & support',
         'Early access to new features',

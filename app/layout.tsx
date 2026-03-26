@@ -89,7 +89,7 @@ export const metadata: Metadata = {
       'Intelligent AI assistance built on your values. Chat, research, Bible study, writing tools, and more. Safe for families.',
     images: [
       {
-        url: 'https://jcil.ai/api/og-image',
+        url: 'https://jcil.ai/icon-512.png',
         width: 512,
         height: 512,
         alt: 'JCIL.AI - AI-Powered Tools for People of Faith',
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
     title: 'JCIL.AI | AI-Powered Tools for People of Faith',
     description:
       'Intelligent AI assistance built on your values. Safe for families. Enterprise-grade security.',
-    images: ['https://jcil.ai/api/og-image'],
+    images: ['https://jcil.ai/icon-512.png'],
   },
   robots: {
     index: true,

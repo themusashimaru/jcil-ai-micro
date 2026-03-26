@@ -26,10 +26,10 @@ const TIER_INFO = {
   free: {
     name: 'Free',
     price: 0,
-    description: 'Try the platform with Claude Haiku',
+    description: 'Try the platform with Claude Opus 4.6',
     features: [
-      'AI chat powered by Claude Haiku 4.5',
-      '10,000 token trial allowance',
+      'AI chat powered by Claude Opus 4.6',
+      '50,000 token trial allowance',
       'Basic web search & tools',
       'No credit card required',
     ],

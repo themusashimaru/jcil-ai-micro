@@ -17,6 +17,7 @@ import { requireUser } from '@/lib/auth/user-guard';
 import { logger } from '@/lib/logger';
 import { verifyDownloadToken } from '@/lib/security/download-token';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 

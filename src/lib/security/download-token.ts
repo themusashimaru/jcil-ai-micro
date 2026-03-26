@@ -85,9 +85,7 @@ export function verifyDownloadToken(
     }
 
     try {
-      const payload: TokenPayload = JSON.parse(
-        Buffer.from(payloadB64, 'base64url').toString()
-      );
+      const payload: TokenPayload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
 
       if (!payload.u || !payload.f || !payload.t) {
         return null;
@@ -106,20 +104,6 @@ export function verifyDownloadToken(
     }
   }
 
-  // Legacy unsigned format (single base64url string without dots)
-  // Accept temporarily for backward compatibility but log a warning
-  if (parts.length === 1) {
-    try {
-      const data = JSON.parse(Buffer.from(token, 'base64url').toString());
-      if (data.u && data.f && data.t) {
-        // eslint-disable-next-line no-console
-        console.warn('[SECURITY] Legacy unsigned download token used — migrate to signed tokens');
-        return { userId: data.u, filename: data.f, type: data.t };
-      }
-    } catch {
-      // Fall through to null
-    }
-  }
-
+  // Legacy unsigned tokens are no longer accepted (security risk)
   return null;
 }

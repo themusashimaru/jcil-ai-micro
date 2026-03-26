@@ -143,7 +143,7 @@ export async function incrementTokenUsage(
 ): Promise<TokenUsageResult> {
   const limit = getTokenLimit(planKey);
 
-  // Free users get a ONE-TIME 10K token trial (no monthly reset)
+  // Free users get a ONE-TIME 50K token trial (no monthly reset)
   // Paid users get monthly reset
   const isFreeUser = planKey === 'free';
   const monthKey = getMonthKey();

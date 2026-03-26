@@ -98,11 +98,11 @@ describe('rate-limiting (chat route layer)', () => {
     });
 
     it('uses the correct limit for authenticated vs anonymous users', async () => {
-      // Authenticated call -- should use 120 (RATE_LIMIT_AUTH default)
+      // Authenticated call -- should use 120 (RATE_LIMIT_AUTH default, no planKey)
       mockCheckRateLimit.mockResolvedValueOnce(allowed(119));
       await checkChatRateLimit('auth-user', true);
 
-      expect(mockCheckRateLimit).toHaveBeenCalledWith('chat:msg:auth-user', {
+      expect(mockCheckRateLimit).toHaveBeenNthCalledWith(1, 'chat:msg:auth-user', {
         limit: 120,
         windowMs: 3_600_000,
       });
@@ -111,8 +111,10 @@ describe('rate-limiting (chat route layer)', () => {
       mockCheckRateLimit.mockResolvedValueOnce(allowed(29));
       await checkChatRateLimit('anon-ip', false);
 
-      expect(mockCheckRateLimit).toHaveBeenCalledWith('chat:msg:anon-ip', {
-        limit: 30,
+      // Anonymous limit defaults to 30 but may be overridden by RATE_LIMIT_ANON env var
+      const expectedAnonLimit = parseInt(process.env.RATE_LIMIT_ANON || '30', 10);
+      expect(mockCheckRateLimit).toHaveBeenNthCalledWith(2, 'chat:msg:anon-ip', {
+        limit: expectedAnonLimit,
         windowMs: 3_600_000,
       });
     });
