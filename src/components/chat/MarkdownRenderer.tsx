@@ -15,23 +15,26 @@
 'use client';
 
 import { useState, useCallback, memo } from 'react';
+import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { CodeBlockWithActions } from './CodeBlockWithActions';
 import { TerminalOutput } from './TerminalOutput';
-import ActionPreviewCard, { parseActionPreview, type ActionPreviewData } from './ActionPreviewCard';
-import DestructiveActionCard, {
-  parseDestructiveAction,
-  type DestructiveActionData,
-} from './DestructiveActionCard';
-import ChainProgressCard, { parseChainProgress } from './ChainProgressCard';
-import BrowserViewCard, { parseBrowserView } from './BrowserViewCard';
-import BrowserActionReplay, { parseBrowserActions } from './BrowserActionReplay';
-import ScreenshotGallery from './ScreenshotGallery';
-import ScheduledActionCard, {
-  parseScheduledAction,
-  type ScheduledActionData,
-} from './ScheduledActionCard';
+import { parseActionPreview, type ActionPreviewData } from './ActionPreviewCard';
+import { parseDestructiveAction, type DestructiveActionData } from './DestructiveActionCard';
+import { parseChainProgress } from './ChainProgressCard';
+import { parseBrowserView } from './BrowserViewCard';
+import { parseBrowserActions } from './BrowserActionReplay';
+import { parseScheduledAction, type ScheduledActionData } from './ScheduledActionCard';
+
+// Lazy-load heavy card components — only loaded when their markers appear in content
+const ActionPreviewCard = dynamic(() => import('./ActionPreviewCard'), { ssr: false });
+const DestructiveActionCard = dynamic(() => import('./DestructiveActionCard'), { ssr: false });
+const ChainProgressCard = dynamic(() => import('./ChainProgressCard'), { ssr: false });
+const BrowserViewCard = dynamic(() => import('./BrowserViewCard'), { ssr: false });
+const BrowserActionReplay = dynamic(() => import('./BrowserActionReplay'), { ssr: false });
+const ScreenshotGallery = dynamic(() => import('./ScreenshotGallery'), { ssr: false });
+const ScheduledActionCard = dynamic(() => import('./ScheduledActionCard'), { ssr: false });
 import { useCodeExecutionOptional } from '@/contexts/CodeExecutionContext';
 import { baseMarkdownComponents } from './markdown-components';
 import {
