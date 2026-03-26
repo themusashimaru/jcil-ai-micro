@@ -159,6 +159,8 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
         setChats((prev) =>
           prev.map((chat) => (chat.id === tempId ? { ...chat, id: dbConversationId } : chat))
         );
+        // Update URL to reflect new conversation
+        window.history.replaceState(null, '', `/chat/${dbConversationId}`);
       } catch {
         setChats((prev) => prev.filter((c) => c.id !== tempId));
         setCurrentChatId(null);

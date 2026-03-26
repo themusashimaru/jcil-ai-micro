@@ -223,6 +223,8 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     setMessages([]);
     setPendingToolSuggestion(null);
     if (window.innerWidth < 768) setSidebarCollapsed(true);
+    // Update URL to /chat (no conversation ID)
+    window.history.replaceState(null, '', '/chat');
   }, [setCurrentChatId, setMessages, setPendingToolSuggestion, setSidebarCollapsed]);
 
   const handleSelectChat = async (chatId: string) => {
@@ -231,6 +233,8 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     setContinuationDismissed(false);
     setPendingToolSuggestion(null);
     if (window.innerWidth < 768) setSidebarCollapsed(true);
+    // Update URL to reflect selected conversation
+    window.history.replaceState(null, '', `/chat/${chatId}`);
 
     try {
       const response = await fetchWithRetry(`/api/conversations/${chatId}/messages`, {

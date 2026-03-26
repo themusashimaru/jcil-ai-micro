@@ -27,6 +27,7 @@ import PasskeyPromptModal from '@/components/auth/PasskeyPromptModal';
 import { FirstRunModal } from '@/components/onboarding/FirstRunModal';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
 import { RepoSelector } from '@/components/chat/RepoSelector';
+import { useEffect, useRef } from 'react';
 import { useChatState } from './useChatState';
 import { useChatInit } from './useChatInit';
 import { ChatHeader } from './ChatHeader';
@@ -39,15 +40,19 @@ import { ChatMainArea } from './ChatMainArea';
 // Re-export types for convenience
 export type { Chat, Message, ToolCall, Attachment } from './types';
 
-export function ChatClient() {
+interface ChatClientProps {
+  initialConversationId?: string;
+}
+
+export function ChatClient({ initialConversationId }: ChatClientProps = {}) {
   return (
     <ToastProvider>
-      <ChatClientInner />
+      <ChatClientInner initialConversationId={initialConversationId} />
     </ToastProvider>
   );
 }
 
-function ChatClientInner() {
+function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
   const toast = useToastActions();
   const state = useChatState();
   useChatInit(state);
@@ -62,6 +67,15 @@ function ChatClientInner() {
     handleChatContinuation,
     handleStop,
   } = useChatConversations({ state, toast });
+
+  // Load initial conversation from deep link URL
+  const deepLinkLoaded = useRef(false);
+  useEffect(() => {
+    if (initialConversationId && !deepLinkLoaded.current && state.chats.length > 0) {
+      deepLinkLoaded.current = true;
+      handleSelectChat(initialConversationId);
+    }
+  }, [initialConversationId, state.chats.length, handleSelectChat]);
 
   // Agent operations stubbed — agent system deprecated, replaced by skills
   const startAgentMode = async (_modeId: string) => {};
