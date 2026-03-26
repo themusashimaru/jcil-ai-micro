@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { requireUser } from '@/lib/auth/user-guard';
 import { generateDocument, validateDocumentJSON, type DocumentData } from '@/lib/documents';
 import { logger } from '@/lib/logger';
+import { createDownloadToken } from '@/lib/security/download-token';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -178,13 +179,11 @@ export async function POST(request: NextRequest) {
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || 'https://jcil.ai';
 
-    const token = Buffer.from(
-      JSON.stringify({
-        u: userId,
-        f: result.filename,
-        t: result.extension,
-      })
-    ).toString('base64url');
+    const token = createDownloadToken(
+      userId,
+      result.filename,
+      result.extension as 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'csv' | 'txt'
+    );
 
     const downloadUrl = `${baseUrl}/api/documents/download?token=${token}`;
 
