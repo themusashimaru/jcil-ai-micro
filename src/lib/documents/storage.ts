@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
+import { createDownloadToken } from '@/lib/security/download-token';
 
 const log = logger('DocumentStorage');
 
@@ -74,11 +75,10 @@ export async function uploadDocument(
 
     log.info('Document uploaded to Supabase', { filePath, size: buffer.length });
 
-    // Build a proxy download URL (token encodes user + filename for the download endpoint)
+    // Build a proxy download URL with HMAC-signed token
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jcil.ai';
-    const token = Buffer.from(
-      JSON.stringify({ u: userId, f: `${timestamp}_${filename}`, t: filename.split('.').pop() })
-    ).toString('base64url');
+    const fileExt = filename.split('.').pop() as 'pdf' | 'docx' | 'xlsx';
+    const token = createDownloadToken(userId, `${timestamp}_${filename}`, fileExt);
 
     return {
       url: `${baseUrl}/api/documents/download?token=${token}`,

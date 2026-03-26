@@ -515,7 +515,7 @@ export function createToolExecutor(userId: string, sessionId: string): ToolExecu
     log.info('Executing chat tool', { tool: toolName, sessionId });
 
     // Inject session ID into tool call for cost tracking
-    const toolCallWithSession = { ...toolCall, sessionId };
+    const toolCallWithSession = { ...toolCall, sessionId, userId };
 
     // Execute the appropriate tool with error handling to prevent crashes
     let result: UnifiedToolResult = {

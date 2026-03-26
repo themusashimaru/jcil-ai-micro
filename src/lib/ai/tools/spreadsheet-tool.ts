@@ -15,6 +15,7 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { logger } from '@/lib/logger';
+import { uploadDocument } from '@/lib/documents/storage';
 
 const log = logger('SpreadsheetTool');
 
@@ -293,10 +294,30 @@ export async function executeSpreadsheet(toolCall: UnifiedToolCall): Promise<Uni
 
   const safeFilename = filename.replace(/[^a-zA-Z0-9_-]/g, '_') + '.xlsx';
   const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-  const dataUrl = `data:${mimeType};base64,${result.data}`;
+  const buffer = Buffer.from(result.data!, 'base64');
 
   log.info('Spreadsheet generated successfully', { filename: safeFilename });
 
+  // Upload to Supabase storage if userId is available
+  const userId = (toolCall as unknown as Record<string, unknown>).userId as string | undefined;
+  if (userId) {
+    try {
+      const uploadResult = await uploadDocument(userId, buffer, safeFilename, mimeType);
+      if (uploadResult.storage === 'supabase') {
+        return {
+          toolCallId: id,
+          content: `Spreadsheet created successfully!\n\n**Filename:** ${safeFilename}\n**Sheets:** ${sheets.map((s) => s.name).join(', ')}\n\n[Download ${safeFilename}](${uploadResult.url})`,
+          isError: false,
+        };
+      }
+    } catch (uploadError) {
+      log.warn('Spreadsheet upload failed, using data URL fallback', {
+        error: (uploadError as Error).message,
+      });
+    }
+  }
+
+  const dataUrl = `data:${mimeType};base64,${result.data}`;
   return {
     toolCallId: id,
     content: `Spreadsheet created successfully!\n\n**Filename:** ${safeFilename}\n**Sheets:** ${sheets.map((s) => s.name).join(', ')}\n\n[Download ${safeFilename}](${dataUrl})`,

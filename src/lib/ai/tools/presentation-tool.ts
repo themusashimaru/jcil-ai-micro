@@ -18,6 +18,7 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { logger } from '@/lib/logger';
+import { uploadDocument } from '@/lib/documents/storage';
 
 const log = logger('PresentationTool');
 
@@ -728,15 +729,32 @@ export async function executePresentation(toolCall: UnifiedToolCall): Promise<Un
 
     const filename = result.filename || `${args.title.replace(/[^a-zA-Z0-9]/g, '_')}.pptx`;
     const mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
-    const dataUrl = `data:${mimeType};base64,${result.data}`;
+    const buffer = Buffer.from(result.data!, 'base64');
 
+    // Upload to Supabase storage if userId is available
+    const userId = (toolCall as unknown as Record<string, unknown>).userId as string | undefined;
+    let downloadUrl: string | null = null;
+    if (userId) {
+      try {
+        const uploadResult = await uploadDocument(userId, buffer, filename, mimeType);
+        if (uploadResult.storage === 'supabase') {
+          downloadUrl = uploadResult.url;
+        }
+      } catch (uploadError) {
+        log.warn('Presentation upload failed, using data URL fallback', {
+          error: (uploadError as Error).message,
+        });
+      }
+    }
+
+    const url = downloadUrl || `data:${mimeType};base64,${result.data}`;
     const content =
       `Presentation created successfully!\n\n` +
       `**Title:** ${args.title}\n` +
       `**Slides:** ${result.slideCount}\n` +
       `**Format:** PPTX\n` +
       `**Filename:** ${filename}\n\n` +
-      `[Download ${filename}](${dataUrl})`;
+      `[Download ${filename}](${url})`;
 
     return { toolCallId: id, content, isError: false };
   } catch (error) {

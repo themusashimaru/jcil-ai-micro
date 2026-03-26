@@ -15,6 +15,10 @@
  */
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
+import { uploadDocument } from '@/lib/documents/storage';
+import { logger } from '@/lib/logger';
+
+const excelLog = logger('ExcelTool');
 
 // Lazy-loaded xlsx
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -199,11 +203,32 @@ export async function executeExcel(toolCall: UnifiedToolCall): Promise<UnifiedTo
           };
         } else {
           const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-          const base64 = Buffer.from(buffer).toString('base64');
           mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           const xlsxFilename = `${sheetName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.xlsx`;
-          const dataUrl = `data:${mimeType};base64,${base64}`;
-          // Return markdown link so uploadInlineFiles() can upload to Supabase
+
+          // Upload to Supabase storage if userId available
+          const excelUserId = (toolCall as unknown as Record<string, unknown>).userId as
+            | string
+            | undefined;
+          let excelUrl: string | null = null;
+          if (excelUserId) {
+            try {
+              const uploadResult = await uploadDocument(
+                excelUserId,
+                Buffer.from(buffer),
+                xlsxFilename,
+                mimeType
+              );
+              if (uploadResult.storage === 'supabase') {
+                excelUrl = uploadResult.url;
+              }
+            } catch (e) {
+              excelLog.warn('Excel upload failed', { error: (e as Error).message });
+            }
+          }
+
+          const downloadUrl =
+            excelUrl || `data:${mimeType};base64,${Buffer.from(buffer).toString('base64')}`;
           return {
             toolCallId: toolCall.id,
             content:
@@ -211,7 +236,7 @@ export async function executeExcel(toolCall: UnifiedToolCall): Promise<UnifiedTo
               `**Sheet:** ${sheetName}\n` +
               `**Rows:** ${args.data.length}\n` +
               `**Size:** ${(buffer.length / 1024).toFixed(1)} KB\n\n` +
-              `[Download ${xlsxFilename}](${dataUrl})`,
+              `[Download ${xlsxFilename}](${downloadUrl})`,
             isError: false,
           };
         }

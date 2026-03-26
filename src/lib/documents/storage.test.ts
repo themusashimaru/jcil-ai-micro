@@ -123,7 +123,10 @@ describe('uploadDocument', () => {
     const tokenMatch = result.url.match(/token=(.+)$/);
     expect(tokenMatch).not.toBeNull();
 
-    const decoded = JSON.parse(Buffer.from(tokenMatch![1], 'base64url').toString());
+    // Token is now HMAC-signed: payload.signature
+    const tokenParts = tokenMatch![1].split('.');
+    expect(tokenParts.length).toBe(2); // payload + signature
+    const decoded = JSON.parse(Buffer.from(tokenParts[0], 'base64url').toString());
     expect(decoded.u).toBe('user-42');
     expect(decoded.f).toContain('report.xlsx');
     expect(decoded.t).toBe('xlsx');

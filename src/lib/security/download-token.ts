@@ -31,7 +31,7 @@ interface TokenPayload {
   /** Filename */
   f: string;
   /** File type */
-  t: 'pdf' | 'docx' | 'xlsx';
+  t: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'csv' | 'txt';
   /** Issued at (unix seconds) */
   iat: number;
 }
@@ -42,7 +42,7 @@ interface TokenPayload {
 export function createDownloadToken(
   userId: string,
   filename: string,
-  type: 'pdf' | 'docx' | 'xlsx'
+  type: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'csv' | 'txt'
 ): string {
   const payload: TokenPayload = {
     u: userId,
@@ -66,7 +66,11 @@ export function createDownloadToken(
  */
 export function verifyDownloadToken(
   token: string
-): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
+): {
+  userId: string;
+  filename: string;
+  type: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'csv' | 'txt';
+} | null {
   const parts = token.split('.');
 
   // Support both new signed format (payload.signature) and legacy unsigned format

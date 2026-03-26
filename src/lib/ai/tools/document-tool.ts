@@ -18,6 +18,7 @@
 
 import type { UnifiedTool, UnifiedToolCall, UnifiedToolResult } from '../providers/types';
 import { logger } from '@/lib/logger';
+import { uploadDocument } from '@/lib/documents/storage';
 
 const log = logger('DocumentTool');
 
@@ -1514,8 +1515,29 @@ export async function executeDocument(toolCall: UnifiedToolCall): Promise<Unifie
   };
 
   const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`;
-  const dataUrl = `data:${mimeTypes[format]};base64,${result.data}`;
+  const buffer = Buffer.from(result.data!, 'base64');
 
+  // Upload to Supabase storage if userId is available (passed through toolCall context)
+  const userId = (toolCall as unknown as Record<string, unknown>).userId as string | undefined;
+  if (userId) {
+    try {
+      const uploadResult = await uploadDocument(userId, buffer, filename, mimeTypes[format]);
+      if (uploadResult.storage === 'supabase') {
+        return {
+          toolCallId: id,
+          content: `Document generated successfully!\n\n**Title:** ${title}\n**Format:** ${format.toUpperCase()}\n**Filename:** ${filename}\n\n[Download ${filename}](${uploadResult.url})`,
+          isError: false,
+        };
+      }
+    } catch (uploadError) {
+      log.warn('Document upload failed, falling back to data URL', {
+        error: (uploadError as Error).message,
+      });
+    }
+  }
+
+  // Fallback to base64 data URL
+  const dataUrl = `data:${mimeTypes[format]};base64,${result.data}`;
   return {
     toolCallId: id,
     content: `Document generated successfully!\n\n**Title:** ${title}\n**Format:** ${format.toUpperCase()}\n**Filename:** ${filename}\n\n[Download ${filename}](${dataUrl})`,

@@ -31,14 +31,12 @@ function isValidFilename(filename: string): boolean {
   }
   // Only allow alphanumeric, hyphens, underscores, dots
   // Must have a valid extension (.pdf, .docx, .xlsx)
-  const validPattern = /^[\w\-.]+\.(pdf|docx|xlsx)$/i;
+  const validPattern = /^[\w\-.]+\.(pdf|docx|xlsx|pptx|csv|txt)$/i;
   return validPattern.test(filename);
 }
 
 // Verify and decode HMAC-signed token
-function decodeToken(
-  token: string
-): { userId: string; filename: string; type: 'pdf' | 'docx' | 'xlsx' } | null {
+function decodeToken(token: string): { userId: string; filename: string; type: string } | null {
   const decoded = verifyDownloadToken(token);
   if (!decoded) {
     log.error('Invalid or tampered download token');
@@ -112,19 +110,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine content type based on file type
-    let contentType: string;
-    switch (decoded.type) {
-      case 'pdf':
-        contentType = 'application/pdf';
-        break;
-      case 'xlsx':
-        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        break;
-      case 'docx':
-      default:
-        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        break;
-    }
+    const contentTypeMap: Record<string, string> = {
+      pdf: 'application/pdf',
+      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      csv: 'text/csv',
+      txt: 'text/plain',
+    };
+    const contentType = contentTypeMap[decoded.type] || 'application/octet-stream';
 
     // Create a clean filename for download
     const downloadFilename = decoded.filename;
