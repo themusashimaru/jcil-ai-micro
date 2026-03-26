@@ -27,7 +27,7 @@ import PasskeyPromptModal from '@/components/auth/PasskeyPromptModal';
 import { FirstRunModal } from '@/components/onboarding/FirstRunModal';
 import { CodeExecutionProvider, useCodeExecution } from '@/contexts/CodeExecutionContext';
 import { RepoSelector } from '@/components/chat/RepoSelector';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useChatState } from './useChatState';
 import { useChatInit } from './useChatInit';
 import { ChatHeader } from './ChatHeader';
@@ -35,6 +35,8 @@ import { useChatConversations } from './useChatConversations';
 import { useChatMessaging } from './useChatMessaging';
 import { createImageHandlers } from './ChatImageHandlers';
 import { ChatMainArea } from './ChatMainArea';
+import { useChatKeyboardShortcuts } from '@/hooks/useChatKeyboardShortcuts';
+import { ChatKeyboardShortcuts } from '@/components/chat/ChatKeyboardShortcuts';
 // Agent operations removed — skills system replaces agent orchestration
 
 // Re-export types for convenience
@@ -76,6 +78,17 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
       handleSelectChat(initialConversationId);
     }
   }, [initialConversationId, state.chats.length, handleSelectChat]);
+
+  // Keyboard shortcuts
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const toggleShortcuts = useCallback(() => setShortcutsOpen((prev) => !prev), []);
+  useChatKeyboardShortcuts({
+    onNewChat: handleNewChat,
+    onToggleSidebar: () => state.setSidebarCollapsed((prev: boolean) => !prev),
+    onToggleShortcuts: toggleShortcuts,
+    onStopStreaming: handleStop,
+    isStreaming: state.isStreaming,
+  });
 
   // Agent operations stubbed — agent system deprecated, replaced by skills
   const startAgentMode = async (_modeId: string) => {};
@@ -165,6 +178,7 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
             state.dismissPasskeyPrompt();
           }}
         />
+        <ChatKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
         <RepoSelectorWrapper />
       </div>
     </CodeExecutionProvider>

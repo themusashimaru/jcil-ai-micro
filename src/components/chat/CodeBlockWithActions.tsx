@@ -12,8 +12,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { logger } from '@/lib/logger';
+import { getExtensionForLanguage } from './markdown-helpers';
 
 const log = logger('CodeBlockWithActions');
 
@@ -61,6 +62,20 @@ export function CodeBlockWithActions({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleDownload = useCallback(() => {
+    const ext = getExtensionForLanguage(language);
+    const filename = `code${ext}`;
+    const blob = new Blob([code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [code, language]);
 
   const handleTest = async () => {
     log.debug('handleTest called', {
@@ -136,6 +151,28 @@ export function CodeBlockWithActions({
             ) : (
               <CopyIcon className="w-4 h-4 text-text-muted" />
             )}
+          </button>
+
+          {/* Download button */}
+          <button
+            onClick={handleDownload}
+            className="p-1.5 rounded hover:bg-white/10 transition-colors"
+            aria-label="Download code as file"
+            title="Download file"
+          >
+            <svg
+              className="w-4 h-4 text-text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
           </button>
 
           {/* Test button */}
