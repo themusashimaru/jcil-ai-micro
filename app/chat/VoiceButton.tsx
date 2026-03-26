@@ -6,10 +6,12 @@ export default function VoiceButton({
   onUserText,
   onAssistantText,
   onStart,
+  voice = 'verse',
 }: {
-  onUserText: (text: string) => void;  // Complete user message
-  onAssistantText: (delta: string, done?: boolean) => void;  // Streaming AI text
+  onUserText: (text: string) => void; // Complete user message
+  onAssistantText: (delta: string, done?: boolean) => void; // Streaming AI text
   onStart?: () => void;
+  voice?: string;
 }) {
   const rtc = useRef<RealtimeClient | null>(null);
   const [live, setLive] = useState(false);
@@ -27,7 +29,7 @@ export default function VoiceButton({
     onStart?.();
 
     rtc.current = new RealtimeClient({
-      voice: 'verse',
+      voice,
       silenceTimeoutMs: 30000,
       onStatus: setStatus,
 
@@ -43,7 +45,7 @@ export default function VoiceButton({
 
       // AI transcript complete
       onTranscriptDone: () => {
-        onAssistantText('', true);  // Signal done, no new content
+        onAssistantText('', true); // Signal done, no new content
       },
 
       // Auto-shutoff after prolonged silence
@@ -64,9 +66,10 @@ export default function VoiceButton({
         w-14 h-14 rounded-full
         flex items-center justify-center
         shadow-lg transition-all duration-300 ease-out
-        ${live
-          ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-          : 'bg-[#0096FF]/80 hover:bg-[#0096FF] hover:scale-105 shadow-[#0096FF]/20'
+        ${
+          live
+            ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+            : 'bg-[#0096FF]/80 hover:bg-[#0096FF] hover:scale-105 shadow-[#0096FF]/20'
         }
       `}
       aria-label={live ? 'Stop voice' : 'Start voice'}
@@ -74,7 +77,13 @@ export default function VoiceButton({
     >
       {live ? (
         /* Stop icon when active */
-        <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg
+          className="w-6 h-6 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       ) : (
