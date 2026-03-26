@@ -34,7 +34,8 @@ const HALLUCINATION_PATTERNS = [
 function hasNonLatinCharacters(text: string): boolean {
   // Allow basic Latin, extended Latin (accents), numbers, punctuation, spaces
   // Block CJK, Arabic, Hebrew, Thai, etc.
-  const nonLatinPattern = /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
+  const nonLatinPattern =
+    /[\u3000-\u9FFF\uAC00-\uD7AF\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F\u1100-\u11FF]/;
   return nonLatinPattern.test(text);
 }
 
@@ -46,7 +47,7 @@ function isHallucination(text: string): boolean {
 
   // Too short (less than 3 chars or 2 words)
   if (trimmed.length < 3) return true;
-  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
   if (words.length < 2 && trimmed.length < 10) return true;
 
   // Non-Latin characters (Chinese, Korean, etc.) - almost always hallucinations
@@ -56,7 +57,7 @@ function isHallucination(text: string): boolean {
   }
 
   // Matches known hallucination patterns
-  return HALLUCINATION_PATTERNS.some(pattern => pattern.test(trimmed));
+  return HALLUCINATION_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
 type RealtimeClientOptions = {
@@ -64,10 +65,10 @@ type RealtimeClientOptions = {
   voice?: string;
   onTranscriptDelta?: (text: string) => void;
   onTranscriptDone?: () => void;
-  onUserTranscript?: (text: string) => void;  // Renamed: complete user transcript
+  onUserTranscript?: (text: string) => void; // Renamed: complete user transcript
   onStatus?: (msg: string) => void;
   onSilenceTimeout?: () => void;
-  onGreeting?: () => void;  // Called when AI starts greeting
+  onGreeting?: () => void; // Called when AI starts greeting
   silenceTimeoutMs?: number;
 };
 
@@ -78,7 +79,7 @@ export class RealtimeClient {
   private options: RealtimeClientOptions;
   private silenceTimer: ReturnType<typeof setTimeout> | null = null;
   private sessionReady = false;
-  private pendingUserTranscripts: string[] = [];  // Buffer for ordering
+  private pendingUserTranscripts: string[] = []; // Buffer for ordering
   private isAiSpeaking = false;
 
   constructor(opts: RealtimeClientOptions) {
@@ -159,7 +160,9 @@ export class RealtimeClient {
       this.pc?.getTransceivers().forEach((t) => t.stop());
       this.pc?.close();
       this.mediaStream?.getTracks().forEach((t) => t.stop());
-    } catch {}
+    } catch {
+      // WebRTC cleanup may throw if connection already closed — safe to ignore
+    }
     this.dataChannel = null;
     this.pc = null;
     this.mediaStream = null;
@@ -168,10 +171,11 @@ export class RealtimeClient {
 
   private configureSession() {
     try {
-      this.dataChannel?.send(JSON.stringify({
-        type: 'session.update',
-        session: {
-          instructions: `You are Slingshot 2.0, a Christian AI voice assistant by JCIL.ai.
+      this.dataChannel?.send(
+        JSON.stringify({
+          type: 'session.update',
+          session: {
+            instructions: `You are Slingshot 2.0, a Christian AI voice assistant by JCIL.ai.
 
 FIRST MESSAGE:
 - Your very first response should be ONLY: "Hi, how can I help you today?"
@@ -198,17 +202,18 @@ CONTENT:
 - Be helpful and practical
 - Keep all responses family-friendly
 - Never generate inappropriate content`,
-          input_audio_transcription: {
-            model: 'whisper-1'
+            input_audio_transcription: {
+              model: 'whisper-1',
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.97, // Even higher threshold
+              prefix_padding_ms: 500, // More context before speech
+              silence_duration_ms: 2000, // Wait 2s before responding
+            },
           },
-          turn_detection: {
-            type: 'server_vad',
-            threshold: 0.97,          // Even higher threshold
-            prefix_padding_ms: 500,   // More context before speech
-            silence_duration_ms: 2000 // Wait 2s before responding
-          }
-        }
-      }));
+        })
+      );
       this.status('session config sent');
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
@@ -223,7 +228,9 @@ CONTENT:
       this.dataChannel?.send(JSON.stringify({ type: 'response.create' }));
       this.options.onGreeting?.();
       this.status('greeting triggered');
-    } catch {}
+    } catch {
+      // DataChannel may not be open yet — safe to ignore
+    }
   }
 
   // Flush any pending user transcripts before AI response
@@ -303,7 +310,6 @@ CONTENT:
         log.error('[realtime] Error from OpenAI:', msg?.error);
         this.status('error: ' + (msg?.error?.message || 'unknown'));
       }
-
     } catch (e) {
       if (process.env.NODE_ENV !== 'production') {
         log.error('[realtime] Failed to parse event:', e as Error);
