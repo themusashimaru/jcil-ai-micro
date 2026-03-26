@@ -35,7 +35,8 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
 ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key
 
 ENV NODE_OPTIONS="--max-old-space-size=8192"
-RUN pnpm run build
+# Enable standalone output only for Docker builds (breaks Vercel API routes)
+RUN sed -i 's/reactStrictMode: true,/reactStrictMode: true, output: "standalone",/' next.config.js && pnpm run build
 
 # Stage 3: Production runner
 FROM node:22-alpine AS runner

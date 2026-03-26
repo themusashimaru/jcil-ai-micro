@@ -20,8 +20,8 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
-  // Standalone output for Docker deployment
-  output: 'standalone',
+  // NOTE: Do NOT add output: 'standalone' — it causes 405 errors on Vercel API routes.
+  // The Dockerfile handles standalone builds separately via its own build step.
 
   // Force-bundle ESM-only packages so Node.js doesn't try to require() them
   // Prevents ERR_REQUIRE_ESM at runtime on Vercel serverless functions
