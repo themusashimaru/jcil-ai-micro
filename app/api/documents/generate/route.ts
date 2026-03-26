@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
 
     // Get authenticated user ID from session (secure - not from request body)
     const userId = await getAuthenticatedUserId();
+    if (!userId) {
+      return errors.unauthorized();
+    }
 
     // Get Supabase client for storage
     const supabase = getSupabaseAdmin();
