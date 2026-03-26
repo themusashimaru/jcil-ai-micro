@@ -15,6 +15,7 @@
 import { useState, useCallback } from 'react';
 import { logger } from '@/lib/logger';
 import { getExtensionForLanguage } from './markdown-helpers';
+import { HighlightedCode } from './HighlightedCode';
 
 const log = logger('CodeBlockWithActions');
 
@@ -209,10 +210,10 @@ export function CodeBlockWithActions({
         </div>
       </div>
 
-      {/* Code content */}
-      <pre className="p-3 overflow-x-auto">
-        <code className="text-sm font-mono text-text-primary">{code}</code>
-      </pre>
+      {/* Code content with syntax highlighting */}
+      <div className="p-3 overflow-x-auto">
+        <HighlightedCode code={code} language={language} />
+      </div>
 
       {/* Test result */}
       {testResult && (
