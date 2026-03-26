@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 
-const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-arm64.zip';
-const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-x64.zip';
-const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-win-x64.exe';
+const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-arm64.pkg';
+const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-x64.pkg';
+const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.0.0-win-x64.exe';
 const ANDROID_URL = 'https://github.com/themusashimaru/jcil-isolate-android/releases/latest/download/JCIL-Isolate-1.0.0-android.apk';
 
 type Platform = 'mac-arm' | 'mac-intel' | 'windows' | 'android' | 'unknown';

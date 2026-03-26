@@ -8,9 +8,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-arm64.pkg';
-const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.2.0-mac-x64.pkg';
-const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest';
+const MAC_ARM_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-arm64.pkg';
+const MAC_INTEL_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-mac-x64.pkg';
+const WINDOWS_URL = 'https://github.com/themusashimaru/jcil-isolate/releases/latest/download/JCIL-Isolate-1.0.0-win-x64.exe';
 const ANDROID_URL = 'https://github.com/themusashimaru/jcil-isolate-android/releases/latest/download/JCIL-Isolate-1.0.0-android.apk';
 
 const features = [
