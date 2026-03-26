@@ -236,8 +236,7 @@ export async function deleteCommand(
   try {
     const supabase = await createSupabaseClient();
 
-    let query = supabase
-      .from('custom_slash_commands')
+    let query = untypedFrom(supabase, 'custom_slash_commands')
       .delete()
       .eq('user_id', userId)
       .eq('name', commandName);

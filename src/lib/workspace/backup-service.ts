@@ -100,7 +100,7 @@ export async function storeBackup(
   if (options.persistToDb) {
     try {
       const supabase = await createSupabaseClient();
-      await (supabase.from('file_backups') as AnySupabase).insert({
+      await (supabase as AnySupabase).from('file_backups').insert({
         id: backupId,
         workspace_id: workspaceId,
         file_path: filePath,
@@ -134,7 +134,8 @@ export async function getBackup(backupId: string): Promise<FileBackup | null> {
   // Try database
   try {
     const supabase = await createSupabaseClient();
-    const { data, error } = await (supabase.from('file_backups') as AnySupabase)
+    const { data, error } = await (supabase as AnySupabase)
+      .from('file_backups')
       .select('*')
       .eq('id', backupId)
       .single();
@@ -192,7 +193,8 @@ export async function listBackups(
   // Then try database
   try {
     const supabase = await createSupabaseClient();
-    let query = (supabase.from('file_backups') as AnySupabase)
+    let query = (supabase as AnySupabase)
+      .from('file_backups')
       .select('id, file_path, created_at, edit_description, content')
       .eq('workspace_id', workspaceId)
       .order('created_at', { ascending: false })
@@ -236,7 +238,7 @@ export async function deleteBackup(backupId: string): Promise<boolean> {
   // Remove from database
   try {
     const supabase = await createSupabaseClient();
-    await (supabase.from('file_backups') as AnySupabase).delete().eq('id', backupId);
+    await (supabase as AnySupabase).from('file_backups').delete().eq('id', backupId);
     log.info('Backup deleted', { backupId });
     return true;
   } catch (error) {
@@ -262,7 +264,8 @@ export async function clearOldBackups(workspaceId: string, olderThan: Date): Pro
   // Clear from database
   try {
     const supabase = await createSupabaseClient();
-    const { count } = await (supabase.from('file_backups') as AnySupabase)
+    const { count } = await (supabase as AnySupabase)
+      .from('file_backups')
       .delete({ count: 'exact' })
       .eq('workspace_id', workspaceId)
       .lt('created_at', olderThan.toISOString());

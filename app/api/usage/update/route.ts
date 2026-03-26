@@ -112,7 +112,8 @@ export async function POST(request: NextRequest) {
     // Increment usage (default action)
     const rpcName = type === 'chat' ? 'increment_message_count' : 'increment_image_count';
 
-    const { data: newCount, error: rpcError } = (await client.rpc(rpcName, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
+    const { data: newCount, error: rpcError } = (await client.rpc(rpcName as any, {
       user_id_param: targetUserId,
     })) as { data: number | null; error: Error | null };
 

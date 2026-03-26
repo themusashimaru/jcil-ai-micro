@@ -20,7 +20,8 @@ export async function GET() {
     if (!auth.authorized) return auth.response;
     const { user, supabase } = auth;
 
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
+    const { data, error } = await (supabase as any)
       .from('user_mcp_servers')
       .select('*')
       .eq('user_id', user.id)
@@ -52,7 +53,8 @@ export async function PUT(request: NextRequest) {
       return errors.badRequest('server_id, name, and command are required');
     }
 
-    const { data, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
+    const { data, error } = await (supabase as any)
       .from('user_mcp_servers')
       .upsert(
         {

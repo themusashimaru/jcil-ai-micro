@@ -91,7 +91,8 @@ export async function PUT(request: NextRequest) {
   // Upsert settings
   const { data: settings, error } = await auth.supabase
     .from('user_settings')
-    .upsert(upsertData, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic upsert data
+    .upsert(upsertData as any, {
       onConflict: 'user_id',
     })
     .select()

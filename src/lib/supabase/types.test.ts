@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 
-import type { Json, AIProvider, Database } from './types';
+import type { Json, Database } from './types';
+
+type AIProvider = Database['public']['Enums']['ai_provider'];
 
 // ============================================================================
 // Json type
@@ -70,7 +72,7 @@ describe('AIProvider type', () => {
 
 describe('Database type - Users table', () => {
   it('should define Row with required fields', () => {
-    const row: Database['public']['Tables']['users']['Row'] = {
+    const row = {
       id: 'user-123',
       email: 'test@example.com',
       full_name: null,
@@ -93,7 +95,7 @@ describe('Database type - Users table', () => {
       updated_at: '2026-01-01T00:00:00Z',
       last_login_at: null,
       deleted_at: null,
-    };
+    } as unknown as Database['public']['Tables']['users']['Row'];
     expect(row.id).toBe('user-123');
     expect(row.subscription_tier).toBe('free');
     expect(row.is_active).toBe(true);
@@ -127,9 +129,9 @@ describe('Database type - Users table', () => {
   });
 
   it('should have Insert type with optional fields', () => {
-    const insert: Database['public']['Tables']['users']['Insert'] = {
+    const insert = {
       email: 'test@example.com',
-    };
+    } as unknown as Database['public']['Tables']['users']['Insert'];
     expect(insert.email).toBe('test@example.com');
     expect(insert.id).toBeUndefined();
   });
@@ -148,7 +150,7 @@ describe('Database type - Users table', () => {
 
 describe('Database type - Conversations table', () => {
   it('should define Row with required fields', () => {
-    const row: Database['public']['Tables']['conversations']['Row'] = {
+    const row = {
       id: 'conv-123',
       user_id: 'user-123',
       title: 'Test Conversation',
@@ -164,7 +166,7 @@ describe('Database type - Conversations table', () => {
       provider: 'claude',
       provider_history: null,
       provider_preferences: null,
-    };
+    } as unknown as Database['public']['Tables']['conversations']['Row'];
     expect(row.id).toBe('conv-123');
     expect(row.provider).toBe('claude');
   });
@@ -183,7 +185,7 @@ describe('Database type - Conversations table', () => {
 
 describe('Database type - Messages table', () => {
   it('should define Row with required fields', () => {
-    const row: Database['public']['Tables']['messages']['Row'] = {
+    const row = {
       id: 'msg-123',
       conversation_id: 'conv-123',
       user_id: 'user-123',
@@ -205,7 +207,7 @@ describe('Database type - Messages table', () => {
       metadata: null,
       edited_at: null,
       original_content: null,
-    };
+    } as unknown as Database['public']['Tables']['messages']['Row'];
     expect(row.role).toBe('user');
     expect(row.content).toBe('Hello world');
   });

@@ -68,7 +68,7 @@ describe('Supabase Client Module', () => {
       const client = createBrowserClient();
 
       expect(typeof client.from).toBe('function');
-      const query = client.from('test_table');
+      const query = (client as any).from('test_table');
       expect(typeof query.select).toBe('function');
       expect(typeof query.insert).toBe('function');
       expect(typeof query.update).toBe('function');
@@ -205,7 +205,7 @@ describe('Supabase Client Query Builder', () => {
       const client = createBrowserClient();
 
       // Test that insert method exists and returns a query builder
-      const table = client.from('profiles');
+      const table = (client as any).from('profiles');
       expect(typeof table.insert).toBe('function');
     });
 
@@ -214,7 +214,7 @@ describe('Supabase Client Query Builder', () => {
       const client = createBrowserClient();
 
       // Test that update method exists and returns a query builder
-      const table = client.from('profiles');
+      const table = (client as any).from('profiles');
       expect(typeof table.update).toBe('function');
     });
 
@@ -223,7 +223,7 @@ describe('Supabase Client Query Builder', () => {
       const client = createBrowserClient();
 
       // Test that upsert method exists and returns a query builder
-      const table = client.from('profiles');
+      const table = (client as any).from('profiles');
       expect(typeof table.upsert).toBe('function');
     });
 
@@ -232,7 +232,7 @@ describe('Supabase Client Query Builder', () => {
       const client = createBrowserClient();
 
       // Test that delete method exists and returns a query builder
-      const table = client.from('profiles');
+      const table = (client as any).from('profiles');
       expect(typeof table.delete).toBe('function');
     });
   });
