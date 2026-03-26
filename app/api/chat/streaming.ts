@@ -250,8 +250,9 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
               controller.enqueue(
                 encoder.encode('\n\n**Error**\n\nThe request timed out. Please try again.')
               );
-            } catch {
+            } catch (error) {
               // Controller might be closed
+              log.debug('Could not enqueue timeout message', { error: (error as Error).message });
             }
             controller.close();
           }
@@ -333,8 +334,9 @@ export function handleNonClaudeProvider(config: StreamConfig): Response {
 
         try {
           controller.enqueue(encoder.encode(userMessage));
-        } catch {
+        } catch (error) {
           // Controller might be closed
+          log.debug('Could not enqueue error message', { error: (error as Error).message });
         }
         controller.close();
       }

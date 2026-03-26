@@ -86,7 +86,7 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
                 cookieStore.set(name, value, options)
               );
             } catch {
-              /* ignore */
+              // Cookie operations may fail in read-only contexts
             }
           },
         },
@@ -167,7 +167,10 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
       }
       // Cache set failure is non-fatal
       await setCachedUserData(user.id, isAdmin, userPlanKey).catch((err) =>
-        log.warn('Failed to cache user data in Redis (non-fatal)', { userId: user.id, error: err instanceof Error ? err.message : String(err) })
+        log.warn('Failed to cache user data in Redis (non-fatal)', {
+          userId: user.id,
+          error: err instanceof Error ? err.message : String(err),
+        })
       );
     }
 
@@ -181,9 +184,12 @@ export async function authenticateRequest(request?: NextRequest): Promise<AuthRe
       if (userSettings?.custom_instructions) {
         customInstructions = userSettings.custom_instructions;
       }
-    } catch {
+    } catch (error) {
       // Non-fatal — custom instructions are optional
-      log.warn('Failed to load custom instructions', { userId: user.id });
+      log.warn('Failed to load custom instructions', {
+        userId: user.id,
+        error: (error as Error).message,
+      });
     }
 
     return {

@@ -132,7 +132,8 @@ export async function handleExplicitDocumentGeneration(
     let documentData: DocumentData;
     try {
       documentData = JSON.parse(jsonText) as DocumentData;
-    } catch {
+    } catch (error) {
+      log.warn('Failed to parse document JSON from AI', { error: (error as Error).message });
       throw new Error('Failed to parse document generation response as JSON');
     }
 
@@ -370,7 +371,8 @@ If information is missing, make reasonable professional assumptions or leave opt
   let extractedData: any;
   try {
     extractedData = JSON.parse(jsonText);
-  } catch {
+  } catch (error) {
+    log.warn('Failed to parse resume extraction JSON', { error: (error as Error).message });
     throw new Error('Failed to parse resume extraction response as JSON');
   }
 

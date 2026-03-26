@@ -86,7 +86,8 @@ export async function POST(request: NextRequest) {
     let rawBody: unknown;
     try {
       rawBody = await request.json();
-    } catch {
+    } catch (error) {
+      log.warn('Failed to parse request JSON', { error: (error as Error).message });
       return chatErrorResponse(HTTP_STATUS.BAD_REQUEST, {
         error: 'Invalid JSON body',
         code: ERROR_CODES.INVALID_JSON,

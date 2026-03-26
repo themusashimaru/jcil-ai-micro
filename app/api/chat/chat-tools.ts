@@ -668,7 +668,11 @@ async function executeMCPTool(
         typeof toolCall.arguments === 'string'
           ? JSON.parse(toolCall.arguments)
           : toolCall.arguments;
-    } catch {
+    } catch (error) {
+      log.warn('Failed to parse MCP tool arguments', {
+        tool: actualToolName,
+        error: (error as Error).message,
+      });
       return {
         toolCallId: toolCall.id,
         content: `Invalid JSON arguments for MCP tool ${actualToolName}`,
@@ -759,7 +763,11 @@ async function executeComposioToolCall(
         typeof toolCall.arguments === 'string'
           ? JSON.parse(toolCall.arguments)
           : toolCall.arguments;
-    } catch {
+    } catch (error) {
+      log.warn('Failed to parse Composio tool arguments', {
+        tool: toolName,
+        error: (error as Error).message,
+      });
       return {
         toolCallId: toolCall.id,
         content: `Invalid JSON arguments for Composio tool ${toolName}`,
