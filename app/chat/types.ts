@@ -198,6 +198,7 @@ export interface Message {
   timestamp: Date;
   isStreaming?: boolean;
   isError?: boolean; // True for error messages — enables retry UI
+  source?: 'text' | 'voice'; // How the message was created
 }
 
 export interface ToolCall {
