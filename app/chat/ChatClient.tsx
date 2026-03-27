@@ -37,6 +37,7 @@ import { createImageHandlers } from './ChatImageHandlers';
 import { ChatMainArea } from './ChatMainArea';
 import { useChatKeyboardShortcuts } from '@/hooks/useChatKeyboardShortcuts';
 import { ChatKeyboardShortcuts } from '@/components/chat/ChatKeyboardShortcuts';
+import { ArtifactProvider } from '@/contexts/ArtifactContext';
 // Agent operations removed — skills system replaces agent orchestration
 
 // Re-export types for convenience
@@ -120,68 +121,70 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
   });
 
   return (
-    <CodeExecutionProvider>
-      <div id="main-content" className="flex h-screen flex-col bg-background" role="main">
-        <ChatHeader
-          currentChatId={state.currentChatId}
-          headerLogo={state.headerLogo}
-          hasProfile={state.hasProfile}
-          profileName={state.profile.name}
-          onToggleSidebar={() => state.setSidebarCollapsed(!state.sidebarCollapsed)}
-          onNewChat={handleNewChat}
-          onOpenProfile={() => state.setIsProfileOpen(true)}
-        />
+    <ArtifactProvider>
+      <CodeExecutionProvider>
+        <div id="main-content" className="flex h-screen flex-col bg-background" role="main">
+          <ChatHeader
+            currentChatId={state.currentChatId}
+            headerLogo={state.headerLogo}
+            hasProfile={state.hasProfile}
+            profileName={state.profile.name}
+            onToggleSidebar={() => state.setSidebarCollapsed(!state.sidebarCollapsed)}
+            onNewChat={handleNewChat}
+            onOpenProfile={() => state.setIsProfileOpen(true)}
+          />
 
-        <ChatMainArea
-          state={state}
-          handleNewChat={handleNewChat}
-          handleSelectChat={handleSelectChat}
-          handleRenameChat={handleRenameChat}
-          handleDeleteChat={handleDeleteChat}
-          handlePinChat={handlePinChat}
-          handleMoveToFolder={handleMoveToFolder}
-          handleSendMessage={handleSendMessage}
-          handleStop={handleStop}
-          handleChatContinuation={handleChatContinuation}
-          handleImageGenerated={handleImageGenerated}
-          handleRegenerateImage={handleRegenerateImage}
-          handleActionSend={handleActionSend}
-          handleActionEdit={handleActionEdit}
-          handleActionCancel={handleActionCancel}
-          handleDestructiveConfirm={handleDestructiveConfirm}
-          handleDestructiveCancel={handleDestructiveCancel}
-          handleScheduledConfirm={handleScheduledConfirm}
-          handleScheduledModifyTime={handleScheduledModifyTime}
-          handleScheduledCancel={handleScheduledCancel}
-          handleCarouselSelect={handleCarouselSelect}
-          startAgentMode={startAgentMode}
-          cancelAgentMode={cancelAgentMode}
-          exitAllAgentModes={exitAllAgentModes}
-        />
+          <ChatMainArea
+            state={state}
+            handleNewChat={handleNewChat}
+            handleSelectChat={handleSelectChat}
+            handleRenameChat={handleRenameChat}
+            handleDeleteChat={handleDeleteChat}
+            handlePinChat={handlePinChat}
+            handleMoveToFolder={handleMoveToFolder}
+            handleSendMessage={handleSendMessage}
+            handleStop={handleStop}
+            handleChatContinuation={handleChatContinuation}
+            handleImageGenerated={handleImageGenerated}
+            handleRegenerateImage={handleRegenerateImage}
+            handleActionSend={handleActionSend}
+            handleActionEdit={handleActionEdit}
+            handleActionCancel={handleActionCancel}
+            handleDestructiveConfirm={handleDestructiveConfirm}
+            handleDestructiveCancel={handleDestructiveCancel}
+            handleScheduledConfirm={handleScheduledConfirm}
+            handleScheduledModifyTime={handleScheduledModifyTime}
+            handleScheduledCancel={handleScheduledCancel}
+            handleCarouselSelect={handleCarouselSelect}
+            startAgentMode={startAgentMode}
+            cancelAgentMode={cancelAgentMode}
+            exitAllAgentModes={exitAllAgentModes}
+          />
 
-        <FirstRunModal
-          isOpen={state.showFirstRun}
-          onComplete={() => state.setShowFirstRun(false)}
-        />
-        <UserProfileModal
-          isOpen={state.isProfileOpen}
-          onClose={() => state.setIsProfileOpen(false)}
-        />
-        <PasskeyPromptModal
-          isOpen={state.isPasskeyModalOpen}
-          onClose={() => {
-            state.setIsPasskeyModalOpen(false);
-            state.dismissPasskeyPrompt();
-          }}
-          onSuccess={() => {
-            state.setIsPasskeyModalOpen(false);
-            state.dismissPasskeyPrompt();
-          }}
-        />
-        <ChatKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-        <RepoSelectorWrapper />
-      </div>
-    </CodeExecutionProvider>
+          <FirstRunModal
+            isOpen={state.showFirstRun}
+            onComplete={() => state.setShowFirstRun(false)}
+          />
+          <UserProfileModal
+            isOpen={state.isProfileOpen}
+            onClose={() => state.setIsProfileOpen(false)}
+          />
+          <PasskeyPromptModal
+            isOpen={state.isPasskeyModalOpen}
+            onClose={() => {
+              state.setIsPasskeyModalOpen(false);
+              state.dismissPasskeyPrompt();
+            }}
+            onSuccess={() => {
+              state.setIsPasskeyModalOpen(false);
+              state.dismissPasskeyPrompt();
+            }}
+          />
+          <ChatKeyboardShortcuts isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+          <RepoSelectorWrapper />
+        </div>
+      </CodeExecutionProvider>
+    </ArtifactProvider>
   );
 }
 

@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { ChatComposer, SearchMode } from '@/components/chat/ChatComposer';
+import { ArtifactPanel } from '@/components/chat/ArtifactPanel';
 import {
   ChatContinuationBanner,
   CHAT_LENGTH_WARNING,
@@ -262,6 +263,7 @@ export function ChatMainArea({
           />
         </ErrorBoundary>
       </main>
+      <ArtifactPanel />
     </div>
   );
 }
