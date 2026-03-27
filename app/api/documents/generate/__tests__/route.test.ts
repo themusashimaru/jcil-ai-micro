@@ -616,20 +616,16 @@ Year 1 Revenue: $100K
   // Authentication
   // --------------------------------------------------------------------------
   describe('Authentication', () => {
-    it('should still generate PDF when user is not authenticated (falls back to data URL)', async () => {
+    it('should reject unauthenticated requests with 401', async () => {
       mockAuthGetUser.mockResolvedValueOnce({
         data: { user: null },
         error: { message: 'Not authenticated' },
       });
-      const { data } = await callPOST({
+      const { response } = await callPOST({
         content: 'Hello World',
         title: 'Test',
       });
-      expect(data.ok).toBe(true);
-      expect(data.data.success).toBe(true);
-      // Without a user, should return data URL (storage: 'local')
-      expect(data.data.storage).toBe('local');
-      expect(data.data.dataUrl).toBeTruthy();
+      expect(response.status).toBe(401);
     });
 
     it('should upload to Supabase when user is authenticated', async () => {
@@ -653,16 +649,14 @@ Year 1 Revenue: $100K
       expect(uploadCall[0]).toMatch(/^test-user-123\//);
     });
 
-    it('should handle auth error gracefully', async () => {
+    it('should reject request when auth service errors', async () => {
       mockAuthGetUser.mockRejectedValueOnce(new Error('Auth service down'));
-      const { data } = await callPOST({
+      const { response } = await callPOST({
         content: 'Hello World',
         title: 'Test',
       });
-      // Should still generate the document, just without upload
-      expect(data.ok).toBe(true);
-      expect(data.data.success).toBe(true);
-      expect(data.data.storage).toBe('local');
+      // Auth error means no userId, so route returns 401
+      expect(response.status).toBe(401);
     });
   });
 
@@ -830,18 +824,16 @@ Year 1 Revenue: $100K
       expect(data.data).toHaveProperty('storage', 'supabase');
     });
 
-    it('should include dataUrl when falling back to local storage', async () => {
+    it('should reject with 401 when user is not authenticated (no local fallback)', async () => {
       mockAuthGetUser.mockResolvedValueOnce({
         data: { user: null },
         error: null,
       });
-      const { data } = await callPOST({
+      const { response } = await callPOST({
         content: 'Test content',
         title: 'My Doc',
       });
-      expect(data.data).toHaveProperty('dataUrl');
-      expect(data.data).toHaveProperty('storage', 'local');
-      expect(data.data).not.toHaveProperty('downloadUrl');
+      expect(response.status).toBe(401);
     });
 
     it('should include success, format, title, and filename in XLSX response', async () => {

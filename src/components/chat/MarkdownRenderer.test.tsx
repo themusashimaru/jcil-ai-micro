@@ -76,6 +76,29 @@ vi.mock('./ActionPreviewCard', () => ({
     React.createElement('div', { 'data-testid': 'action-preview-card' }, preview.platform),
 }));
 
+// Mock next/dynamic to resolve imports synchronously (avoids lazy-load issues in tests)
+vi.mock('next/dynamic', () => ({
+  default: (importFn: () => Promise<{ default: unknown }>) => {
+    let Component: unknown = null;
+    try {
+      // vi.mock factories run synchronously and the mocked modules are already resolved
+      const mod = importFn() as unknown as { default: unknown } | { then: unknown };
+      if (mod && typeof (mod as { then?: unknown }).then === 'function') {
+        // If it's a real promise, resolve it eagerly
+        (mod as Promise<{ default: unknown }>).then((m) => {
+          Component = m.default || m;
+        });
+      } else {
+        Component = (mod as { default: unknown }).default || mod;
+      }
+    } catch {
+      // fallback
+    }
+    return (props: Record<string, unknown>) =>
+      Component ? React.createElement(Component as React.ComponentType, props) : null;
+  },
+}));
+
 // Mock react-markdown: capture the components and children, then render children as text
 vi.mock('react-markdown', () => ({
   default: ({ children, components }: { children: string; components: unknown }) => {

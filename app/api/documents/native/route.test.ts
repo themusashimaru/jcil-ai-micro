@@ -313,13 +313,16 @@ describe('POST /api/documents/native', () => {
     const callArgs = mockSuccessResponse.mock.calls[0][0] as { downloadUrl: string };
     const url = new URL(callArgs.downloadUrl);
     const token = url.searchParams.get('token')!;
-    const decoded = JSON.parse(Buffer.from(token, 'base64url').toString());
 
-    expect(decoded).toEqual({
-      u: fakeUserId,
-      f: fakeGeneratedDoc.filename,
-      t: 'docx',
-    });
+    // Token is now HMAC-signed: base64url(payload).base64url(signature)
+    const parts = token.split('.');
+    expect(parts.length).toBe(2);
+    const decoded = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+
+    expect(decoded.u).toBe(fakeUserId);
+    expect(decoded.f).toBe(fakeGeneratedDoc.filename);
+    expect(decoded.t).toBe('docx');
+    expect(decoded.iat).toBeDefined();
   });
 
   // --------------------------------------------------------------------------
