@@ -59,7 +59,7 @@ export function ArtifactPanel() {
   const canPreview = artifact.type === 'html' || artifact.type === 'svg';
 
   return (
-    <div className="w-[45%] min-w-[360px] max-w-[600px] border-l border-white/10 bg-gray-950 flex flex-col h-full animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-40 md:relative md:inset-auto md:z-auto w-full md:w-[45%] md:min-w-[360px] md:max-w-[600px] border-l border-white/10 bg-gray-950 flex flex-col h-full animate-in slide-in-from-right duration-200">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-3 min-w-0">

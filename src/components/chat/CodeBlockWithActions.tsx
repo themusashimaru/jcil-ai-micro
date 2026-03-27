@@ -145,7 +145,7 @@ export function CodeBlockWithActions({
           {/* Copy button */}
           <button
             onClick={handleCopy}
-            className="p-1.5 rounded hover:bg-white/10 transition-colors"
+            className="p-2 sm:p-1.5 rounded hover:bg-white/10 transition-colors"
             aria-label={copied ? 'Code copied' : 'Copy code to clipboard'}
             title="Copy code"
           >
@@ -167,7 +167,7 @@ export function CodeBlockWithActions({
                   title: `${displayLanguage} Preview`,
                 })
               }
-              className="p-1.5 rounded hover:bg-white/10 transition-colors"
+              className="p-2 sm:p-1.5 rounded hover:bg-white/10 transition-colors"
               aria-label="Open in preview panel"
               title="Preview"
             >
@@ -195,7 +195,7 @@ export function CodeBlockWithActions({
           {/* Download button */}
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded hover:bg-white/10 transition-colors"
+            className="p-2 sm:p-1.5 rounded hover:bg-white/10 transition-colors"
             aria-label="Download code as file"
             title="Download file"
           >
@@ -238,7 +238,7 @@ export function CodeBlockWithActions({
           {showPushButton && onPush && (
             <button
               onClick={handlePush}
-              className="p-1.5 rounded hover:bg-white/10 transition-colors"
+              className="p-2 sm:p-1.5 rounded hover:bg-white/10 transition-colors"
               aria-label="Push code to GitHub"
               title="Push to GitHub"
             >
