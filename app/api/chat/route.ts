@@ -134,6 +134,32 @@ export async function POST(request: NextRequest) {
 
     const { userId, isAdmin, userPlanKey, customInstructions, supabase } = authResult;
 
+    // ── Load project-level instructions from folder ──
+    let projectInstructions = '';
+    if (conversationId) {
+      try {
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('folder_id')
+          .eq('id', conversationId)
+          .single();
+
+        if (conv?.folder_id) {
+          const { data: folder } = await supabase
+            .from('chat_folders')
+            .select('custom_instructions')
+            .eq('id', conv.folder_id)
+            .single();
+
+          if (folder?.custom_instructions) {
+            projectInstructions = folder.custom_instructions;
+          }
+        }
+      } catch {
+        // Non-fatal — project instructions are optional
+      }
+    }
+
     // ── Context Loading (memory, learning, RAG) — parallel with timeout ──
     let memoryContext = '';
     let learningContext = '';
@@ -406,6 +432,7 @@ export async function POST(request: NextRequest) {
 
     const fullSystemPrompt = buildFullSystemPrompt({
       customInstructions,
+      projectInstructions,
       memoryContext,
       learningContext,
       documentContext,

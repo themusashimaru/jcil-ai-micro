@@ -138,6 +138,7 @@ export interface DeviceInfo {
 
 export interface ContextSources {
   customInstructions?: string;
+  projectInstructions?: string;
   memoryContext?: string;
   learningContext?: string;
   documentContext?: string;
@@ -218,6 +219,18 @@ export function buildFullSystemPrompt(contexts: ContextSources): string {
       instructionTokens: estimateTokens(sanitizedInstructions),
       remaining: remainingBudget,
     });
+  }
+
+  // Inject project-level instructions (from folder settings)
+  const sanitizedProjectInstructions = contexts.projectInstructions
+    ? sanitizeContextInjection(contexts.projectInstructions)
+    : undefined;
+  if (
+    sanitizedProjectInstructions &&
+    estimateTokens(sanitizedProjectInstructions) <= remainingBudget
+  ) {
+    fullSystemPrompt += `\n\n--- BEGIN PROJECT CONTEXT (apply to all conversations in this project) ---\nPROJECT INSTRUCTIONS:\n${sanitizedProjectInstructions}\n--- END PROJECT CONTEXT ---`;
+    remainingBudget -= estimateTokens(sanitizedProjectInstructions);
   }
 
   // Append contexts in priority order (memory > learning > documents)
