@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -84,12 +85,12 @@ export function ColophonSection() {
           </h4>
           <ul className="space-y-2">
             <li>
-              <a
+              <Link
                 href="/chat"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >
                 Chat
-              </a>
+              </Link>
             </li>
             <li>
               <a
@@ -172,12 +173,12 @@ export function ColophonSection() {
               </a>
             </li>
             <li>
-              <a
+              <Link
                 href="/chat"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >
                 Try JCIL.AI
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -195,12 +196,12 @@ export function ColophonSection() {
       </div>
 
       <div className="mt-16 flex flex-wrap gap-4">
-        <a
+        <Link
           href="/chat"
           className="inline-flex items-center gap-3 border border-accent bg-accent/10 px-8 py-4 font-mono text-sm uppercase tracking-widest text-accent hover:bg-accent/20 transition-all duration-200"
         >
           Start Free — No Credit Card
-        </a>
+        </Link>
         <a
           href="/code-lab"
           className="inline-flex items-center gap-3 border border-foreground/20 px-8 py-4 font-mono text-sm uppercase tracking-widest text-foreground hover:border-foreground/40 transition-all duration-200"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { ScrambleTextOnHover } from './ScrambleText';
 import { SplitFlapText, SplitFlapMuteToggle, SplitFlapAudioProvider } from './SplitFlapText';
 import { AnimatedNoise } from './AnimatedNoise';
@@ -104,13 +105,13 @@ export function HeroSection() {
         </div>
 
         <div className="mt-16 flex flex-wrap items-center gap-6 md:gap-8">
-          <a
+          <Link
             href="/chat"
             className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200 bg-accent/10 hover:bg-accent/20"
           >
             <ScrambleTextOnHover text="Start Free" as="span" duration={0.6} />
             <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
-          </a>
+          </Link>
           <a
             href="/code-lab"
             className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-foreground/40 transition-all duration-200"

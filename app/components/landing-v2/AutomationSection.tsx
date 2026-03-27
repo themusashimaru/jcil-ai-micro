@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { cn } from './utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -292,12 +293,12 @@ export function AutomationSection() {
             </div>
           ))}
 
-          <a
+          <Link
             href="/chat"
             className="mt-4 inline-flex items-center gap-3 border border-accent bg-accent/10 px-6 py-3 font-mono text-xs uppercase tracking-widest text-accent hover:bg-accent/20 transition-all duration-200 w-fit"
           >
             Try it free &rarr;
-          </a>
+          </Link>
         </div>
       </div>
     </section>
