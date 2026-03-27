@@ -18,7 +18,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import type { Message } from '@/app/chat/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
@@ -27,6 +26,7 @@ import { ThreadSkeleton } from '@/components/ui/Skeleton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { GetStartedCarousel } from './GetStartedCarousel';
 import { SuggestedFollowups } from './SuggestedFollowups';
+import { WelcomeScreen } from './WelcomeScreen';
 import { ScrambleText } from '@/app/components/landing-v2/ScrambleText';
 import { SplitFlapText, SplitFlapAudioProvider } from '@/app/components/landing-v2/SplitFlapText';
 import { AnimatedNoise } from '@/app/components/landing-v2/AnimatedNoise';
@@ -89,6 +89,7 @@ export function ChatThread({
   onReply,
   enableCodeActions,
   lastUserMessage,
+  onQuickPrompt,
   onCarouselSelect,
   onRegenerateImage,
   onActionSend,
@@ -108,10 +109,10 @@ export function ChatThread({
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const { theme } = useTheme();
 
-  // Load logo from database
-  const [mainLogo, setMainLogo] = useState<string>('');
-  const [lightModeLogo, setLightModeLogo] = useState<string>('');
-  const [isLogoLoading, setIsLogoLoading] = useState<boolean>(true);
+  // Load logo from database (used by editorial theme welcome)
+  const [, setMainLogo] = useState<string>('');
+  const [, setLightModeLogo] = useState<string>('');
+  const [, setIsLogoLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -252,96 +253,7 @@ export function ChatThread({
       );
     }
 
-    return (
-      <div className="flex flex-col flex-1 min-h-0 p-4">
-        {/* Top spacer - pushes logo to center */}
-        <div className="flex-1" />
-
-        {/* Logo and greeting - centered in middle */}
-        <div className="text-center mb-8">
-          {/* Logo */}
-          <div className="mb-4">
-            {isLogoLoading ? (
-              <div className="h-16 md:h-20 w-auto mx-auto" />
-            ) : theme === 'light' ? (
-              lightModeLogo ? (
-                <Image
-                  src={lightModeLogo}
-                  alt="JCIL.ai"
-                  width={240}
-                  height={80}
-                  className="h-16 md:h-20 w-auto mx-auto"
-                />
-              ) : (
-                <h1 className="text-4xl md:text-5xl font-normal">
-                  <span className="text-text-primary">jcil.</span>
-                  <span className="text-primary">ai</span>
-                </h1>
-              )
-            ) : theme === 'dark' ? (
-              /* Dark mode: ScrambleText decode animation */
-              <h1 className="font-bebas text-5xl md:text-7xl tracking-tight text-foreground">
-                <ScrambleText
-                  text="JCIL.AI"
-                  duration={1.2}
-                  delayMs={200}
-                  className="inline-block"
-                />
-              </h1>
-            ) : mainLogo ? (
-              mainLogo.startsWith('data:video/') ? (
-                <video
-                  src={mainLogo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="h-16 md:h-20 w-auto mx-auto"
-                />
-              ) : (
-                <Image
-                  src={mainLogo}
-                  alt="JCIL.ai"
-                  width={240}
-                  height={80}
-                  className="h-16 md:h-20 w-auto mx-auto"
-                />
-              )
-            ) : (
-              <h1 className="text-4xl md:text-5xl font-normal">
-                <span className="text-white">jcil.</span>
-                <span className="text-primary">ai</span>
-              </h1>
-            )}
-          </div>
-
-          {/* Greeting with decode effect in dark mode */}
-          {theme === 'dark' ? (
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              <ScrambleText
-                text={`How can we help you ${getTimeGreeting()}?`}
-                duration={0.8}
-                delayMs={800}
-              />
-            </p>
-          ) : (
-            <p className="text-base md:text-lg text-text-secondary">
-              How can we help you {getTimeGreeting()}?
-            </p>
-          )}
-        </div>
-
-        {/* Bottom spacer - balances top spacer to center logo */}
-        <div className="flex-1" />
-
-        {/* Get Started Carousel - at bottom, just above input */}
-        {onCarouselSelect && (
-          <div className="w-full px-1 pb-2">
-            <GetStartedCarousel isAdmin={isAdmin} onSelectCard={onCarouselSelect} />
-          </div>
-        )}
-      </div>
-    );
+    return <WelcomeScreen onSendPrompt={(prompt) => onQuickPrompt?.(prompt)} />;
   }
 
   return (
