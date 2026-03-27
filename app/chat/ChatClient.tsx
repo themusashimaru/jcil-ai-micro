@@ -67,6 +67,8 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
     handleDeleteChat,
     handlePinChat,
     handleMoveToFolder,
+    handleEnterProject,
+    handleExitProject,
     handleChatContinuation,
     handleStop,
   } = useChatConversations({ state, toast });
@@ -142,6 +144,8 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
             handleDeleteChat={handleDeleteChat}
             handlePinChat={handlePinChat}
             handleMoveToFolder={handleMoveToFolder}
+            handleEnterProject={handleEnterProject}
+            handleExitProject={handleExitProject}
             handleSendMessage={handleSendMessage}
             handleStop={handleStop}
             handleChatContinuation={handleChatContinuation}

@@ -30,6 +30,8 @@ interface ChatMainAreaProps {
     folderId: string | null,
     folderData?: { id: string; name: string; color: string | null }
   ) => Promise<void>;
+  handleEnterProject: (folderId: string) => void;
+  handleExitProject: () => void;
   handleSendMessage: (
     content: string,
     attachments: Attachment[],
@@ -66,6 +68,8 @@ export function ChatMainArea({
   handleDeleteChat,
   handlePinChat,
   handleMoveToFolder,
+  handleEnterProject,
+  handleExitProject,
   handleSendMessage,
   handleStop,
   handleChatContinuation,
@@ -173,6 +177,9 @@ export function ChatMainArea({
           onDeleteChat={handleDeleteChat}
           onPinChat={handlePinChat}
           onMoveToFolder={handleMoveToFolder}
+          activeFolderId={state.activeFolderId}
+          onEnterProject={handleEnterProject}
+          onExitProject={handleExitProject}
         />
       </ErrorBoundary>
 

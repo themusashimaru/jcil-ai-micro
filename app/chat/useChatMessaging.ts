@@ -55,6 +55,7 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
     currentChatIdRef,
     profile,
     hasProfile,
+    activeFolderId,
   } = state;
 
   const deviceInfo = useDeviceInfo();
@@ -161,6 +162,22 @@ export function useChatMessaging({ state, handleChatContinuation }: UseChatMessa
         );
         // Update URL to reflect new conversation
         window.history.replaceState(null, '', `/chat/${dbConversationId}`);
+
+        // Auto-assign to active folder if in project mode
+        if (activeFolderId) {
+          try {
+            await fetch(`/api/conversations/${dbConversationId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ folder_id: activeFolderId }),
+            });
+            setChats((prev) =>
+              prev.map((c) => (c.id === dbConversationId ? { ...c, folderId: activeFolderId } : c))
+            );
+          } catch {
+            // Non-fatal — conversation still works without folder assignment
+          }
+        }
       } catch {
         setChats((prev) => prev.filter((c) => c.id !== tempId));
         setCurrentChatId(null);

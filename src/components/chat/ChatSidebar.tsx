@@ -47,6 +47,9 @@ interface ChatSidebarProps {
     folderId: string | null,
     folderData?: { id: string; name: string; color: string | null }
   ) => void;
+  activeFolderId?: string | null;
+  onEnterProject?: (folderId: string) => void;
+  onExitProject?: () => void;
 }
 
 export function ChatSidebar({
@@ -61,7 +64,15 @@ export function ChatSidebar({
   onDeleteChat,
   onPinChat,
   onMoveToFolder,
+  activeFolderId: _activeFolderId,
+  onEnterProject: _onEnterProject,
+  onExitProject: _onExitProject,
 }: ChatSidebarProps) {
+  // Project mode props reserved — will filter sidebar when folder is selected
+  void _activeFolderId;
+  void _onEnterProject;
+  void _onExitProject;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -79,7 +90,13 @@ export function ChatSidebar({
   const [showMoveMenu, setShowMoveMenu] = useState<string | null>(null);
 
   // Scheduled tasks (extracted hook)
-  const { scheduledTasks, fetchScheduledTasks, handlePauseTask, handleResumeTask, handleDeleteTask } = useScheduledTasks();
+  const {
+    scheduledTasks,
+    fetchScheduledTasks,
+    handlePauseTask,
+    handleResumeTask,
+    handleDeleteTask,
+  } = useScheduledTasks();
 
   // Fetch folders on mount
   const fetchFolders = useCallback(async () => {

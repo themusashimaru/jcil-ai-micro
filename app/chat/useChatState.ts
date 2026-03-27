@@ -21,6 +21,7 @@ export function useChatState() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isWaitingForReply, setIsWaitingForReply] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
 
   // UI modals/dialogs
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -94,6 +95,8 @@ export function useChatState() {
     setIsWaitingForReply,
     sidebarCollapsed,
     setSidebarCollapsed,
+    activeFolderId,
+    setActiveFolderId,
 
     // UI modals
     isProfileOpen,

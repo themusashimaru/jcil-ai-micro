@@ -27,6 +27,8 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     setIsStreaming,
     setIsWaitingForReply,
     setSidebarCollapsed,
+    activeFolderId: _activeFolderId,
+    setActiveFolderId,
     setPendingToolSuggestion,
     setMessagesLoading,
     setContinuationDismissed,
@@ -428,6 +430,17 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isStreaming, handleStop, handleNewChat, setSidebarCollapsed]);
 
+  const handleEnterProject = useCallback(
+    (folderId: string) => {
+      setActiveFolderId(folderId);
+    },
+    [setActiveFolderId]
+  );
+
+  const handleExitProject = useCallback(() => {
+    setActiveFolderId(null);
+  }, [setActiveFolderId]);
+
   return {
     handleNewChat,
     handleSelectChat,
@@ -435,6 +448,8 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     handleDeleteChat,
     handlePinChat,
     handleMoveToFolder,
+    handleEnterProject,
+    handleExitProject,
     handleChatContinuation,
     handleStop,
   };
