@@ -80,7 +80,8 @@ function ChatClientInner({ initialConversationId }: ChatClientProps = {}) {
       deepLinkLoaded.current = true;
       handleSelectChat(initialConversationId);
     }
-  }, [initialConversationId, state.chats.length, handleSelectChat]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialConversationId, state.chats.length]);
 
   // Keyboard shortcuts
   const [shortcutsOpen, setShortcutsOpen] = useState(false);

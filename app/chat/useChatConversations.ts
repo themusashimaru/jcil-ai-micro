@@ -235,8 +235,6 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
     setContinuationDismissed(false);
     setPendingToolSuggestion(null);
     if (window.innerWidth < 768) setSidebarCollapsed(true);
-    // Update URL to reflect selected conversation
-    window.history.replaceState(null, '', `/chat/${chatId}`);
 
     try {
       const response = await fetchWithRetry(`/api/conversations/${chatId}/messages`, {
@@ -262,6 +260,8 @@ export function useChatConversations({ state, toast }: UseChatConversationsArgs)
           })
         );
         setMessages(formattedMessages);
+        // Update URL only after successful load
+        window.history.replaceState(null, '', `/chat/${chatId}`);
       }
     } catch (error) {
       log.error('Error loading messages:', error as Error);

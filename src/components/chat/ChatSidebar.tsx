@@ -64,15 +64,12 @@ export function ChatSidebar({
   onDeleteChat,
   onPinChat,
   onMoveToFolder,
-  activeFolderId: _activeFolderId,
+  activeFolderId,
   onEnterProject: _onEnterProject,
   onExitProject: _onExitProject,
 }: ChatSidebarProps) {
-  // Project mode props reserved — will filter sidebar when folder is selected
-  void _activeFolderId;
   void _onEnterProject;
   void _onExitProject;
-
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -149,6 +146,10 @@ export function ChatSidebar({
   // Filter and sort chats
   const filteredChats = useMemo(() => {
     let filtered = chats;
+    // Filter by active folder/project if set
+    if (activeFolderId) {
+      filtered = filtered.filter((chat) => chat.folderId === activeFolderId);
+    }
     if (searchQuery) {
       filtered = filtered.filter(
         (chat) =>
@@ -161,7 +162,7 @@ export function ChatSidebar({
       if (!a.isPinned && b.isPinned) return 1;
       return b.updatedAt.getTime() - a.updatedAt.getTime();
     });
-  }, [chats, searchQuery]);
+  }, [chats, searchQuery, activeFolderId]);
 
   // Group chats by folder
   const { pinnedChats, folderGroups, unorganizedChats } = useMemo(() => {
