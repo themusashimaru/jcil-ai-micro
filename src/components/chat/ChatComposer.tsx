@@ -22,7 +22,6 @@ import { useTypewriterPlaceholder } from './useTypewriterPlaceholder';
 import { ComposerActionBar, TOOL_MODE_INFO } from './ComposerActionBar';
 import { ComposerReplyPreview } from './ComposerReplyPreview';
 import { ComposerCreativeModals } from './ComposerCreativeModals';
-import { ToolsBar } from './ToolsBar';
 
 // Tool mode types - search and research tools only
 export type ToolMode = 'none' | 'search' | 'factcheck' | 'research';
@@ -270,12 +269,6 @@ export const ChatComposer = memo(function ChatComposer({
             />
           </div>
 
-          <ToolsBar
-            onToolSelect={(prompt) => {
-              setMessage(prompt + ' ');
-              textareaRef.current?.focus();
-            }}
-          />
           <ComposerActionBar
             isStreaming={isStreaming}
             disabled={disabled}

@@ -6,8 +6,7 @@
  * Shown when the chat is empty. Gives users instant ways to start
  * a conversation with real, useful prompts they can click.
  *
- * Design: Clean, minimal, action-oriented. No animations that
- * delay interaction. Every element is clickable.
+ * Design: Glassmorphism cards, centered layout, brand-consistent.
  */
 
 import { memo } from 'react';
@@ -86,29 +85,33 @@ export const WelcomeScreen = memo(function WelcomeScreen({
   const displayName = userName ? `, ${userName.split(' ')[0]}` : '';
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 px-4 py-8">
-      {/* Top spacer */}
-      <div className="flex-1 min-h-[10vh]" />
+    <div className="flex flex-col flex-1 min-h-0 px-4 py-6 overflow-y-auto">
+      {/* Top spacer — pushes content toward center */}
+      <div className="flex-[1.2] min-h-[6vh]" />
 
       {/* Greeting */}
-      <div className="text-center mb-8 max-w-2xl mx-auto">
-        <h1 className="text-2xl md:text-3xl font-semibold text-white mb-2">
+      <div className="text-center mb-6 max-w-2xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-2">
           {greeting}
           {displayName}
         </h1>
-        <p className="text-sm text-white/40">Ask me anything, or try one of these to get started</p>
+        <p className="text-sm text-text-muted">
+          Ask me anything, or try one of these to get started
+        </p>
       </div>
 
       {/* Conversation Starters Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl mx-auto w-full mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto w-full mb-6">
         {STARTER_PROMPTS.map((starter) => (
           <button
             key={starter.label}
             onClick={() => onSendPrompt(starter.prompt)}
-            className="group flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 text-left transition-all hover:bg-white/[0.06] hover:border-white/20"
+            className="group flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm p-4 text-left transition-all duration-200 hover:bg-white/[0.07] hover:border-white/[0.15] hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5 active:translate-y-0"
           >
-            <span className="text-lg flex-shrink-0 mt-0.5">{starter.icon}</span>
-            <span className="text-sm text-white/60 group-hover:text-white/80 transition-colors leading-snug">
+            <span className="text-xl flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.06]">
+              {starter.icon}
+            </span>
+            <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors leading-snug font-medium">
               {starter.label}
             </span>
           </button>
@@ -116,11 +119,11 @@ export const WelcomeScreen = memo(function WelcomeScreen({
       </div>
 
       {/* Bottom spacer */}
-      <div className="flex-1 min-h-[5vh]" />
+      <div className="flex-1 min-h-[3vh]" />
 
       {/* Subtle footer */}
       <div className="text-center pb-2">
-        <p className="text-[10px] text-white/20">
+        <p className="text-[10px] text-text-muted opacity-40">
           Powered by Claude Opus 4.6 &middot; 52 AI tools &middot; Christian values
         </p>
       </div>

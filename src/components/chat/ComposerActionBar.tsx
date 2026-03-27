@@ -136,20 +136,16 @@ export function ComposerActionBar({
         <button
           onClick={() => handleCreativeClick('create-image')}
           disabled={isStreaming || disabled}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-50 hover:brightness-110"
-          style={{
-            backgroundColor: 'var(--primary)',
-            color: 'white',
-          }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all disabled:opacity-50 hover:bg-white/10 text-text-muted hover:text-text-primary"
           aria-label="Create image"
           title="Generate an image with AI"
         >
           <svg
-            className="h-3.5 w-3.5"
+            className="h-4 w-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
+            strokeWidth={1.5}
           >
             <path
               strokeLinecap="round"
@@ -157,37 +153,7 @@ export function ComposerActionBar({
               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
             />
           </svg>
-          <span>Image</span>
-        </button>
-
-        {/* Create Video button */}
-        <button
-          onClick={() => {
-            /* Video creation - coming soon */
-          }}
-          disabled={true}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:opacity-40 hover:brightness-110"
-          style={{
-            backgroundColor: 'var(--primary)',
-            color: 'white',
-          }}
-          aria-label="Create video"
-          title="Video creation coming soon"
-        >
-          <svg
-            className="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-            />
-          </svg>
-          <span>Video</span>
+          <span className="hidden sm:inline">Image</span>
         </button>
       </div>
 
